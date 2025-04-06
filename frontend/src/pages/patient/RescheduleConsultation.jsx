@@ -8,6 +8,8 @@ const RescheduleConsultation = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSlot, setSelectedSlot] = useState("");
   const [tempDate, setTempDate] = useState(new Date());
+  const [showConfirmModal, setShowConfirmModal] = useState(false); // ✅ Confirm modal
+  const [showErrorModal, setShowErrorModal] = useState(false); // ✅ Error modal
   const navigate = useNavigate();
 
   const availableSlots = [
@@ -25,27 +27,21 @@ const RescheduleConsultation = () => {
 
   const handleClear = () => {
     setTempDate(new Date());
-    setSelectedSlot(""); // Ensure slot is also cleared
+    setSelectedSlot("");
   };
 
   const handleReschedule = () => {
     if (!selectedSlot) {
-      alert("Please select a time slot.");
+      setShowErrorModal(true); // ✅ Show error modal
       return;
     }
-    const confirmReschedule = window.confirm(
-      `Are you sure you want to reschedule to ${selectedDate.toDateString()} at ${selectedSlot}?`
-    );
-    if (confirmReschedule) {
-      alert(`Consultation rescheduled successfully!\nNew Date: ${selectedDate.toDateString()}\nTime: ${selectedSlot}`);
-      navigate("/patient/booked-consultation");
-    }
+    setShowConfirmModal(true); // ✅ Show confirm modal
   };
 
-  // Function to grey out dates of other months
-  const getDayClassName = (date) => {
-    const currentMonth = new Date(tempDate).getMonth();
-    return date.getMonth() !== currentMonth ? "grey-out" : "";
+  const confirmReschedule = () => {
+    setShowConfirmModal(false);
+    alert(`Consultation rescheduled successfully!\nNew Date: ${selectedDate.toDateString()}\nTime: ${selectedSlot}`);
+    navigate("/patient/booked-consultation");
   };
 
   return (
@@ -58,7 +54,7 @@ const RescheduleConsultation = () => {
           selected={tempDate}
           onChange={(date) => setTempDate(date)}
           inline
-          calendarClassName="custom-calendar" // Custom class to style the calendar
+          calendarClassName="custom-calendar"
         />
         <div className="calendar-buttons" style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
           <button className="apply-button" onClick={handleApply}>Apply</button>
@@ -77,6 +73,42 @@ const RescheduleConsultation = () => {
       </div>
 
       <button onClick={handleReschedule} className="reschedule-button">Reschedule Consultation</button>
+
+      {/* ✅ Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Confirm Reschedule</h3>
+            <p>
+              Are you sure you want to reschedule your consultation to <br />
+              <strong>{selectedDate.toDateString()}</strong> at <strong>{selectedSlot}</strong>?
+            </p>
+            <div className="modal-actions">
+              <button className="cancel-modal-btn" onClick={() => setShowConfirmModal(false)}>
+                No, Cancel
+              </button>
+              <button className="confirm-modal-btn" onClick={confirmReschedule}>
+                Yes, Reschedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Error Modal */}
+      {showErrorModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Missing Time Slot</h3>
+            <p>Please select a time slot before rescheduling your consultation.</p>
+            <div className="modal-actions">
+              <button className="confirm-modal-btn" onClick={() => setShowErrorModal(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
