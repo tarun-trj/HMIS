@@ -5,6 +5,8 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import Patient from "../models/patient.js";
 import Employee from "../models/employee.js";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 dotenv.config();
 
 const router = express.Router();
@@ -17,6 +19,69 @@ const generateTokens = (user) => {
     console.log(refreshToken);
     return { accessToken, refreshToken };
 };
+
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const token = crypto.randomBytes(32).toString("hex");
+    user.resetToken = token;
+    user.tokenExpiry = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Send email
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "hmis.iitg@gmail.com",
+        pass: "uymo hvwu hzgz ktrm",
+      },
+    });
+
+    const resetLink = `http://localhost:5173/reset-password/${token}`;
+    await transporter.sendMail({
+      from: '"MyApp Support" hmis.iitg@gmail.com',
+      to: user.email,
+      subject: "Password Reset",
+      html: `<p>You requested a password reset</p><p><a href="${resetLink}">Click here to reset</a></p>`,
+    });
+
+    res.json({ message: "Reset link sent to your email." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Something went wrong." });
+  }
+});
+
+
+router.post("/reset-password/:token", async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const user = await User.findOne({
+      resetToken: token,
+      tokenExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    user.resetToken = null;
+    user.tokenExpiry = null;
+    await user.save();
+
+    res.json({ message: "Password has been reset." });
+  } catch (err) {
+    res.status(500).json({ message: "Something went wrong." });
+  }
+});
+
 
 
 

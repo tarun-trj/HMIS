@@ -80,9 +80,10 @@ const Login = () => {
             className="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-teal-600"
             required
           />
-          <div className="text-right text-sm italic text-gray-600">
-            Forgot Password ?
+         <div className="text-right text-sm italic text-teal-600 cursor-pointer hover:underline" onClick={() => navigate("/forgot-password")}>
+            Forgot Password?
           </div>
+
           <button
             type="submit"
             className="w-full p-3 bg-teal-700 text-white rounded-lg text-lg hover:bg-teal-800"
