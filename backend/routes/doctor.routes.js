@@ -1,5 +1,5 @@
 import express from 'express';
-import { fetchAppointments, updateAppointments } from '../controllers/doctor.controller.js';
+import { fetchAppointments, updateAppointments, fetchPatientConsultations } from '../controllers/doctor.controller.js';
 import { authenticateUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -8,5 +8,6 @@ const router = express.Router();
 
 router.get('/appointments', authenticateUser, fetchAppointments);
 router.put('/appointments', authenticateUser, updateAppointments);
+router.get('/consultations/:patientId', authenticateUser, fetchPatientConsultations);
 
 export default router;
