@@ -43,7 +43,7 @@ const Sidebar = ({isSidebarOpen}) => {
 
     ],
     pharmacist: [
-      { path: "/pharmacist/", label: "Profile", icon: <Package size={20} /> },
+      { path: "/pharmacist/profile", label: "Profile", icon: <Package size={20} /> },
       { path: "/pharmacist/inventory", label: "Inventory", icon: <Package size={20} /> },
       { path: "/pharmacist/patient-info", label: "Patient Information", icon: <User size={20} /> },
       { path: "/pharmacist/contact-admin", label: "Contact Admin", icon: <List size={20} /> },
