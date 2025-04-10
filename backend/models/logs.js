@@ -38,4 +38,4 @@ const BedLog = mongoose.model('BedLog', BedLogSchema);
 const MedicineInventoryLog = mongoose.model('MedicineInventoryLog', MedicineInventoryLogSchema);
 
 const FinanceLog = mongoose.model('FinanceLog', FinanceLogs);
-export { LoginLog, BedLog, MedicineInventoryLog, FinanceLog};
+export default { LoginLog, BedLog, MedicineInventoryLog, FinanceLog};

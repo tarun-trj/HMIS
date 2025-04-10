@@ -6,7 +6,7 @@ const { Schema } = mongoose;
 const DoctorSchema = new Schema({
   _id: {type:Number}, // Auto-incremented field
   employee_id: { type: Number, ref: 'Employee' }, // THIS IS AUTOGEN BY MONGO
-  department_id: { type: String, ref: 'Department' },
+  department_id: { type: mongoose.Types.ObjectId, ref: 'Department' },
   specialization: String,
   qualification: String,
   experience: Number,
@@ -18,7 +18,7 @@ const DoctorSchema = new Schema({
 const NurseSchema = new Schema({
   _id: {type:Number}, // Auto-incremented field
   employee_id: { type: Number, ref: 'Employee' },
-  assigned_dept: { type: String, ref: 'Department' },
+  assigned_dept: { type: mongoose.Types.ObjectId, ref: 'Department' },
   location: { type: String, enum: ["ward", "icu", "ot", "emergency"] },
   assigned_room: { type: Schema.Types.ObjectId, ref: 'Room' },
   assigned_bed: { type: Schema.Types.ObjectId, ref: 'Bed' },
@@ -31,7 +31,7 @@ const PharmacistSchema = new Schema({
 
 const ReceptionistSchema = new Schema({
   employee_id: { type: Number, ref: 'Employee' },
-  assigned_dept: { type: String, ref: 'Department' }
+  assigned_dept: { type: mongoose.Types.ObjectId, ref: 'Department' }
 });
 
 const AdminSchema = new Schema({

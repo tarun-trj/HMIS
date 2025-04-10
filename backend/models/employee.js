@@ -20,7 +20,7 @@ const EmployeeSchema = new Schema({
     type: String, 
     enum: ["doctor", "nurse", "pharmacist", "receptionist", "admin", "pathologist", "driver"] 
   },
-  dept_id: { type: String, ref: 'Department' },
+  dept_id: { type: mongoose.Types.ObjectId, ref: 'Department' },
   phone_number: String,
   address: String,
   date_of_birth: Date,

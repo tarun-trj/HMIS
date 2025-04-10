@@ -73,3 +73,41 @@ export const updateAppointments = async (req, res) => {
     res.status(500).json({ error: "Server error while updating appointment" });
   }
 };
+
+export const fetchPatientConsultations = async (req, res) => {
+  try {
+    const doctor_id = req.user?.doctor_id;
+    const { patientId } = req.params;
+    
+    if (!doctor_id) {
+      return res.status(400).json({ error: "Doctor ID missing in token" });
+    }
+    
+    if (!patientId) {
+      return res.status(400).json({
+        error: 'Patient ID is required'
+      });
+    }
+    
+    const query = { 
+      patient_id: parseInt(patientId) 
+    };
+    
+    const consultations = await Consultation.find(query)
+      .populate('doctor_id', 'name specialization')
+      .populate('prescription')
+      .sort({ booked_date_time: -1 });
+    
+    if (!consultations.length) {
+      return res.status(404).json({ message: "No consultations found for this patient" });
+    }
+    
+    res.json(consultations);
+  } catch (error) {
+    console.error('Error fetching patient consultations:', error);
+    res.status(500).json({
+      error: 'Server error while fetching consultations',
+      message: error.message
+    });
+  }
+};

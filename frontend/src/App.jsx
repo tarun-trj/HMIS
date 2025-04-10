@@ -176,6 +176,7 @@ function App() {
 
           <Route element={<ProtectedRoute allowedRoles={["pharmacist"]} />}>
             <Route path="/pharmacist" element={<PharmacistDashboard />} />
+            {/* <Route path="/pharmacist/profile" element={<PharmacistDashboard />} /> */}
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["pathologist"]} />}>
