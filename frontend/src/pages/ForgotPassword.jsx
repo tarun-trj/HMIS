@@ -1,14 +1,18 @@
 import { useState } from "react";
 import axios from "axios";
+import { useLocation } from "react-router-dom";
+
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const location = useLocation();
+  const userType = location.state?.userType;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("/api/auth/forgot-password", { email });
+      const res = await axios.post("http://localhost:5000/api/auth/forgot-password", { email,userType });
       setMessage(res.data.message);
     } catch (err) {
       setMessage("Failed to send reset email.");
