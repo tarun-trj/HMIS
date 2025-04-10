@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from "react-router-dom";
+
 
 const Registration = () => {
   const [formData, setFormData] = useState({
@@ -19,7 +21,9 @@ const Registration = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [passwordError, setPasswordError] = useState('');
+  const navigate = useNavigate();
+  
+  // const [passwordError, setPasswordError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,67 +32,76 @@ const Registration = () => {
       [name]: value
     });
     
-    // Clear password error when user is typing in either password field
-    if (name === 'password' || name === 'confirmPassword') {
-      setPasswordError('');
-    }
+    // // Clear password error when user is typing in either password field
+    // if (name === 'password' || name === 'confirmPassword') {
+    //   setPasswordError('');
+    // }
   };
 
-  const validatePasswords = () => {
-    if (formData.password !== formData.confirmPassword) {
-      setPasswordError('Passwords do not match');
-      return false;
-    }
+  // const validatePasswords = () => {
+  //   if (formData.password !== formData.confirmPassword) {
+  //     setPasswordError('Passwords do not match');
+  //     return false;
+  //   }
     
-    if (formData.password.length < 6) {
-      setPasswordError('Password must be at least 6 characters long');
-      return false;
-    }
+  //   if (formData.password.length < 6) {
+  //     setPasswordError('Password must be at least 6 characters long');
+  //     return false;
+  //   }
     
-    return true;
-  };
+  //   return true;
+  // };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
     
     // Validate passwords before submission
-    if (!validatePasswords()) {
-      return;
-    }
+    // if (!validatePasswords()) {
+    //   return;
+    // }
     
     setIsSubmitting(true);
 
-    // In a real application, you would send this data to your API
-    console.log('Submitting registration data:', formData);
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:5000/api/reception/register-patient', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        setMessage({ type: 'success', text: data.message || 'Patient registered successfully!' });
+  
+        setFormData({
+          patientName: '',
+          aadharId: '',
+          dob: '',
+          gender: '',
+          bloodGroup: '',
+          email: '',
+          height: '',
+          weight: '',
+          address: '',
+          emergencyNumber: '',
+          mobile: '',
+          password: '',
+          confirmPassword: ''
+        });
+        navigate("/receptionist/profile")
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Registration failed' });
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+    } finally {
       setIsSubmitting(false);
-      setMessage({
-        type: 'success',
-        text: 'Patient registered successfully!'
-      });
-      
-      // Reset form after successful submission
-      setFormData({
-        patientName: '',
-        aadharId: '',
-        dob: '',
-        gender: '',
-        bloodGroup: '',
-        email: '',
-        height: '',
-        weight: '',
-        address: '',
-        emergencyNumber: '',
-        mobile: '',
-        password: '',
-        confirmPassword: ''
-      });
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setMessage(null), 3000);
-    }, 1000);
+      setTimeout(() => setMessage(null), 5000);
+    }
   };
 
   return (
@@ -184,7 +197,7 @@ const Registration = () => {
               />
             </div>
             
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Password:
               </label>
@@ -197,7 +210,7 @@ const Registration = () => {
                 minLength="6"
                 required
               />
-            </div>
+            </div> */}
           </div>
           
           {/* Right Column */}
@@ -276,7 +289,7 @@ const Registration = () => {
               />
             </div>
             
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Confirm Password:
               </label>
@@ -291,7 +304,7 @@ const Registration = () => {
               {passwordError && (
                 <p className="mt-1 text-red-500 text-sm">{passwordError}</p>
               )}
-            </div>
+            </div> */}
           </div>
         </div>
         

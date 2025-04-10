@@ -3,6 +3,7 @@ import { Consultation } from '../models/consultation.js';
 import bcrypt from 'bcrypt';
 
 
+
 export const registerPatient = async (req, res) => {
   try {
     const {
@@ -20,9 +21,9 @@ export const registerPatient = async (req, res) => {
       password
     } = req.body;
 
-    const existing = await Patient.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ message: 'Patient with this email already exists' });
+    const existingPatient = await Patient.findOne({ $or: [{ email }, { aadhar_number: aadharId }] });
+    if (existingPatient) {
+        return res.status(400).json({ message: 'Email or Aadhar ID already exists.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
