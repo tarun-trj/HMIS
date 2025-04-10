@@ -1,5 +1,7 @@
 // redisClient.js
 import { createClient } from "redis";
+import dotenv from "dotenv";
+dotenv.config();
 
 const redisClient = createClient({
     username: 'default',
@@ -7,7 +9,7 @@ const redisClient = createClient({
     host: "redis-12075.crce182.ap-south-1-1.ec2.redns.redis-cloud.com",
     port: 12075
   },
-  password: "9lkUAAbExluM55piGER0z09PEq0TOCXM"
+  password: process.env.REDIS_PASSWORD
 });
 
 redisClient.on("error", (err) => console.error("Redis error:", err));
