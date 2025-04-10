@@ -31,35 +31,22 @@ const Registration = () => {
       ...formData,
       [name]: value
     });
-    
-    // // Clear password error when user is typing in either password field
-    // if (name === 'password' || name === 'confirmPassword') {
-    //   setPasswordError('');
-    // }
   };
 
-  // const validatePasswords = () => {
-  //   if (formData.password !== formData.confirmPassword) {
-  //     setPasswordError('Passwords do not match');
-  //     return false;
-  //   }
-    
-  //   if (formData.password.length < 6) {
-  //     setPasswordError('Password must be at least 6 characters long');
-  //     return false;
-  //   }
-    
-  //   return true;
-  // };
+
 
   const handleSubmit = async(e) => {
     e.preventDefault();
-    
-    // Validate passwords before submission
-    // if (!validatePasswords()) {
-    //   return;
-    // }
-    
+    // Mobile number validation
+    const mobileRegex = /^\d{10}$/;
+    if (!mobileRegex.test(formData.mobile)) {
+      setMessage({ type: 'error', text: 'Mobile number must be exactly 10 digits.' });
+      return;
+    }
+    if (!mobileRegex.test(formData.emergencyNumber)) {
+      setMessage({ type: 'error', text: 'Emergency contact number must be exactly 10 digits.' });
+      return;
+    }
     setIsSubmitting(true);
 
     try {

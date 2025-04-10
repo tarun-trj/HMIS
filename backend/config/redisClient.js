@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const redisClient = createClient({
-    username: 'default',
+  username: 'default',
   socket: {
     host: "redis-12075.crce182.ap-south-1-1.ec2.redns.redis-cloud.com",
     port: 12075

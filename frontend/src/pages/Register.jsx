@@ -58,7 +58,17 @@ const RegisterPage = () => {
     e.preventDefault();
   
     if (!validatePasswords()) return;
-  
+    
+    // Mobile number validation
+    const mobileRegex = /^\d{10}$/;
+    if (!mobileRegex.test(formData.mobile)) {
+      setMessage({ type: 'error', text: 'Mobile number must be exactly 10 digits.' });
+      return;
+    }
+    if (!mobileRegex.test(formData.emergencyNumber)) {
+      setMessage({ type: 'error', text: 'Emergency contact number must be exactly 10 digits.' });
+      return;
+    }
     setIsSubmitting(true);
   
     try {
