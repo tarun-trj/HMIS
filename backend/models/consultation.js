@@ -47,7 +47,7 @@ const ConsultationSchema = new Schema({
   appointment_type: {type: String, enum: ["regular", "follow-up", "emergency","consultation"]},
   actual_start_datetime: Date,
   remark: String,
-  diagnosis: [{ type: String, ref: 'Diagnosis' }], // Array of diagnosis IDs
+  diagnosis: [{ type: Schema.Types.ObjectId, ref: 'Diagnosis' }], // Array of diagnosis IDs
   prescription: [{ type: Number, ref: 'Prescription' }],
   reports: [ReportSchema], // Array of embedded documents
   bill_id: { type: Schema.Types.ObjectId, ref: 'Bill' },

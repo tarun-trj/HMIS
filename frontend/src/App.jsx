@@ -70,7 +70,7 @@ import MedicineTrends from "./pages/admin/analytics/MedicineTrends";
 import FinancialTrends from "./pages/admin/analytics/FinancialTrends";
 import BedOccupancyTrends from "./pages/admin/analytics/BedOccupancyTrends";
 import DoctorWorkingTrends from "./pages/admin/analytics/DoctorWorkingTrends";
-import MedicineEffectivenessVsHumanTraits from "./pages/admin/analytics/MedicineEffectivenessVsHumanTraits";
+import TextualFeedbackAnalysis from "./pages/admin/analytics/FeedbackTextAnalysis";
 import Feedbacks from "./pages/admin/analytics/Feedbacks";
 
 import PublicData from "./pages/PublicData";
@@ -212,7 +212,7 @@ function App() {
             <Route path="/admin/analytics/financial-trends" element={<FinancialTrends />} />
             <Route path="/admin/analytics/bed-occupancy-trends" element={<BedOccupancyTrends />} />
             <Route path="/admin/analytics/doctor-working-trends" element={<DoctorWorkingTrends />} />
-            <Route path="/admin/analytics/medicine-effectiveness" element={<MedicineEffectivenessVsHumanTraits />} />
+            <Route path="/admin/analytics/text-feedback" element={<TextualFeedbackAnalysis />} />
             <Route path="/admin/analytics/feedbacks" element={<Feedbacks />} />
           </Route>
         </Routes>
