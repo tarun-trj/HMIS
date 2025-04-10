@@ -6,7 +6,7 @@ const { Schema } = mongoose;
 const EquipmentSchema = new Schema({
   _id: Number, // Auto-incremented field
   equipment_name: String,
-  owner_id: { type: String, ref: 'Department' },
+  owner_id: { type: mongoose.Types.ObjectId, ref: 'Department' },
   quantity: Number,
   installation_date: Date,
   last_service_date: Date,

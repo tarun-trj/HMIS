@@ -20,7 +20,7 @@ const RoomSchema = new Schema({
   room_number: Number,
   room_type: { type: String, enum: ["general", "private", "semi_private"] },
   bed_count: Number,
-  dept_id: { type: String, ref: 'Department' },
+  dept_id: { type: mongoose.Types.ObjectId, ref: 'Department' },
   beds: [BedSchema] // Embedded array of beds
 });
 
