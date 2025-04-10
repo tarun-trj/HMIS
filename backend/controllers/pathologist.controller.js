@@ -44,7 +44,7 @@ export const searchPatientInfoAndTest = async (req, res) => {
         }
 
         const patientDetails = await Patient.findOne({ _id : Number(searchById) }).select(
-            'name patient_info.age patient_info.bloodgroup phone_number'
+            'name patient_info.age patient_info.bloodGrp phone_number'
         );
 
         if (!patientDetails) {
