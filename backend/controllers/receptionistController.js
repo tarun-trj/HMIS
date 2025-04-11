@@ -5,7 +5,7 @@ import  BedLog  from '../models/logs.js'; // Ensure the correct path to the BedL
 import Bill from '../models/bill.js'; // Ensure the correct path to the Bill model
 // import mongoose from 'mongoose';
 import crypto from 'crypto';
-import { sendPasswordEmail } from "../utils/sendMail.js"; // adjust the path
+import { sendPasswordEmail } from "../config/sendMail.js"; // adjust the path
 
 // Controller for new patient registration
 export const registerNewPatient = async (req, res) => {

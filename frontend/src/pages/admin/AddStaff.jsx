@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 
 const EmployeeForm = () => {
   const [formData, setFormData] = useState({
@@ -46,16 +47,51 @@ const EmployeeForm = () => {
     }
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+
+
+  // const handleImageUpload = (e) => {
+  //   const file = e.target.files[0];
+  //   if (file) {
+  //     const reader = new FileReader();
+  //     reader.onloadend = () => {
+  //       setProfilePreview(reader.result);
+  //     };
+  //     reader.readAsDataURL(file);
+  //   }
+  // };
+
+  
+const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const imageForm = new FormData();
+  imageForm.append("file", file);
+  imageForm.append("upload_preset", "your_upload_preset"); // 🔁 Replace with your Cloudinary upload preset
+
+  try {
+    const res = await axios.post(
+      "https://api.cloudinary.com/v1_1/your_cloud_name/image/upload", // 🔁 Replace with your Cloudinary cloud name
+      imageForm
+    );
+
+    const imageUrl = res.data.secure_url;
+
+    setFormData((prev) => ({
+      ...prev,
+      profile_pic: imageUrl, // ✅ update profile_pic in formData
+    }));
+
+    setProfilePreview(imageUrl); // optional
+
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+  }
+};
+
+
+
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -113,7 +149,7 @@ const EmployeeForm = () => {
           </div>
           
           <div className="w-full md:w-4/5">
-            <div>
+            <div className="mt-8">
               <label htmlFor="name" className={labelStyles}>Name:</label>
               <input
                 type="text"
@@ -126,7 +162,7 @@ const EmployeeForm = () => {
               />
             </div>
             
-            <div className="mt-4">
+            <div className="mt-6">
               <label htmlFor="aadhar_id" className={labelStyles}>Aadhar ID:</label>
               <input
                 type="text"
@@ -138,17 +174,7 @@ const EmployeeForm = () => {
               />
             </div>
 
-            <div className="mt-4">
-            <label htmlFor="address" className={labelStyles}>Address:</label>
-            <textarea
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              rows="1"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500"
-            ></textarea>
-          </div>
+
 
           </div>
         </div>
@@ -309,18 +335,31 @@ const EmployeeForm = () => {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="password" className={labelStyles}>Password:</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className={inputStyles}
-              required
-            />
-          </div>
+          {/* <div>
+  <label htmlFor="password" className={labelStyles}>Password:</label>
+  <input
+    type="password"
+    id="password"
+    name="password"
+    value={formData.password}
+    onChange={handleChange}
+    className={inputStyles}
+    required
+  />
+</div> */}
+
+<div>
+  <label htmlFor="address" className={labelStyles}>Address:</label>
+  <textarea
+    id="address"
+    name="address"
+    value={formData.address}
+    onChange={handleChange}
+    rows="2"
+    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500"
+  ></textarea>
+</div>
+
 
           
           {/* Bank Details Section */}
