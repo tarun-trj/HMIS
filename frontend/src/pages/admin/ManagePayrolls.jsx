@@ -46,7 +46,7 @@ const ManagePayrolls = () => {
   };
 
   const handleGeneratePayslip = (id) => {
-    console.log('Generate payslip for employee:', id);
+    console.log('Update Salary for employee:', id);
     // In a real application, this would trigger payslip generation
   };
 
@@ -117,7 +117,7 @@ const ManagePayrolls = () => {
                       onClick={() => handleGeneratePayslip(employee.id)}
                       className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm w-full"
                     >
-                      Generate Payslip
+                      Update Salary
                     </button>
                   </td>
                   <td className="py-2 px-1">
