@@ -6,7 +6,8 @@ const LabSchema = new Schema({
 });
 
 const DepartmentSchema = new Schema({
-  dept_name: { type: String, unique: true },
+  dept_id:{ type: String, unique: true},
+  dept_name: String,
   labs: [LabSchema] // Embedded array of labs
 }, { timestamps: true });
 

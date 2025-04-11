@@ -64,6 +64,6 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/facility', facilityRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/public-data', publicRoutes);
-
+app.use('/api/common', commonPageRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

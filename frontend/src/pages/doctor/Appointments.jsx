@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -49,7 +50,15 @@ const Appointments = () => {
 
   return (
     <div className="p-6 bg-white">
-      <h1 className="text-2xl font-bold mb-6">Appointments</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Appointments</h1>
+        <Link 
+          to="/doctor/book-appointment" 
+          className="px-4 py-2 bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+        >
+          Add Appointment
+        </Link>
+      </div>
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-4 text-gray-700 font-medium mb-4">
           <div className="p-3">Appointment Id</div>
