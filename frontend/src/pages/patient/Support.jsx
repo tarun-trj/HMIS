@@ -9,7 +9,7 @@ const Support = () => {
   const chatContainerRef = useRef(null);
   
   // API configuration - using environment variables
-  const API_KEY = 'AIzaSyDO_9k4-rG2UoeRW5AQirXBvx6_XRVZpBo';
+  const API_KEY = '';
   const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
   useEffect(() => {
