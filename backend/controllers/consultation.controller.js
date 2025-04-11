@@ -257,6 +257,11 @@ export const fetchBillByConsultationId = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get consultation by ID
+ * @route   GET /api/consultations/:consultationId/prescription
+ * @access  Protected (Patient)
+ */
 export const fetchPrescriptionByConsultationId = async (req, res) => {
   try {
     console.log("Received request for prescription.");
@@ -268,26 +273,44 @@ export const fetchPrescriptionByConsultationId = async (req, res) => {
         populate: {
           path: 'entries.medicine_id',
           model: 'Medicine',
-          select: 'med_name' // only fetch the medicine name
+          select: 'med_name' // fetch only medicine name
         }
       });
 
     // === REMOVE THIS BLOCK ONCE PRESCRIPTIONS ARE FULLY SAVED IN DB ===
     if (!consultation || !consultation.prescription || consultation.prescription.length === 0) {
       console.warn("Consultation or prescriptions not found, using dummy data.");
-      return res.status(200).json({ prescription: dummy.prescription[0], dummy: true });
+      return res.status(200).json({ 
+        prescription: {
+          ...dummy.prescription[0],
+          consultationInfo: {
+            id,
+            date: dummy.date,
+            doctor: dummy.doctor,
+            location: dummy.location,
+            details: dummy.details
+          }
+        }, 
+        dummy: true 
+      });
     }
     // ====================================================================
 
     const presc = consultation.prescription[0];
 
-    // Add med_name as 'medicine' for each entry
+    // Format entries to include medicine name
     const formattedPrescription = {
       ...presc.toObject(),
       entries: presc.entries.map(entry => ({
         ...entry.toObject(),
         medicine: entry.medicine_id?.med_name || "Unknown"
-      }))
+      })),
+      consultationInfo: {
+        id: consultation._id,
+        date: consultation.date,
+        doctor: consultation.doctor,
+        location: consultation.location
+      }
     };
 
     return res.status(200).json({ prescription: formattedPrescription });
@@ -298,3 +321,40 @@ export const fetchPrescriptionByConsultationId = async (req, res) => {
   }
 };
 
+
+/**
+ * @desc    Get consultation by ID
+ * @route   GET /api/consultations/:consultationId/view/diagnosis
+ * @access  Protected (Patient)
+ */
+export const fetchDiagnosisByConsultationId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log("Received request for consultation" + id);
+    const consultation = await Consultation.findById(id)
+      .populate("doctor_id", "name")
+      .populate("diagnosis");
+
+    // If consultation not found, return dummy data
+    if (!consultation) {
+      return res.status(200).json({ consultation: dummy, dummy: true });
+    }
+
+    // Format for frontend
+    const formatted = {
+      id: consultation._id,
+      date: consultation.booked_date_time?.toISOString().split("T")[0],
+      doctor: consultation.doctor_id?.name || "Unknown",
+      location: "Room 101", // Placeholder
+      details: consultation.reason,
+      remark: consultation.remark,
+      diagnosis: consultation.diagnosis,
+    };
+
+    return res.status(200).json({ consultation: formatted });
+
+  } catch (err) {
+    console.error("Error fetching consultation:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};

@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 // Fetch full consultation (but only use diagnosis in UI)
 export const fetchDiagnosisByConsultationId = async (consultationId) => {
   try {
-    const response = await fetch(`http://localhost:5000/api/consultations/${consultationId}/view`);
+    const response = await fetch(`http://localhost:5000/api/consultations/${consultationId}/diagnosis`);
     if (!response.ok) throw new Error("Failed to fetch consultation");
     const data = await response.json();
     return data.consultation;

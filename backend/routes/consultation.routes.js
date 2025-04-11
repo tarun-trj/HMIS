@@ -4,7 +4,8 @@ import {
   rescheduleConsultation,
   fetchConsultationById,
   fetchBillByConsultationId,
-  fetchPrescriptionByConsultationId
+  fetchPrescriptionByConsultationId,
+  fetchDiagnosisByConsultationId
 } from '../controllers/consultation.controller.js';
 
 
@@ -17,6 +18,7 @@ router.post('/book', bookConsultation);
 router.put('/reschedule/:consultationId', rescheduleConsultation);
 
 // GET:
+router.get('/:consultationId/diagnosis', fetchDiagnosisByConsultationId);
 router.get('/:consultationId/view', fetchConsultationById);
 router.get('/:consultationId/bill', fetchBillByConsultationId);
 router.get('/:consultationId/prescription', fetchPrescriptionByConsultationId);
