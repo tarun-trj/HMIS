@@ -47,6 +47,7 @@ const ConsultationSchema = new Schema({
   appointment_type: {type: String, enum: ["regular", "follow-up", "emergency","consultation"]},
   actual_start_datetime: Date,
   remark: String,
+  additional_info: String, // to keep speech to text data (transcript)
   diagnosis: [{ type: Schema.Types.ObjectId, ref: 'Diagnosis' }], // Array of diagnosis IDs
   prescription: [{ type: Number, ref: 'Prescription' }],
   reports: [ReportSchema], // Array of embedded documents
