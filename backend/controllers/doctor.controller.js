@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
-import { Consultation } from '../models/consultation.js';
+import { Consultation, Prescription } from '../models/consultation.js';
+import Diagnosis from '../models/diagnosis.js'; 
 import Patient from '../models/patient.js';
 
 // Utility to format a 30-min time slot
@@ -163,6 +164,151 @@ export const fetchPatientProgress = async (req, res) => {
       success: false,
       message: 'Server error while fetching patient progress',
       error: error.message
+    });
+  }
+};
+
+export const addDiagnosis = async (req, res) => {
+  try {
+    const doctor_id = req.user?.doctor_id;
+    const { consultationId } = req.params;
+    const { diagnosis } = req.body; // Single diagnosis string
+    
+    if (!doctor_id) {
+      return res.status(400).json({ error: "Doctor ID missing in token" });
+    }
+    
+    if (!consultationId || !diagnosis || typeof diagnosis !== 'string') {
+      return res.status(400).json({ error: "Consultation ID and diagnosis string are required" });
+    }
+    
+    // Find the consultation and verify doctor has permission
+    const consultation = await Consultation.findOne({
+      _id: consultationId,
+      doctor_id: doctor_id
+    });
+    
+    if (!consultation) {
+      return res.status(404).json({ error: "Consultation not found or access denied" });
+    }
+    
+    // Create new diagnosis object
+    const newDiagnosis = new Diagnosis({ name: diagnosis });
+    const savedDiagnosis = await newDiagnosis.save();
+    
+    // Update consultation with new diagnosis ID
+    const updatedConsultation = await Consultation.findByIdAndUpdate(
+      consultationId,
+      { $addToSet: { diagnosis: savedDiagnosis._id } },
+      { new: true }
+    ).populate('diagnosis');
+    
+    res.status(200).json({
+      success: true,
+      data: updatedConsultation
+    });
+  } catch (error) {
+    console.error('Error adding diagnosis:', error);
+    res.status(500).json({
+      error: 'Server error while adding diagnosis',
+      message: error.message
+    });
+  }
+};
+
+export const addRemarks = async (req, res) => {
+  try {
+    const doctor_id = req.user?.doctor_id;
+    const { consultationId } = req.params;
+    const { remark } = req.body;
+    
+    if (!doctor_id) {
+      return res.status(400).json({ error: "Doctor ID missing in token" });
+    }
+    
+    if (!consultationId || !remark) {
+      return res.status(400).json({ error: "Consultation ID and remark are required" });
+    }
+    
+    // Find the consultation and verify doctor has permission
+    const consultation = await Consultation.findOne({
+      _id: consultationId,
+      doctor_id: doctor_id
+    });
+    
+    if (!consultation) {
+      return res.status(404).json({ error: "Consultation not found or access denied" });
+    }
+    
+    // Update consultation with new remark
+    const updatedConsultation = await Consultation.findByIdAndUpdate(
+      consultationId,
+      { remark: remark },
+      { new: true }
+    );
+    
+    res.status(200).json({
+      success: true,
+      data: updatedConsultation
+    });
+  } catch (error) {
+    console.error('Error adding remark:', error);
+    res.status(500).json({
+      error: 'Server error while adding remark',
+      message: error.message
+    });
+  }
+};
+
+export const addPrescription = async (req, res) => {
+  try {
+    const doctor_id = req.user?.doctor_id;
+    const { consultationId } = req.params;
+    const { prescriptionData } = req.body;
+    
+    if (!doctor_id) {
+      return res.status(400).json({ error: "Doctor ID missing in token" });
+    }
+    
+    if (!consultationId || !prescriptionData || !prescriptionData.entries) {
+      return res.status(400).json({ error: "Consultation ID and prescription data are required" });
+    }
+    
+    // Find the consultation and verify doctor has permission
+    const consultation = await Consultation.findOne({
+      _id: consultationId,
+      doctor_id: doctor_id
+    });
+    
+    if (!consultation) {
+      return res.status(404).json({ error: "Consultation not found or access denied" });
+    }
+    
+    // Create a new prescription
+    const newPrescription = new Prescription({
+      prescriptionDate: new Date(),
+      status: "pending",
+      entries: prescriptionData.entries
+    });
+    
+    const savedPrescription = await newPrescription.save();
+    
+    // Update consultation with new prescription
+    const updatedConsultation = await Consultation.findByIdAndUpdate(
+      consultationId,
+      { $push: { prescription: savedPrescription._id } },
+      { new: true }
+    ).populate('prescription');
+    
+    res.status(200).json({
+      success: true,
+      data: updatedConsultation
+    });
+  } catch (error) {
+    console.error('Error adding prescription:', error);
+    res.status(500).json({
+      error: 'Server error while adding prescription',
+      message: error.message
     });
   }
 };
