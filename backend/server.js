@@ -20,6 +20,7 @@ import facilityRoutes from './routes/facility.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import cookieParser from "cookie-parser";
 import publicRoutes from './routes/public.routes.js';
+import commonPageRoutes from './routes/commonPages.routes.js';
 import consultationRoutes from './routes/consultation.routes.js';
 
 dotenv.config();
