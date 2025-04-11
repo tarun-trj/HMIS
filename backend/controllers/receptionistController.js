@@ -69,7 +69,7 @@ export const registerNewPatient = async (req, res) => {
             gender: gender.toLowerCase(),
             address,
             patient_info: {
-                blood_group: bloodGroup,
+                bloodGrp: bloodGroup,
                 height,
                 weight
             }
@@ -78,7 +78,7 @@ export const registerNewPatient = async (req, res) => {
         // Save the patient to the database
         const savedPatient = await newPatient.save();
         // Send email with password
-        await sendPasswordEmail(email,PlainPassword );
+        await sendPasswordEmail(email,PlainPassword,);
 
         res.status(201).json({
             message: 'Patient registered successfully.',

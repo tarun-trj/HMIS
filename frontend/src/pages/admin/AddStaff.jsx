@@ -5,10 +5,9 @@ const EmployeeForm = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
     profile_pic: '',
     role: '',
-    dept_id: '',
+    dept_id: '67f565394f3afafa19aa8f23',
     phone_number: '',
     emergency_phone: '',
     address: '',
@@ -27,9 +26,12 @@ const EmployeeForm = () => {
   });
 
   const [profilePreview, setProfilePreview] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(name, value);
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData({
@@ -45,57 +47,94 @@ const EmployeeForm = () => {
         [name]: value
       });
     }
+    console.log(formData);
   };
 
-
-
-  // const handleImageUpload = (e) => {
-  //   const file = e.target.files[0];
-  //   if (file) {
-  //     const reader = new FileReader();
-  //     reader.onloadend = () => {
-  //       setProfilePreview(reader.result);
-  //     };
-  //     reader.readAsDataURL(file);
-  //   }
-  // };
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData((prev) => ({
+        ...prev,
+        profile_pic: file
+      }));
+      console.log(formData);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   
-const handleImageUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const imageForm = new FormData();
-  imageForm.append("file", file);
-  imageForm.append("upload_preset", "your_upload_preset"); // 🔁 Replace with your Cloudinary upload preset
-
-  try {
-    const res = await axios.post(
-      "https://api.cloudinary.com/v1_1/your_cloud_name/image/upload", // 🔁 Replace with your Cloudinary cloud name
-      imageForm
-    );
-
-    const imageUrl = res.data.secure_url;
-
-    setFormData((prev) => ({
-      ...prev,
-      profile_pic: imageUrl, // ✅ update profile_pic in formData
-    }));
-
-    setProfilePreview(imageUrl); // optional
-
-  } catch (error) {
-    console.error("Cloudinary upload error:", error);
-  }
-};
-
-
-
-
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
-    console.log(formData);
+    const data= new FormData();
+  // Append simple fields
+  Object.entries(formData).forEach(([key, value]) => {
+    if (key === 'bank_details') {
+      Object.entries(value).forEach(([bk, bv]) => {
+        data.append(`bank_details[${bk}]`, bv); // Send as nested keys or convert to JSON
+      });
+    } else if (key === 'profile_pic' && value instanceof File) {
+      data.append(key, value);
+    } else {
+      data.append(key, value);
+    }
+  });   
+  setIsSubmitting(true); 
+  try {
+    const response = await axios.post('http://localhost:5000/api/admin/add-staff', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  
+    const data1 = response.data;
+  
+    setMessage({ type: 'success', text: data1.message || 'Staff registered successfully!' });
+  
+    // Reset form
+    setFormData({
+      name: '',
+      email: '',
+      profile_pic: '',
+      role: '',
+      dept_id: '67f565394f3afafa19aa8f23',
+      phone_number: '',
+      emergency_phone: '',
+      address: '',
+      date_of_birth: '',
+      date_of_joining: '',
+      gender: '',
+      blood_group: '',
+      salary: '',
+      aadhar_id: '',
+      bank_details: {
+        bank_name: '',
+        account_number: '',
+        ifsc_code: '',
+        branch_name: ''
+      }
+    });
+    setProfilePreview(null);
+  
+    // Optionally navigate
+    // navigate("/receptionist/profile");
+  
+  } catch (error) {
+    console.error('Registration error:', error);
+  
+    if (error.response && error.response.data && error.response.data.message) {
+      setMessage({ type: 'error', text: error.response.data.message });
+    } else {
+      setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+    }
+  
+  } finally {
+    setIsSubmitting(false);
+    setTimeout(() => setMessage(null), 5000);
+  }
+  
+
     // Here you would send the data to your API
   };
 
@@ -106,6 +145,12 @@ const handleImageUpload = async (e) => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Add Staff</h1>
+      {message && (
+        <div className={`mb-6 p-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {message.text}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="bg-gray-100 rounded-md p-6">
         <div className="flex flex-col md:flex-row gap-6 mb-6">
           {/* Profile Picture section with image preview */}
@@ -121,7 +166,13 @@ const handleImageUpload = async (e) => {
                   />
                   <button
                     type="button"
-                    onClick={() => setProfilePreview(null)}
+                    onClick={() => {
+                      setProfilePreview(null); // Reset the preview image
+                      setFormData((prev) => ({
+                        ...prev,
+                        profile_pic: '' // Clear the file from formData
+                      }));
+                    }}
                     className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
                     title="Remove image"
                   >
@@ -303,6 +354,8 @@ const handleImageUpload = async (e) => {
                 required
               >
                 <option value="">Select Department</option>
+                <option value="67f565394f3afafa19aa8f23">Cardiology</option>
+                <option value="67f565394f3afafa19aa8f23">Neurology</option>  
                 {/* Department options would be populated from API */}
               </select>
             </div>
@@ -334,19 +387,6 @@ const handleImageUpload = async (e) => {
               />
             </div>
           </div>
-
-          {/* <div>
-  <label htmlFor="password" className={labelStyles}>Password:</label>
-  <input
-    type="password"
-    id="password"
-    name="password"
-    value={formData.password}
-    onChange={handleChange}
-    className={inputStyles}
-    required
-  />
-</div> */}
 
 <div>
   <label htmlFor="address" className={labelStyles}>Address:</label>

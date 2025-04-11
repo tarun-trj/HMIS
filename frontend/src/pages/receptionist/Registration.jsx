@@ -184,20 +184,7 @@ const Registration = () => {
               />
             </div>
             
-            {/* <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2">
-                Password:
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                minLength="6"
-                required
-              />
-            </div> */}
+
           </div>
           
           {/* Right Column */}
@@ -274,24 +261,7 @@ const Registration = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
               />
-            </div>
-            
-            {/* <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2">
-                Confirm Password:
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border ${passwordError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${passwordError ? 'focus:ring-red-500' : 'focus:ring-teal-500'}`}
-                required
-              />
-              {passwordError && (
-                <p className="mt-1 text-red-500 text-sm">{passwordError}</p>
-              )}
-            </div> */}
+            </div> 
           </div>
         </div>
         
