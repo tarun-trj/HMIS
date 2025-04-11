@@ -1,16 +1,46 @@
 import React, { useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import "../../styles/patient/RescheduleConsultation.css";
 
+export const rescheduleConsultation = async (consultationId, newDateTime) => {
+  try {
+    const res = await fetch(`http://localhost:5000/api/patients/${consultationId}/reschedule`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ newDateTime }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to reschedule consultation.");
+    }
+
+    return { success: true, consultation: data.consultation };
+  } catch (err) {
+    console.error("Reschedule error:", err);
+    return { success: false, error: err.message };
+  }
+};
+
 const RescheduleConsultation = () => {
+  // states
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSlot, setSelectedSlot] = useState("");
   const [tempDate, setTempDate] = useState(new Date());
+
+  // inbuilt
+  const { consultationId } = useParams();
+  const navigate = useNavigate();
+
+  // Message boards
   const [showConfirmModal, setShowConfirmModal] = useState(false); // ✅ Confirm modal
   const [showErrorModal, setShowErrorModal] = useState(false); // ✅ Error modal
-  const navigate = useNavigate();
+  const [errorMessage, setErrorMessage] = useState(""); // 🆕 To store dynamic error message
 
   const availableSlots = [
     "9:00 AM - 10:00 AM",
@@ -30,13 +60,34 @@ const RescheduleConsultation = () => {
     setSelectedSlot("");
   };
 
-  const handleReschedule = () => {
+  const handleReschedule = async () => {
     if (!selectedSlot) {
-      setShowErrorModal(true); // ✅ Show error modal
+      setErrorMessage("Please select a time slot before rescheduling.");
+      setShowErrorModal(true);
       return;
     }
-    setShowConfirmModal(true); // ✅ Show confirm modal
-  };
+  
+    // Extract start time from selected slot
+    const [startTime] = selectedSlot.split(" - ");
+    const [time, meridiem] = startTime.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+  
+    if (meridiem === "PM" && hours < 12) hours += 12;
+    if (meridiem === "AM" && hours === 12) hours = 0;
+  
+    const newDateTime = new Date(selectedDate);
+    newDateTime.setHours(hours, minutes, 0, 0);
+  
+    const result = await rescheduleConsultation(consultationId, newDateTime);
+  
+    if (result.success) {
+      alert("Consultation successfully rescheduled!");
+      navigate("/patient/booked-consultation");
+    } else {
+      setErrorMessage(result.error); // 🆕 Set backend error message
+      setShowErrorModal(true);
+    }
+  };  
 
   const confirmReschedule = () => {
     setShowConfirmModal(false);
@@ -74,7 +125,7 @@ const RescheduleConsultation = () => {
 
       <button onClick={handleReschedule} className="reschedule-button">Reschedule Consultation</button>
 
-      {/* ✅ Confirmation Modal */}
+      {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -95,12 +146,12 @@ const RescheduleConsultation = () => {
         </div>
       )}
 
-      {/* ✅ Error Modal */}
+      {/* Error Modal */}
       {showErrorModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Missing Time Slot</h3>
-            <p>Please select a time slot before rescheduling your consultation.</p>
+            <h3>Error!</h3>
+            <p>{errorMessage}</p>
             <div className="modal-actions">
               <button className="confirm-modal-btn" onClick={() => setShowErrorModal(false)}>
                 OK

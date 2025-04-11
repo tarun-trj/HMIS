@@ -43,28 +43,28 @@ export const fetchConsultationsByPatientId = async (req, res) => {
       const dummyConsultations = [
         {
           id: "6617f98e0a5f2dbf8c2d1234",
-          date: "2025-04-03",
+          date: "2025-05-05",
           doctor: "Dr. Smith",
           location: "Room 101",
           details: "Checkup",
         },
         {
           id: "6617f98e0a5f2dbf8c2d1235",
-          date: "2025-04-05",
+          date: "2025-05-05",
           doctor: "Dr. Adams",
           location: "Room 203",
           details: "Follow-up",
         },
         {
           id: "6617f98e0a5f2dbf8c2d1236",
-          date: "2025-04-07",
+          date: "2025-05-07",
           doctor: "Dr. Williams",
           location: "Room 305",
           details: "Diagnosis",
         },
         {
           id: "6617f98e0a5f2dbf8c2d1237",
-          date: "2025-04-10",
+          date: "2025-05-10",
           doctor: "Dr. Brown",
           location: "Room 408",
           details: "Consultation",
@@ -153,3 +153,111 @@ export const sendFeedback = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+/**
+ * @desc    Reschedule a consultation
+ * @route   PUT /api/consultations/:consultationId/reschedule
+ * @access  Protected (assumes authentication middleware)
+ */
+export const rescheduleConsultation = async (req, res) => {
+  try {
+    const { consultationId } = req.params;
+    const { newDateTime } = req.body;
+    
+    if (!newDateTime) {
+      return res.status(400).json({ success: false, error: "New date/time must be provided." });
+    }
+
+    const newDate = new Date(newDateTime);
+    const now = new Date();
+
+    // Check if newDateTime is in the past
+    if (newDate <= now) {
+      return res.status(400).json({
+        success: false,
+        error: "The new consultation time must be in the future.",
+      });
+    }
+
+    // Check if at least 1 hour ahead
+    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+    if (newDate < oneHourLater) {
+      return res.status(400).json({
+        success: false,
+        error: "Consultation must be rescheduled at least 1 hour from now.",
+      });
+    }
+
+    const consultation = await Consultation.findById(consultationId);
+    if (!consultation) {
+      return res.status(404).json({ success: false, error: "Consultation not found." });
+    }
+
+    if (!["scheduled", "ongoing"].includes(consultation.status)) {
+      return res.status(400).json({
+        success: false,
+        error: `Consultation cannot be rescheduled because it is marked as '${consultation.status}'.`,
+      });
+    }
+
+    consultation.booked_date_time = newDate;
+    const updatedConsultation = await consultation.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Consultation rescheduled successfully.",
+      consultation: updatedConsultation,
+    });
+  } catch (error) {
+    console.error("Error rescheduling consultation:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Server error while rescheduling.",
+    });
+  }
+};
+
+
+// @desc    Delete a consultation by ID
+// @route   DELETE /api/consultations/:id
+// @access  Public (you can secure it with auth middleware if needed)
+export const cancelConsultation = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const consultation = await Consultation.findById(id);
+
+    if (!consultation) {
+      return res.status(404).json({
+        success: false,
+        message: "Consultation not found",
+        error: "Invalid consultation ID",
+      });
+    }
+
+    // Disallow cancellation if it's already completed, ongoing, or cancelled
+    if (["completed", "ongoing", "cancelled"].includes(consultation.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot cancel a ${consultation.status} consultation`,
+        error: "Invalid status for cancellation",
+      });
+    }
+
+    consultation.status = "cancelled";
+    await consultation.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Consultation cancelled successfully",
+    });
+  } catch (err) {
+    console.error("Error cancelling consultation:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while cancelling consultation",
+      error: err.message,
+    });
+  }
+};
+
