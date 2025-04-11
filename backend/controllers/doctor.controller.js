@@ -111,3 +111,58 @@ export const fetchPatientConsultations = async (req, res) => {
     });
   }
 };
+
+export const fetchPatientProgress = async (req, res) => {
+  try {
+    const doctor_id = req.user?.doctor_id;
+    const { patientId } = req.params;
+    
+    if (!doctor_id) {
+      return res.status(400).json({ error: "Doctor ID missing in token" });
+    }
+    
+    if (!patientId) {
+      return res.status(400).json({
+        error: 'Patient ID is required'
+      });
+    }
+
+    // First verify this doctor has access to this patient (has consultations)
+    const hasConsultation = await Consultation.findOne({
+      doctor_id: doctor_id,
+      patient_id: parseInt(patientId)
+    });
+
+    if (!hasConsultation) {
+      return res.status(403).json({ 
+        error: "Unauthorized: No consultations found for this patient under your care" 
+      });
+    }
+    
+    // Fetch the patient with vitals
+    const patient = await Patient.findById(parseInt(patientId))
+      .select('name vitals');
+    
+    if (!patient) {
+      return res.status(404).json({ error: "Patient not found" });
+    }
+    
+    // Sort vitals by date (most recent first)
+    const sortedVitals = patient.vitals.sort((a, b) => {
+      return new Date(b.date) - new Date(a.date);
+    });
+    
+    res.status(200).json({
+      success: true,
+      patientName: patient.name,
+      data: sortedVitals
+    });
+  } catch (error) {
+    console.error('Error fetching patient progress:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching patient progress',
+      error: error.message
+    });
+  }
+};
