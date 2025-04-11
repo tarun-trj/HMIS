@@ -46,8 +46,11 @@ import DailyProgress from "./pages/patient/DailyProgress";
 // Medical Staff Pages
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import Appointments from "./pages/doctor/Appointments";
-import DoctorAddAppointment from "./pages/doctor/DoctorAddAppointment";
-import PatientConsulatation from "./pages/doctor/PatientConsultation"
+// import DoctorAddAppointment from "./pages/doctor/DoctorAddAppointment";
+// import PatientConsulatation from "./pages/doctor/PatientConsultation"
+import DocPatientConsultations from "./pages/doctor/DocPatientConsultations";
+import DocConsultationDetails from "./pages/doctor/DocConsultationDetails";
+import DocDailyProgress from "./pages/doctor/DocDailyProgress";
 
 import NurseDashboard from "./pages/nurse/NurseDashboard";
 import PatientRecords from "./pages/nurse/PatientRecords";
@@ -170,12 +173,14 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["doctor"]} />}>
             <Route path="/doctor" element={<DoctorDashboard />} />
             <Route path="/doctor/appointments" element={<Appointments />} />
-            <Route path="/doctor/book-appointment" element={<DoctorAddAppointment />} />
-            
+            {/* <Route path="/doctor/book-appointment" element={<DoctorAddAppointment />} /> */}
+            <Route path="/patient-consultations/:patientId" element={<DocPatientConsultations />} />
+            <Route path="/patient-consultations/:patientId/consultation/:consultationId" element={<DocConsultationDetails />} />
+            <Route path="/patient-progress/:patientId" element={<DocDailyProgress />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["doctor","nurse"]} />}>
         
-            <Route path=":role/patient-consultations/:consultationId?" element={<PatientConsulatation />} />
+            {/* <Route path=":role/patient-consultations/:consultationId?" element={<PatientConsulatations />} /> */}
             {/* Patient progress and Patient consultation share same page ,, if consulatation id exists, go into further details about particular patient*/}
           </Route>
         
