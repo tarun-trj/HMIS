@@ -26,7 +26,12 @@ export const FetchPatientProfile = async (req, res) => {
   }
 };
 
-export const fetchConsultations = async (req, res) => {
+/**
+ * @desc    Get consultation list by patientId
+ * @route   GET /api/patients/:id/consultations
+ * @access  Protected (Patient)
+ */
+export const fetchConsultationsByPatientId = async (req, res) => {
   try {
     const { patientId } = req.params;
     console.log(`Received request for consultations of patientId: ${patientId}`);
@@ -37,28 +42,28 @@ export const fetchConsultations = async (req, res) => {
       // Return dummy data
       const dummyConsultations = [
         {
-          id: 1,
+          id: "6617f98e0a5f2dbf8c2d1234",
           date: "2025-04-03",
           doctor: "Dr. Smith",
           location: "Room 101",
           details: "Checkup",
         },
         {
-          id: 2,
+          id: "6617f98e0a5f2dbf8c2d1235",
           date: "2025-04-05",
           doctor: "Dr. Adams",
           location: "Room 203",
           details: "Follow-up",
         },
         {
-          id: 3,
+          id: "6617f98e0a5f2dbf8c2d1236",
           date: "2025-04-07",
           doctor: "Dr. Williams",
           location: "Room 305",
           details: "Diagnosis",
         },
         {
-          id: 4,
+          id: "6617f98e0a5f2dbf8c2d1237",
           date: "2025-04-10",
           doctor: "Dr. Brown",
           location: "Room 408",

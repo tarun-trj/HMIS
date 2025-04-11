@@ -1,8 +1,12 @@
 import express from 'express';
 import {
   bookConsultation,
-  rescheduleConsultation
-} from '../controllers/consultationController.js';
+  rescheduleConsultation,
+  fetchConsultationById,
+  fetchBillByConsultationId,
+  fetchPrescriptionByConsultationId
+} from '../controllers/consultation.controller.js';
+
 
 const router = express.Router();
 
@@ -11,5 +15,11 @@ router.post('/book', bookConsultation);
 
 // PUT: Reschedule a consultation
 router.put('/reschedule/:consultationId', rescheduleConsultation);
+
+// GET:
+router.get('/:consultationId/view', fetchConsultationById);
+router.get('/:consultationId/bill', fetchBillByConsultationId);
+router.get('/:consultationId/prescription', fetchPrescriptionByConsultationId);
+
 
 export default router;

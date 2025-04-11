@@ -5,19 +5,14 @@ const router = express.Router();
 // TODO: Add routes for patient
 import {
     FetchPatientProfile,
-    fetchConsultations,
+    fetchConsultationsByPatientId,
     getAllDoctors,
     sendFeedback,
 } from '../controllers/patientController.js';
 
-import {
-    getConsultationById
-} from '../controllers/consultation.controller.js';
-
-router.get('/profile/:patientId', FetchPatientProfile);
-router.get('/consultations/:patientId', fetchConsultations);
-router.get('/doctors', getAllDoctors)
+router.get('/:patientId/consultations', fetchConsultationsByPatientId);
 router.post('/:patientId/consultations/:consultationId/feedback', sendFeedback);
-router.get("/consultations/:id", getConsultationById);
+router.get('/doctors', getAllDoctors)
+router.get('/profile/:patientId', FetchPatientProfile);
 
 export default router;
