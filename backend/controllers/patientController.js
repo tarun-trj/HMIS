@@ -26,18 +26,49 @@ export const FetchPatientProfile = async (req, res) => {
   }
 };
 
-
 export const fetchConsultations = async (req, res) => {
   try {
     const { patientId } = req.params;
+    console.log(`Received request for consultations of patientId: ${patientId}`);
 
     let consultations = await Consultation.find({ patient_id: patientId }).sort({ booked_date_time: -1 });
 
     if (!consultations.length) {
-      return res.status(404).json({ message: 'No consultations found' });
+      // Return dummy data
+      const dummyConsultations = [
+        {
+          id: 1,
+          date: "2025-04-03",
+          doctor: "Dr. Smith",
+          location: "Room 101",
+          details: "Checkup",
+        },
+        {
+          id: 2,
+          date: "2025-04-05",
+          doctor: "Dr. Adams",
+          location: "Room 203",
+          details: "Follow-up",
+        },
+        {
+          id: 3,
+          date: "2025-04-07",
+          doctor: "Dr. Williams",
+          location: "Room 305",
+          details: "Diagnosis",
+        },
+        {
+          id: 4,
+          date: "2025-04-10",
+          doctor: "Dr. Brown",
+          location: "Room 408",
+          details: "Consultation",
+        },
+      ];
+      console.log(`No consultations found. Returning dummy data for patientId: ${patientId}`);
+      return res.status(200).json({ consultations: dummyConsultations, dummy: true });
     }
 
-    // Populate fields conditionally if not empty
     consultations = await Consultation.populate(consultations, [
       { path: 'doctor_id', select: 'name specialization' },
       { path: 'created_by', select: 'name role' },
@@ -48,10 +79,10 @@ export const fetchConsultations = async (req, res) => {
 
     res.status(200).json(consultations);
   } catch (error) {
+    console.error(`Error fetching consultations for patientId: ${req.params.patientId}`, error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
 
 // @route   GET /api/doctors
 const getAllDoctors = async (req, res) => {
@@ -78,7 +109,6 @@ const getAllDoctors = async (req, res) => {
 export {
   getAllDoctors,
 };
-
 
 
 /**

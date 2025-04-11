@@ -1,19 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-// Dummy fetch function to simulate fetching consultations by patient ID
-const fetchConsultationsByPatientId = async (patientId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const dummyConsultations = [
-        { id: 1, date: "2025-04-03", doctor: "Dr. Smith", location: "Room 101", details: "Checkup" },
-        { id: 2, date: "2025-04-05", doctor: "Dr. Adams", location: "Room 203", details: "Follow-up" },
-        { id: 3, date: "2025-04-07", doctor: "Dr. Williams", location: "Room 305", details: "Diagnosis" },
-        { id: 4, date: "2025-04-10", doctor: "Dr. Brown", location: "Room 408", details: "Consultation" },
-      ];
-      resolve(dummyConsultations);
-    }, 500);
-  });
+// -------------------------------------------------
+// ADD ID FUNCTIONALITY. DUMMY PATIENT ID IN USE !!!
+//--------------------------------------------------
+
+/**
+ * @desc    Fetch all consultations for a patient
+ * @param   {String|Number} patientId - The ID of the patient
+ * @returns {Array} - List of consultations
+ */
+export const fetchConsultationsByPatientId = async (patientId) => {
+  try {
+    const res = await fetch(`http://localhost:5000/api/patients/consultations/${patientId}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.consultations) {
+      throw new Error("Failed to fetch consultations");
+    }
+
+    return data.consultations;
+  } catch (err) {
+    console.error("Error fetching consultations:", err);
+  }
 };
 
 const fetchConsultationById = async (consultationId) => {
