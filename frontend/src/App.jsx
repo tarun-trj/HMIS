@@ -46,6 +46,7 @@ import DailyProgress from "./pages/patient/DailyProgress";
 // Medical Staff Pages
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import Appointments from "./pages/doctor/Appointments";
+import DoctorAddAppointment from "./pages/doctor/DoctorAddAppointment";
 import PatientConsulatation from "./pages/doctor/PatientConsultation"
 
 import NurseDashboard from "./pages/nurse/NurseDashboard";
@@ -169,6 +170,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["doctor"]} />}>
             <Route path="/doctor" element={<DoctorDashboard />} />
             <Route path="/doctor/appointments" element={<Appointments />} />
+            <Route path="/doctor/book-appointment" element={<DoctorAddAppointment />} />
             
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["doctor","nurse"]} />}>
