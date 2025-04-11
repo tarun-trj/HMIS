@@ -9,7 +9,7 @@ const Support = () => {
   const chatContainerRef = useRef(null);
   
   // API configuration - using environment variables
-  const API_KEY = ''
+  const API_KEY = '';
   const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
   useEffect(() => {
@@ -113,7 +113,46 @@ const Support = () => {
           parts: [
             {
               text: `You are a helpful assistant for a Hospital Management System. 
-                    Respond to the following question with helpful information: ${message}`
+                    Respond to the following question with helpful information:
+                    System Features:
+                    1. Profile Management
+                    - View personal patient information
+                    - Update personal details
+                    - See basic health metrics (age, blood group, height, weight)
+                    - Bed and room assignment
+
+                    2. Appointments Management
+                    - View scheduled appointments
+                    - See appointment status (Scheduled/Completed)
+                    - Appointments with different doctors (Dr. Smith, Dr. Johnson, Dr. Lee)
+
+                    3. Consultations
+                    - Book a new consultation
+                    - View previous consultations
+                    - View booked consultations
+                    - Access daily progress and consultation history
+
+                    4. Billing
+                    - Access and manage medical bills
+
+                    5. Feedback System
+                    - Provide ratings and comments about consultations
+                    - Select specific consultations for feedback
+                    - Rate experience with star system
+
+                    6. Help and Support
+                    - Access customer support information
+
+                    Contact Information:
+                    - Email: patient@hospital.com
+                    - Phone: +1 (555) 123-4567
+
+                    Guidelines:
+                    - Be patient-centric and empathetic
+                    - Provide clear, concise instructions
+                    - Help users navigate system features
+                    - If query is complex, suggest contacting customer support 
+                    ${message}`
             }
           ]
         }
