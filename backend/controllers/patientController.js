@@ -55,7 +55,6 @@ export const registerPatient = async (req, res) => {
 };
 
 
-
 // @desc Get full patient profile
 export const FetchPatientProfile = async (req, res) => {
   try {
@@ -130,3 +129,42 @@ export {
   getAllDoctors,
 };
 
+
+
+/**
+ * @desc    Submit feedback for a consultation by the patient
+ * @route   POST /api/patient/:patientId/consultations/:consultationId/feedback
+ * @access  Protected (Patient)
+ */
+export const sendFeedback = async (req, res) => {
+  try {
+    const { patientId, consultationId } = req.params;
+    const { rating, comments } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Rating must be between 1 and 5.' });
+    }
+
+    const consultation = await Consultation.findById(consultationId);
+
+    if (!consultation) {
+      return res.status(404).json({ message: 'Consultation not found' });
+    }
+
+    if (consultation.patient_id != patientId) {
+      return res.status(403).json({ message: 'Unauthorized: Feedback can only be submitted by the patient who had the consultation' });
+    }
+
+    consultation.feedback = {
+      rating,
+      comments,
+      created_at: new Date()
+    };
+
+    await consultation.save();
+
+    res.status(200).json({ message: 'Feedback submitted successfully', feedback: consultation.feedback });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
