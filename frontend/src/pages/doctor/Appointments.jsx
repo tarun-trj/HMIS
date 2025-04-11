@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,Link } from "react-router-dom";
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -37,6 +37,12 @@ const Appointments = () => {
       <h1 className="text-2xl font-bold mb-6">Appointments</h1>
       <div className="max-w-4xl mx-auto">
         {/* Table Header */}
+        <Link 
+          to="/doctor/book-appointment" 
+          className="px-4 py-2 bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+        >
+          Add Appointment
+        </Link>
         <div className="grid grid-cols-4 text-gray-700 font-medium mb-4">
           <div className="p-3">Appointment ID</div>
           <div className="p-3">Patient Name</div>
