@@ -8,29 +8,47 @@ export const fetchConsultationsByPatientId = async (patientId) => {
     const res = await fetch(`http://localhost:5000/api/patients/${patientId}/consultations`);
     const data = await res.json();
 
-    if (!res.ok || !data.consultations) {
+    if (!res.ok) {
       throw new Error("Failed to fetch consultations");
     }
 
-    // Get current date (without time) to compare safely
+    // Check if we received dummy data or actual consultations
+    if (data.dummy) {
+      return data.consultations; // Return the dummy data as is
+    }
+
+    // Handle actual data
+    // Get current date to compare
     const now = new Date();
 
-    // Filter only past consultations (date < now)
-    const futureConsultations = data.consultations.filter((c) => {
-      const consultDate = new Date(c.date); // assumes ISO or YYYY-MM-DD
-      return consultDate >= now;
-    });
+    // Filter only past consultations
+    const pastConsultations = Array.isArray(data) 
+      ? data.filter((c) => {
+          const consultDate = new Date(c.booked_date_time);
+          return consultDate < now;
+        })
+      : [];
 
-    // Sort by ascending date (closest first)
-    futureConsultations.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-
-    return futureConsultations;
+    // Transform the data to match the component's expected format
+    const formattedConsultations = pastConsultations.map(consult => ({
+      id: consult._id,
+      date: new Date(consult.booked_date_time).toLocaleString(),
+      doctor: consult.doctor.name,
+      location: consult.appointment_type,
+      doctorId: consult.doctor_id,
+      status: consult.status,
+      reason: consult.reason,
+      // Add any other properties your component needs
+    }));
+      
+    console.log(formattedConsultations);
+    return formattedConsultations;
   } catch (err) {
     console.error("Error fetching consultations:", err);
     return []; // fallback return
   }
 };
+
 
 export const deleteConsultationById = async (consultationId) => {
   try {
@@ -63,7 +81,7 @@ const BookedConsultation = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const navigate = useNavigate();
-  const patientId = "123";
+  const patientId = "10013";
 
   useEffect(() => {
     const loadConsultations = async () => {
@@ -79,6 +97,14 @@ const BookedConsultation = () => {
     setShowCancelModal(true);
   };
 
+  const confirmReschedule = () => {
+    if (selectedConsultation) {
+      
+      // Clear selection after navigation
+      setSelectedConsultation(null);
+    }
+  };
+  
   const handleReschedule = (consult) => {
     setSelectedConsultation(consult);
   };

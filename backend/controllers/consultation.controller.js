@@ -1,6 +1,8 @@
 import { Consultation } from '../models/consultation.js';
 import Medicine from '../models/inventory.js';
 import Patient from '../models/patient.js';
+import { Doctor } from '../models/staff.js';
+import Employee from '../models/employee.js'; 
 
 // dummy consultation remove after integrated with db
 const dummy = {
@@ -173,24 +175,67 @@ export const rescheduleConsultation = async (req, res) => {
  */
 export const fetchConsultationById = async (req, res) => {
   try {
-    const { id } = req.params;
-    console.log("Received request for consultation" + id);
-    const consultation = await Consultation.findById(id)
-      .populate("doctor_id", "name")
-      .populate("diagnosis")
-      .populate("prescription")
-      .populate("reports");
+    const { consultationId: id } = req.params;
+    console.log("Received request for consultation " + id);
 
-    // If consultation not found, return dummy data
+    let consultation = await Consultation.findById(id)
+      .populate("diagnosis")
+      .populate({
+        path: "prescription",
+        populate: {
+          path: "entries.medicine_id",  // Accessing 'medicine_id' in 'entries'
+          model: "Medicine",  // Explicitly specifying the Medicine model to populate
+          select: "med_name"  // Select only the 'med_name' field from Medicine schema
+        }
+      })
+      .populate("reports")
+      .populate("bill_id")
+      .populate("created_by", "name role");
+
     if (!consultation) {
+      const dummy = {
+        id: "dummy-id",
+        date: null,
+        doctor: {
+          id: null,
+          name: "Unknown",
+          specialization: null,
+          profilePic: null
+        },
+        location: "N/A",
+        details: "No consultation found",
+        reason: "N/A",
+        status: "N/A",
+        appointment_type: "N/A",
+        actual_start_datetime: null,
+        remark: "",
+        diagnosis: [],
+        prescription: [],
+        reports: [],
+        bill_id: null,
+        recordedAt: null,
+        feedback: null
+      };
       return res.status(200).json({ consultation: dummy, dummy: true });
     }
 
-    // Format for frontend
+    // Fetch doctor and employee info
+    const doctor = await Doctor.findById(consultation.doctor_id);
+    let employee = null;
+
+    if (doctor && doctor.employee_id) {
+      employee = await Employee.findById(doctor.employee_id);
+    }
+
     const formatted = {
       id: consultation._id,
       date: consultation.booked_date_time?.toISOString().split("T")[0],
-      doctor: consultation.doctor_id?.name || "Unknown",
+      doctor: {
+        id: doctor?._id,
+        name: employee?.name || "Unknown Doctor",
+        specialization: doctor?.specialization || null,
+        profilePic: employee?.profile_pic || null
+      },
       location: "Room 101", // Placeholder
       details: consultation.reason,
       reason: consultation.reason,

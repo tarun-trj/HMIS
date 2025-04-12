@@ -129,6 +129,8 @@ export const findPayrollById = async (req, res) => {
       // Find all payrolls for this employee
       const employeePayrolls = await Payroll.find({ employee_id: employeeId });
 
+      //update has to be made here to fetch from finance logs
+
       res.status(200).json({ payrolls: employeePayrolls });
   } catch (error) {
       res.status(500).json({ message: "Server error", error: error.message });
