@@ -56,6 +56,9 @@ import NurseDashboard from "./pages/nurse/NurseDashboard";
 import PatientRecords from "./pages/nurse/PatientRecords";
 import PatientConsultations from "./pages/nurse/PatientConsultations"; // Add import for the new component
 import PatientConsultationDetails from "./pages/nurse/PatientConsultationDetails";
+import NurPatientProgress from "./pages/nurse/NurPatientProgress";
+import NurDetailedProgress from "./pages/nurse/NurDetailedProgress";
+import NurAddVitals from "./pages/nurse/NurAddVitals";
 
 import PharmacistDashboard from "./pages/pharmacist/PharmacistDashboard";
 
@@ -86,6 +89,7 @@ import Feedbacks from "./pages/admin/analytics/Feedbacks";
 
 import PublicData from "./pages/PublicData";
 import AddBill from "./pages/receptionist/AddBill";
+
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -191,7 +195,9 @@ function App() {
             <Route path="/nurse/patient-records/:patientId/consultations" element={<PatientConsultations />} />
                 {/* Add this new route for consultation details */}
                 <Route path="/nurse/patient-consultations/:consultationId" element={<PatientConsultationDetails />} />
-              
+                <Route path="/nurse/patient-progress/:patientId" element={<NurPatientProgress />} />
+                <Route path="/nurse/daily-progress/details/:entry" element={<NurDetailedProgress />} />
+                <Route path="/nurse/daily-progress/add-vitals" element={<NurAddVitals />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["pharmacist"]} />}>
