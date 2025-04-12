@@ -15,8 +15,11 @@ const PrescriptionEntrySchema = new Schema({
 
 const PrescriptionSchema = new Schema({
   _id: {type:Number}, // Auto-incremented field
-  prescriptionDate: Date,
-  status: { 
+  prescriptionDate: {
+    type: Date,
+    default: Date.now
+  },
+  status: {
     type: String, 
     enum: ["pending", "dispensed", "partially_dispensed", "cancelled"] 
   },
