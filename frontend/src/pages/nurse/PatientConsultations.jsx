@@ -129,6 +129,9 @@ const PatientConsultations = () => {
   const handleBackClick = () => {
     navigate('/nurse/patient-records');
   };
+  const handleDailyProgressClick = () => {
+    navigate(`/nurse/patient-progress/${patientId}`);
+  };
 
   useEffect(() => {
     fetchPatientDetails();
@@ -167,7 +170,12 @@ const PatientConsultations = () => {
           <h1 className="text-2xl font-bold text-gray-800">
             Patient Consultations
           </h1>
-          
+          <button 
+            onClick={handleDailyProgressClick}
+            className="px-4 py-2 bg-green-100 text-green-800 font-medium rounded-md hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          >
+            <span>Daily Progress</span>
+          </button>
           <div className="w-24"></div> {/* Empty div for flex spacing */}
         </div>
         
