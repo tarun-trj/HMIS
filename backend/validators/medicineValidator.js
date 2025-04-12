@@ -19,15 +19,15 @@ const InventoryItemJoiSchema = Joi.object({
 // Main Medicine Schema
 const MedicineJoiSchema = Joi.object({
     _id: Joi.number().integer().optional(), // Auto-incremented
-    med_name: Joi.string().min(1).required(),
+    med_name: Joi.string().min(1).optional(),
     effectiveness: Joi.string()
         .valid("high", "medium", "low")
-        .required(),
+        .optional(),
     dosage_form: Joi.string()
         .valid("tablet", "capsule", "syrup", "injection", "cream", "ointment", "other")
-        .required(),
-    manufacturer: Joi.string().min(1).required(),
-    available: Joi.boolean().required(),
+        .optional(),
+    manufacturer: Joi.string().min(1).optional(),
+    available: Joi.boolean().optional(),
     inventory: Joi.array().items(InventoryItemJoiSchema).optional() // Allow empty or omitted if no stock yet
 });
 
