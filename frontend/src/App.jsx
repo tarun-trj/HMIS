@@ -79,7 +79,7 @@ import AnalyticsDashboard from "./pages/admin/analytics/AnalyticsDashboard";
 import IllnessTrends from "./pages/admin/analytics/IllnessTrends";
 import MedicineTrends from "./pages/admin/analytics/MedicineTrends";
 import FinancialTrends from "./pages/admin/analytics/FinancialTrends";
-import BedOccupancyTrends from "./pages/admin/analytics/BedOccupancyTrends";
+import DoctorPerformanceMetrics from "./pages/admin/analytics/DoctorPerformanceMetrics";
 import DoctorWorkingTrends from "./pages/admin/analytics/DoctorWorkingTrends";
 import TextualFeedbackAnalysis from "./pages/admin/analytics/FeedbackTextAnalysis";
 import Feedbacks from "./pages/admin/analytics/Feedbacks";
@@ -230,7 +230,7 @@ function App() {
             <Route path="/admin/analytics/illness-trends" element={<IllnessTrends />} />
             <Route path="/admin/analytics/medicine-trends" element={<MedicineTrends />} />
             <Route path="/admin/analytics/financial-trends" element={<FinancialTrends />} />
-            <Route path="/admin/analytics/bed-occupancy-trends" element={<BedOccupancyTrends />} />
+            <Route path="/admin/analytics/doctor-performance-trends" element={<DoctorPerformanceMetrics />} />
             <Route path="/admin/analytics/doctor-working-trends" element={<DoctorWorkingTrends />} />
             <Route path="/admin/analytics/text-feedback" element={<TextualFeedbackAnalysis />} />
             <Route path="/admin/analytics/feedbacks" element={<Feedbacks />} />
