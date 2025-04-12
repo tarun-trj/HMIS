@@ -9,7 +9,8 @@ import {
     getAllDoctors,
     sendFeedback,
     rescheduleConsultation,
-    cancelConsultation
+    cancelConsultation,
+    registerPatient
 } from '../controllers/patientController.js';
 
 // GETs
@@ -17,6 +18,7 @@ router.get('/doctors', getAllDoctors); // No params, safest to be first
 router.get('/profile/:patientId', FetchPatientProfile); // Single param
 router.get('/:patientId/consultations', fetchConsultationsByPatientId);
 router.post('/:patientId/consultations/:consultationId/feedback', sendFeedback);
+router.post('/register', registerPatient);
 
 // PUTs
 router.put('/:consultationId/reschedule', rescheduleConsultation);

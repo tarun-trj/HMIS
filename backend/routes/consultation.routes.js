@@ -18,10 +18,10 @@ router.post('/book', bookConsultation);
 router.put('/reschedule/:consultationId', rescheduleConsultation);
 
 // GET:
-router.get('/:consultationId/diagnosis', fetchDiagnosisByConsultationId);
+router.get('/:consultationId/diagnosis', fetchConsultationById);
 router.get('/:consultationId/view', fetchConsultationById);
-router.get('/:consultationId/bill', fetchBillByConsultationId);
-router.get('/:consultationId/prescription', fetchPrescriptionByConsultationId);
+router.get('/:consultationId/bill', fetchConsultationById);
+router.get('/:consultationId/prescription', fetchConsultationById);
 
 
 export default router;
