@@ -13,8 +13,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 const generateTokens = (user) => {
-  const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "1m" });
-  const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: "10m" });
+  const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: "1h" });
+  const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, { expiresIn: "24h" });
   return { accessToken, refreshToken };
 };
 
@@ -116,7 +116,7 @@ export const refreshToken = (req, res) => {
 
   try {
     const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
-    const accessToken = jwt.sign({ id: decoded.id }, JWT_SECRET, { expiresIn: "10m" });
+    const accessToken = jwt.sign({ id: decoded.id }, JWT_SECRET, { expiresIn: "1h" });
     res.json({ accessToken });
   } catch (err) {
     res.status(403).json({ error: "Invalid refresh token" });
