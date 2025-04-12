@@ -38,5 +38,5 @@ const EmployeeJoiSchema = Joi.object({
 
 export {
     BankDetailsJoiSchema,
-    EmployeeJoiSchema
+     EmployeeJoiSchema
 }
