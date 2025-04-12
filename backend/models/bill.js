@@ -40,4 +40,5 @@ const BillSchema = new Schema({
 }, { timestamps: true });
 
 const Bill = mongoose.model('Bill', BillSchema);
-export default Bill;
+const BillItem = mongoose.model('BillItem', BillItemSchema);
+export default {Bill,BillItem};

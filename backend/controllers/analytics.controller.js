@@ -1,5 +1,163 @@
 import {Consultation,Feedback} from '../models/consultation.js';
 import {Room,DailyOccupancy} from '../models/facility.js';
+import LogModels from '../models/logs.js';
+import Medicine from '../models/inventory.js';
+import BillModels  from '../models/bill.js';
+import {PrescriptionEntry,Prescription} from '../models/consultation.js';
+
+const {Bill,BillItem} = BillModels;
+const {MedicineInventoryLog} = LogModels;
+
+export const addMedicine = async (req, res) => {
+  try {
+    const {
+      med_name,
+      effectiveness,
+      dosage_form,
+      manufacturer,
+      available,
+      inventory
+    } = req.body;
+
+    const newMedicine = new Medicine({
+      med_name,
+      effectiveness,
+      dosage_form,
+      manufacturer,
+      available,
+      inventory
+    });
+
+    const savedMedicine = await newMedicine.save();
+    res.status(201).json({ message: 'Medicine added successfully', data: savedMedicine });
+
+  } catch (error) {
+    console.error('Error adding medicine:', error);
+    res.status(500).json({ error: 'Failed to add medicine', details: error.message });
+  }
+};
+
+export const addInventoryLog = async (req, res) => {
+  try {
+    const {
+      med_id,
+      quantity,
+      total_cost,
+      order_date,
+      supplier,
+      status
+    } = req.body;
+
+    const newLog = new MedicineInventoryLog({
+      med_id,
+      quantity,
+      total_cost,
+      order_date,
+      supplier,
+      status
+    });
+
+    const savedLog = await newLog.save();
+    res.status(201).json({ message: 'Inventory log added successfully', data: savedLog });
+
+  } catch (error) {
+    console.error('Error adding inventory log:', error);
+    res.status(500).json({ error: 'Failed to add inventory log', details: error.message });
+  }
+};
+
+export const addItemToBill = async (req, res) => {
+  try {
+    const { billId } = req.params;
+    const itemData = req.body;
+
+    // Step 1: Find the bill
+    const bill = await Bill.findById(billId);
+    if (!bill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    // Step 2: Create a new BillItem document in the collection
+    const newBillItem = new BillItem(itemData);
+    await newBillItem.save();
+
+    // Step 3: Push the saved BillItem into the Bill's embedded items array
+    bill.items.push(newBillItem);
+    await bill.save();
+
+    res.status(200).json({ message: 'Item added to bill', bill });
+  } catch (error) {
+    console.error('Error adding item to bill:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+
+  export const createBill = async (req, res) => {
+    try {
+      const billData = req.body;
+  
+      const newBill = new Bill(billData);
+      await newBill.save();
+  
+      res.status(201).json({ message: 'Bill created successfully', bill: newBill });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  };
+
+  export const createPrescription = async (req, res) => {
+    try {
+      const prescriptionData = req.body;
+  
+      const newPrescription = new Prescription(prescriptionData);
+      await newPrescription.save();
+  
+      res.status(201).json({ message: 'Prescription created successfully', prescription: newPrescription });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  };
+
+export const addPrescriptionEntry = async (req, res) => {
+  try {
+    const {
+      prescription_id,
+      medicine_id,
+      dosage,
+      frequency,
+      duration,
+      quantity,
+      dispensed_qty = 0
+    } = req.body;
+
+    const newEntry = new PrescriptionEntry({
+      prescription_id,
+      medicine_id,
+      dosage,
+      frequency,
+      duration,
+      quantity,
+      dispensed_qty
+    });
+
+    await newEntry.save();
+    res.status(201).json({
+      message: 'Prescription entry added successfully',
+      data: newEntry
+    });
+
+  } catch (error) {
+    console.error('Error adding prescription entry:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+
 
 // Function to add rating and review
 export const addRatingAndReview = async (req, res) => {
@@ -110,19 +268,6 @@ export const calculateOverallRating = async (req, res) => {
     }
 };
 
-// Function to perform feedback analysis
-export const analyzeFeedback = async () => {
-    const feedbacks = await Feedback.find();
-
-    const totalFeedbacks = feedbacks.length;
-    const { overallRating } = await calculateOverallRating();
-
-    return {
-        totalFeedbacks,
-        overallRating
-    };
-};
-
 // Function to calculate rating distribution
 export const getRatingDistribution = async () => {
     const consultations = await Feedback.find({ "feedback.rating": { $exists: true } });
@@ -135,38 +280,6 @@ export const getRatingDistribution = async () => {
 
     return { ratingDistribution: distribution };
 };
-
-
-// // Function to get bed occupancy trends
-// export const getBedOccupancyTrends = async (req, res) => {
-//     const { period } = req.params; // e.g., daily, weekly, monthly, yearly
-//     const inputStartDate = req.query.startDate; // Optional start date from user input
-//     const { startDate, endDate } = calculateDateRange(period, inputStartDate);
-
-//     try {
-//         const rooms = await Room.find({}); // Fetch all rooms
-
-//         let occupiedBeds = [];
-//         rooms.forEach((room) => {
-//             room.beds.forEach((bed) => {
-//                 // Include beds occupied within the specified date range
-//                 if (bed.status === 'occupied' && bed.recordedAt >= startDate && bed.recordedAt <= endDate) {
-//                     occupiedBeds.push(bed);
-//                 }
-//             });
-//         });
-
-//         res.json({
-//             period,
-//             startDate,
-//             endDate,
-//             occupiedBedCount: occupiedBeds.length // Total count of occupied beds
-//         });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Error calculating bed occupancy trends', error });
-//     }
-// };
 
 export const getBedOccupancyTrends = async (req, res) => {
     const { period } = req.params; // e.g., daily, weekly, monthly, yearly
@@ -326,3 +439,265 @@ export const updateDailyOccupancy = async () => {
         console.error('Error updating daily occupancy:', error);
     }
 };
+
+
+export const getMedicineInventoryTrends = async (req, res) => {
+  try {
+    const { medicineId, startDate, endDate } = req.body;
+    const medId = parseInt(medicineId);
+
+    if (isNaN(medId)) {
+    return res.status(400).json({ message: 'Invalid medicineId' });
+    }
+    // Validate dates
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+ 
+    // Query MedicineInventoryLog for the specified medicine and date range
+    const inventoryLogs = await MedicineInventoryLog.aggregate([
+      {
+        $match: {
+          med_id: medId,
+          order_date: { $gte: start, $lte: end },
+          status: "received"
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$order_date" },
+            month: { $month: "$order_date" }
+          },
+          totalQuantity: { $sum: "$quantity" }
+        }
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1
+        }
+      }
+    ]);
+ 
+    // Format monthly data
+    const monthLabels = [];
+    const monthValues = [];
+ 
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    inventoryLogs.forEach(item => {
+      const monthName = monthNames[item._id.month - 1];
+      monthLabels.push(`${monthName} ${item._id.year}`);
+      monthValues.push(item.totalQuantity);
+    });
+ 
+    // Get weekly data for each month
+    const weeklyDataByMonth = {};
+ 
+    for (const monthLabel of monthLabels) {
+      const [month, year] = monthLabel.split(' ');
+      const monthIndex = monthNames.indexOf(month);
+ 
+      // Find first and last day of the month
+      const firstDay = new Date(parseInt(year), monthIndex, 1);
+      const lastDay = new Date(parseInt(year), monthIndex + 1, 0);
+ 
+      // Group by week within month
+      const weeklyData = await MedicineInventoryLog.aggregate([
+        {
+          $match: {
+            med_id: parseInt(medicineId),
+            order_date: { $gte: firstDay, $lte: lastDay },
+            status: "received"
+          }
+        },
+        {
+          $project: {
+            week: { $ceil: { $divide: [{ $dayOfMonth: "$order_date" }, 7] } },
+            quantity: 1
+          }
+        },
+        {
+          $group: {
+            _id: "$week",
+            totalQuantity: { $sum: "$quantity" }
+          }
+        },
+        {
+          $sort: { "_id": 1 }
+        }
+      ]);
+ 
+      // Format weekly data
+      const weekLabels = [];
+      const weekValues = [];
+ 
+      weeklyData.forEach((item) => {
+        weekLabels.push(`Week ${item._id}`);
+        weekValues.push(item.totalQuantity);
+      });
+ 
+      weeklyDataByMonth[monthLabel] = {
+        labels: weekLabels,
+        values: weekValues
+      };
+    }
+ 
+    // Get medicine details
+    const medicine = await Medicine.findOne({ _id: medId });
+ 
+    if (!medicine) {
+        return res.status(404).json({ message: 'Medicine not found' });
+    }
+
+    // Calculate total orders
+    const totalOrders = monthValues.reduce((sum, val) => sum + val, 0);
+
+    // Return formatted data
+    res.json({
+      medicine: {
+        id: medicine._id.toString(),
+        name: medicine.med_name
+          
+      },
+      monthlyData: {
+        labels: monthLabels,
+        values: monthValues
+      },
+      weeklyDataByMonth,
+      totalOrders
+    });
+ 
+  } catch (error) {
+    console.error('Error fetching medicine inventory trends:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const getMedicinePrescriptionTrends = async (req, res) => {
+    try {
+      const { medicineId, startDate, endDate } = req.body;
+      const medId = parseInt(medicineId);
+      if (isNaN(medId)) {
+        return res.status(400).json({ message: 'Invalid medicineId' });
+      }
+  
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+  
+      const bills = await Bill.find({
+        generation_date: { $gte: start, $lte: end }
+      });
+  
+      const monthlyData = {};
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  
+      for (const bill of bills) {
+  
+        const billItems = bill.items.filter(item => item.item_type === "medication");
+  
+        for (const item of billItems) {
+          if (item.prescription_id) {
+           
+            const prescription = await Prescription.findOne({ _id: item.prescription_id });
+            if (prescription && Array.isArray(prescription.entries)) {
+                //  Filter only entries matching medicineId from the embedded entries array
+                const prescriptionEntries = prescription.entries.filter(
+                entry => entry.medicine_id === medId
+                );
+            const dispensedQty = prescriptionEntries.reduce((sum, entry) => sum + entry.dispensed_qty, 0);
+            if (dispensedQty > 0) {
+              const date = new Date(bill.generation_date);
+              const year = date.getFullYear();
+              const month = date.getMonth();
+              const monthLabel = `${monthNames[month]} ${year}`;
+  
+              if (!monthlyData[monthLabel]) {
+                monthlyData[monthLabel] = {
+                  count: 0,
+                  quantity: 0,
+                  weeklyData: {}
+                };
+              }
+  
+              monthlyData[monthLabel].count += 1;
+              monthlyData[monthLabel].quantity += dispensedQty;
+  
+              const weekNum = Math.ceil(date.getDate() / 7);
+              const weekKey = `Week ${weekNum}`;
+  
+              if (!monthlyData[monthLabel].weeklyData[weekKey]) {
+                monthlyData[monthLabel].weeklyData[weekKey] = {
+                  count: 0,
+                  quantity: 0
+                };
+              }
+  
+              monthlyData[monthLabel].weeklyData[weekKey].count += 1;
+              monthlyData[monthLabel].weeklyData[weekKey].quantity += dispensedQty;
+  
+            }
+          }
+        }
+        }
+      }
+  
+      const monthLabels = [];
+      const monthValues = [];
+      const weeklyDataByMonth = {};
+  
+      const sortedMonths = Object.keys(monthlyData).sort((a, b) => {
+        const [monthA, yearA] = a.split(' ');
+        const [monthB, yearB] = b.split(' ');
+        if (yearA !== yearB) {
+          return parseInt(yearA) - parseInt(yearB);
+        }
+        return monthNames.indexOf(monthA) - monthNames.indexOf(monthB);
+      });
+  
+      for (const monthKey of sortedMonths) {
+        monthLabels.push(monthKey);
+        monthValues.push(monthlyData[monthKey].quantity);
+  
+        const weeklyLabels = [];
+        const weeklyValues = [];
+  
+        const weekKeys = Object.keys(monthlyData[monthKey].weeklyData).sort((a, b) => {
+          return parseInt(a.split(' ')[1]) - parseInt(b.split(' ')[1]);
+        });
+  
+        for (const weekKey of weekKeys) {
+          weeklyLabels.push(weekKey);
+          weeklyValues.push(monthlyData[monthKey].weeklyData[weekKey].quantity);
+        }
+  
+        weeklyDataByMonth[monthKey] = {
+          labels: weeklyLabels,
+          values: weeklyValues
+        };
+  
+      }
+  
+      const medicine = await Medicine.findById(medId);
+      if (!medicine) {
+        return res.status(404).json({ message: 'Medicine not found with given ID.' });
+      }
+  
+      const totalPrescriptionsQuantity = monthValues.reduce((sum, val) => sum + val, 0);
+     res.json({
+        medicine: {
+          id: medicine._id.toString(),
+          name: medicine.med_name
+        },
+        monthlyData: {
+          labels: monthLabels,
+          values: monthValues
+        },
+        weeklyDataByMonth,
+        totalPrescriptionsQuantity
+      });
+  
+    } catch (error) {
+      console.error('[ERROR] Error fetching medicine prescription trends:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  };
