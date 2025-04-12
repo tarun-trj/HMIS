@@ -30,6 +30,7 @@ const BillSchema = new Schema({
     patient_id: { type: Number, ref: 'Patient' },
     generation_date: Date,
     total_amount: Number,
+    remaining_amount: Number,
     payment_status: {
       type: String,
       enum: ["paid", "pending", "partially_paid"]
