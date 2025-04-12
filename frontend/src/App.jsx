@@ -56,6 +56,9 @@ import NurseDashboard from "./pages/nurse/NurseDashboard";
 import PatientRecords from "./pages/nurse/PatientRecords";
 import PatientConsultations from "./pages/nurse/PatientConsultations"; // Add import for the new component
 import PatientConsultationDetails from "./pages/nurse/PatientConsultationDetails";
+import NurPatientProgress from "./pages/nurse/NurPatientProgress";
+import NurDetailedProgress from "./pages/nurse/NurDetailedProgress";
+import NurAddVitals from "./pages/nurse/NurAddVitals";
 
 import PharmacistDashboard from "./pages/pharmacist/PharmacistDashboard";
 
@@ -79,7 +82,7 @@ import AnalyticsDashboard from "./pages/admin/analytics/AnalyticsDashboard";
 import IllnessTrends from "./pages/admin/analytics/IllnessTrends";
 import MedicineTrends from "./pages/admin/analytics/MedicineTrends";
 import FinancialTrends from "./pages/admin/analytics/FinancialTrends";
-import BedOccupancyTrends from "./pages/admin/analytics/BedOccupancyTrends";
+import DoctorPerformanceMetrics from "./pages/admin/analytics/DoctorPerformanceMetrics";
 import DoctorWorkingTrends from "./pages/admin/analytics/DoctorWorkingTrends";
 import TextualFeedbackAnalysis from "./pages/admin/analytics/FeedbackTextAnalysis";
 import Feedbacks from "./pages/admin/analytics/Feedbacks";
@@ -88,6 +91,7 @@ import PublicData from "./pages/PublicData";
 import AddBill from "./pages/receptionist/AddBill";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+
 
 
 
@@ -199,7 +203,9 @@ function App() {
             <Route path="/nurse/patient-records/:patientId/consultations" element={<PatientConsultations />} />
                 {/* Add this new route for consultation details */}
                 <Route path="/nurse/patient-consultations/:consultationId" element={<PatientConsultationDetails />} />
-              
+                <Route path="/nurse/patient-progress/:patientId" element={<NurPatientProgress />} />
+                <Route path="/nurse/daily-progress/details/:entry" element={<NurDetailedProgress />} />
+                <Route path="/nurse/daily-progress/add-vitals" element={<NurAddVitals />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["pharmacist"]} />}>
@@ -238,7 +244,7 @@ function App() {
             <Route path="/admin/analytics/illness-trends" element={<IllnessTrends />} />
             <Route path="/admin/analytics/medicine-trends" element={<MedicineTrends />} />
             <Route path="/admin/analytics/financial-trends" element={<FinancialTrends />} />
-            <Route path="/admin/analytics/bed-occupancy-trends" element={<BedOccupancyTrends />} />
+            <Route path="/admin/analytics/doctor-performance-trends" element={<DoctorPerformanceMetrics />} />
             <Route path="/admin/analytics/doctor-working-trends" element={<DoctorWorkingTrends />} />
             <Route path="/admin/analytics/text-feedback" element={<TextualFeedbackAnalysis />} />
             <Route path="/admin/analytics/feedbacks" element={<Feedbacks />} />

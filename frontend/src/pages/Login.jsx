@@ -25,6 +25,7 @@ const Login = () => {
       setUser(res.data.user);
       localStorage.setItem("role", res.data.role);
       localStorage.setItem("email", JSON.stringify(res.data.user.email));
+      localStorage.setItem("user_id", JSON.stringify(res.data.user._id));
 
       setMessage({ type: "success", text: "Login successful!" });
 

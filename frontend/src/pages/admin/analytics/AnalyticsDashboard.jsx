@@ -112,10 +112,10 @@ const AnalyticsDashboard = () => {
       borderColor: "border-blue-200",
     },
     {
-      title: "Bed Occupancy",
-      description: "Monitor room and bed utilization rates",
+      title: "Doctor Performance",
+      description: "Correlates consultation count and average rating",
       icon: <FaBed className="text-indigo-500" />,
-      path: "/admin/analytics/bed-occupancy-trends",
+      path: "/admin/analytics/doctor-performance-trends",
       color: "bg-gradient-to-r from-indigo-50 to-indigo-100 hover:from-indigo-100 hover:to-indigo-200",
       borderColor: "border-indigo-200",
     },

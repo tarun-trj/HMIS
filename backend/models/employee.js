@@ -7,7 +7,8 @@ const BankDetailsSchema = new Schema({
   bank_name: String,
   account_number: Number,
   ifsc_code: String,
-  branch_name: String
+  branch_name: String,
+  balance: Number
 });
 
 const EmployeeSchema = new Schema({
