@@ -24,9 +24,9 @@ const PaymentSchema = new Schema({
     transaction_id: String,
     status: { type: String, enum: ["success", "failed"] },
     payment_method: { type: String, enum: ["cash", "card", "bank_transfer", "insurance"] }
-  });
+});
   
-  const BillSchema = new Schema({
+const BillSchema = new Schema({
     patient_id: { type: Number, ref: 'Patient' },
     generation_date: Date,
     total_amount: Number,
@@ -36,7 +36,7 @@ const PaymentSchema = new Schema({
     },
     items: [BillItemSchema], // Embedded array
     payments: [PaymentSchema] // Embedded array
-  }, { timestamps: true });
+}, { timestamps: true });
 
-  const Bill = mongoose.model('Bill', BillSchema);
-  export default Bill;
+const Bill = mongoose.model('Bill', BillSchema);
+export default Bill;
