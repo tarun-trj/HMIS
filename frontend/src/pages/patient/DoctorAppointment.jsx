@@ -92,8 +92,8 @@ const DoctorAppointment = () => {
       appointmentDateTime.setHours(parseInt(hours), parseInt(minutes));
       
       // Get patient ID from local storage or context
-      const patientId = "10013"; // Adjust based on your auth setup
-      
+      const patientId = localStorage.getItem("user_id");
+
       // Prepare data according to your backend API requirements
       const consultationData = {
         patient_id: patientId,

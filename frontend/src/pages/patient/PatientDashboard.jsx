@@ -6,6 +6,52 @@ import axios from 'axios';
 
 const calculateAge = dob => new Date().getFullYear() - new Date(dob).getFullYear() - (new Date() < new Date(new Date(dob).setFullYear(new Date().getFullYear())) ? 1 : 0);
 
+export const fetchConsultationsByPatientId = async (patientId) => {
+  try {
+    const res = await fetch(`http://localhost:5000/api/patients/${patientId}/consultations`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch consultations");
+    }
+
+    // Check if we received dummy data or actual consultations
+    if (data.dummy) {
+      return data.consultations; // Return the dummy data as is
+    }
+
+    // Handle actual data
+    // Get current date to compare
+    const now = new Date();
+
+    // Filter only past consultations
+    const pastConsultations = Array.isArray(data) 
+      ? data.filter((c) => {
+          const consultDate = new Date(c.booked_date_time);
+          return consultDate > now;
+        })
+      : [];
+
+    // Transform the data to match the component's expected format
+    const formattedConsultations = pastConsultations.map(consult => ({
+      id: consult._id,
+      date: new Date(consult.booked_date_time).toLocaleString(),
+      doctor: consult.doctor.name,
+      location: consult.appointment_type,
+      doctorId: consult.doctor_id,
+      status: consult.status,
+      reason: consult.reason,
+      // Add any other properties your component needs
+    }));
+      
+    console.log(formattedConsultations);
+    return formattedConsultations;
+  } catch (err) {
+    console.error("Error fetching consultations:", err);
+    return []; // fallback return
+  }
+};
+
 const PatientDashboard = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [patientData, setPatientData] = useState(null);
@@ -24,33 +70,14 @@ const PatientDashboard = () => {
       }
     };
 
-    const fetchConsultations = async () => {
-      try {
-        const response = await axios.get(`http://localhost:5000/api/patients/${patientId}/consultations`);
-        const consultations = response.data.consultations;
-         // Get today's date for filtering
-        const today = new Date();
-
-        // Filter upcoming consultations
-        const upcomingConsultations = consultations.filter(consultation => new Date(consultation.booked_date_time) >= today);
-
-        // If there are no upcoming consultations, get the 3 most recent ones
-        let consultationsToDisplay = [];
-        if (upcomingConsultations.length > 0) {
-          consultationsToDisplay = upcomingConsultations.sort((a, b) => new Date(a.booked_date_time) - new Date(b.booked_date_time)); // Sort upcoming by booked date
-        } else {
-          // Sort by booked_date_time in descending order and take the most recent 3 consultations
-          consultationsToDisplay = consultations.sort((a, b) => new Date(b.booked_date_time) - new Date(a.booked_date_time)).slice(0, 3);
-        }
-
-        setAppointments(consultationsToDisplay);
-      } catch (error) {
-        console.error('Failed to fetch consultations data:', error);
-      }
-    }
-
     fetchPatientData();
-    fetchConsultations();
+
+    const loadConsultations = async () => {
+      const data = await fetchConsultationsByPatientId(patientId);
+      setAppointments(data);
+    };
+
+    loadConsultations();
   }, []);
 
 
@@ -120,13 +147,13 @@ const PatientDashboard = () => {
           Appointments <ArrowRight />
         </h2>
         <div>
-          {appointments.length > 0 ? (
+          {appointments ? (
             appointments.map((appointment) => (
-              <div key={appointment.id} className="appointment-card">
-                <p className="font-bold">{appointment.doctorName}</p>
-                <p className="text-gray-600">{appointment.time}</p>
+              <div key={appointment.id} className="appointment-card cursor-pointer" onClick={() => navigate(`/patient/previous-consultations/${appointment.id}`)}>
+                <p className="font-bold">Dr {appointment.doctor}</p>
+                <p className="text-gray-600">Date: {appointment.date.replace(',', ' Time: ')}</p>
                 <p className={`appointment-status ${appointment.status === "Completed" ? "status-completed" : "status-scheduled"}`}>
-                  {appointment.status}
+                  {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                 </p>
               </div>
             ))
