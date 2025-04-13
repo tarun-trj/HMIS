@@ -260,26 +260,42 @@ export const updateProfile = async (req, res) => {
 
 export const searchInventory = async (req, res) => {
   try {
-    const { searchQuery, page = 1, limit = 10, type = 'medicine' } = req.query;
+    const { searchQuery, page = 1, limit = 10, type = 'medicine', role = 'user', viewMode = 'inventory' } = req.query;
     const skip = (page - 1) * limit;
     
     let searchFilter = {};
     let results;
     let total;
+    
+    // Base search filter based on type
+    if (searchQuery?.trim()) {
+      if (type === 'medicine') {
+        searchFilter.$or = [
+          { _id: isNaN(searchQuery) ? null : Number(searchQuery) },
+          { med_name: { $regex: searchQuery, $options: 'i' } },
+          { manufacturer: { $regex: searchQuery, $options: 'i' } }
+        ];
+      } else {
+        searchFilter.$or = [
+          { _id: isNaN(searchQuery) ? null : Number(searchQuery) },
+          { equipment_name: { $regex: searchQuery, $options: 'i' } }
+        ];
+      }
+    }
+
+    // Add order status filter based on role and view mode
+    if (role !== 'admin') {
+      // Non-admin users can only see ordered items
+      searchFilter.order_status = 'ordered';
+    } else if (viewMode === 'pending') {
+      // Admin viewing pending requests
+      searchFilter.order_status = 'requested';
+    } else {
+      // Admin viewing inventory (show ordered items)
+      searchFilter.order_status = 'ordered';
+    }
 
     if (type === 'medicine') {
-      // Medicine search logic
-      if (searchQuery?.trim()) {
-        searchFilter = {
-          $or: [
-            { _id: isNaN(searchQuery) ? null : Number(searchQuery) },
-            { med_name: { $regex: searchQuery, $options: 'i' } },
-            { manufacturer: { $regex: searchQuery, $options: 'i' } }
-          ]
-        };
-      }
-
-      // Get paginated results and total count
       results = await Medicine.find(searchFilter)
         .select('_id med_name manufacturer available inventory')
         .sort({ _id: 1 })
@@ -288,7 +304,6 @@ export const searchInventory = async (req, res) => {
         
       total = await Medicine.countDocuments(searchFilter);
 
-      // Transform medicine data
       results = results.map(med => {
         const latestInventory = med.inventory[med.inventory.length - 1] || {};
         return {
@@ -303,16 +318,6 @@ export const searchInventory = async (req, res) => {
         };
       });
     } else {
-      // Equipment search logic
-      if (searchQuery?.trim()) {
-        searchFilter = {
-          $or: [
-            { _id: isNaN(searchQuery) ? null : Number(searchQuery) },
-            { equipment_name: { $regex: searchQuery, $options: 'i' } }
-          ]
-        };
-      }
-
       results = await Equipment.find(searchFilter)
         .select('_id equipment_name quantity installation_date last_service_date next_service_date')
         .sort({ _id: 1 })
@@ -321,7 +326,6 @@ export const searchInventory = async (req, res) => {
         
       total = await Equipment.countDocuments(searchFilter);
 
-      // Transform equipment data
       results = results.map(equip => ({
         id: equip._id,
         name: equip.equipment_name,

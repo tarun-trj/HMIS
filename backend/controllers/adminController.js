@@ -13,6 +13,7 @@ import FinanceLogs from '../models/logs.js'; // Import FinanceLogs model
 import { sendPasswordEmail } from "../config/sendMail.js"; // adjust the path
 import nodemailer from 'nodemailer';
 import PDFDocument from 'pdfkit';
+import Equipment from '../models/equipment.js';
 
 export const generatePayslip = async (req, res) => {
     try {
@@ -105,101 +106,161 @@ export const searchEmployees = async (req, res) => {
 export const updateInventory = async (req, res) => {
     try {
         const { 
+            inventoryType = 'medicine',
+            // Medicine fields
             medicineId, med_name, effectiveness, dosage_form, manufacturer, 
-            batch_no, quantity, expiry_date, manufacturing_date, unit_price, supplier 
+            batch_no, quantity, expiry_date, manufacturing_date, unit_price, supplier,
+            // Equipment fields
+            itemId, equipment_name, installation_date, last_service_date, next_service_date,
+            // Common fields
+            order_status = 'ordered'
         } = req.body;
 
-        // Basic validation for required fields
-        if (!batch_no || !quantity || !expiry_date || !manufacturing_date || !unit_price || !supplier) {
-            return res.status(400).json({ message: 'Missing required inventory fields' });
-        }
+        if (inventoryType === 'medicine') {
+            // Existing medicine validation and logic
+            if (!batch_no || !quantity || !expiry_date || !manufacturing_date || !unit_price || !supplier) {
+                return res.status(400).json({ message: 'Missing required inventory fields' });
+            }
 
-        // Additional validation for new medicine
-        if (!medicineId && (!med_name || !effectiveness || !dosage_form || !manufacturer)) {
-            return res.status(400).json({ message: 'Missing required medicine fields' });
-        }
+            // Additional validation for new medicine
+            if (!medicineId && (!med_name || !effectiveness || !dosage_form || !manufacturer)) {
+                return res.status(400).json({ message: 'Missing required medicine fields' });
+            }
 
-        // Validate dates
-        const mfgDate = new Date(manufacturing_date);
-        const expDate = new Date(expiry_date);
-        
-        if (mfgDate >= expDate) {
-            return res.status(400).json({ message: 'Manufacturing date must be before expiry date' });
-        }
+            // Validate dates
+            const mfgDate = new Date(manufacturing_date);
+            const expDate = new Date(expiry_date);
+            
+            if (mfgDate >= expDate) {
+                return res.status(400).json({ message: 'Manufacturing date must be before expiry date' });
+            }
 
-        if (expDate <= new Date()) {
-            return res.status(400).json({ message: 'Expiry date must be in the future' });
-        }
+            if (expDate <= new Date()) {
+                return res.status(400).json({ message: 'Expiry date must be in the future' });
+            }
 
-        let medicine;
-        if (medicineId) {
-            medicine = await Medicine.findById(medicineId);
-        }
+            let medicine;
+            if (medicineId) {
+                medicine = await Medicine.findById(medicineId);
+            }
 
-        if (!medicine) {
-            // Create new medicine with auto-incremented ID
-            medicine = new Medicine({
-                med_name,
-                effectiveness,
-                dosage_form,
-                manufacturer,
-                available: true,
-                inventory: [{
+            if (!medicine) {
+                // Create new medicine with auto-incremented ID
+                medicine = new Medicine({
+                    med_name,
+                    effectiveness,
+                    dosage_form,
+                    manufacturer,
+                    available: true,
+                    order_status,
+                    inventory: [{
+                        batch_no,
+                        quantity,
+                        expiry_date,
+                        manufacturing_date,
+                        unit_price,
+                        supplier
+                    }]
+                });
+
+                await medicine.save();
+                return res.status(201).json({ 
+                    message: 'New medicine added successfully', 
+                    medicine,
+                    isNewMedicine: true 
+                });
+            }
+
+            // Update existing medicine's inventory
+            const batchIndex = medicine.inventory.findIndex(batch => batch.batch_no === batch_no);
+
+            if (batchIndex !== -1) {
+                // Update existing batch
+                medicine.inventory[batchIndex] = {
                     batch_no,
                     quantity,
                     expiry_date,
                     manufacturing_date,
                     unit_price,
                     supplier
-                }]
-            });
+                };
+            } else {
+                // Add new batch
+                medicine.inventory.push({
+                    batch_no,
+                    quantity,
+                    expiry_date,
+                    manufacturing_date,
+                    unit_price,
+                    supplier
+                });
+            }
+
+            // Update medicine manufacturer if provided
+            if (manufacturer) medicine.manufacturer = manufacturer;
+
+            // Update availability based on total quantity
+            const totalQuantity = medicine.inventory.reduce((sum, batch) => sum + batch.quantity, 0);
+            medicine.available = totalQuantity > 0;
 
             await medicine.save();
-            return res.status(201).json({ 
-                message: 'New medicine added successfully', 
+            res.status(200).json({ 
+                message: 'Medicine inventory updated successfully', 
                 medicine,
-                isNewMedicine: true 
+                isNewMedicine: false
             });
-        }
 
-        // Update existing medicine's inventory
-        const batchIndex = medicine.inventory.findIndex(batch => batch.batch_no === batch_no);
-
-        if (batchIndex !== -1) {
-            // Update existing batch
-            medicine.inventory[batchIndex] = {
-                batch_no,
-                quantity,
-                expiry_date,
-                manufacturing_date,
-                unit_price,
-                supplier
-            };
         } else {
-            // Add new batch
-            medicine.inventory.push({
-                batch_no,
-                quantity,
-                expiry_date,
-                manufacturing_date,
-                unit_price,
-                supplier
+            // Equipment validation
+            if (!quantity) {
+                return res.status(400).json({ message: 'Quantity is required' });
+            }
+
+            if (!itemId && (!equipment_name || !installation_date)) {
+                return res.status(400).json({ message: 'Equipment name and installation date are required for new equipment' });
+            }
+
+            let equipment;
+            if (itemId) {
+                equipment = await Equipment.findById(itemId);
+            }
+
+            if (!equipment) {
+                // Create new equipment
+                equipment = new Equipment({
+                    equipment_name,
+                    quantity,
+                    order_status,
+                    installation_date,
+                    last_service_date: installation_date, // Use installation date as first service date
+                    next_service_date: next_service_date || new Date(new Date(installation_date).getTime() + 90*24*60*60*1000) // Default 90 days
+                });
+
+                await equipment.save();
+                return res.status(201).json({
+                    message: 'New equipment added successfully',
+                    equipment,
+                    isNewItem: true
+                });
+            }
+
+            // Update existing equipment
+            equipment.quantity = quantity;
+            
+            if (last_service_date) {
+                equipment.last_service_date = last_service_date;
+            }
+            if (next_service_date) {
+                equipment.next_service_date = next_service_date;
+            }
+
+            await equipment.save();
+            return res.status(200).json({
+                message: 'Equipment updated successfully',
+                equipment,
+                isNewItem: false
             });
         }
-
-        // Update medicine manufacturer if provided
-        if (manufacturer) medicine.manufacturer = manufacturer;
-
-        // Update availability based on total quantity
-        const totalQuantity = medicine.inventory.reduce((sum, batch) => sum + batch.quantity, 0);
-        medicine.available = totalQuantity > 0;
-
-        await medicine.save();
-        res.status(200).json({ 
-            message: 'Medicine inventory updated successfully', 
-            medicine,
-            isNewMedicine: false
-        });
 
     } catch (error) {
         console.error('Error managing inventory:', error);
@@ -414,3 +475,38 @@ export const processPayroll = async (req, res) => {
     }
 };
 
+export const updateOrderStatus = async (req, res) => {
+    try {
+        const { 
+            inventoryType,
+            itemId,
+            order_status  // 'ordered' for accept, 'cancelled' for reject
+        } = req.body;
+
+        if (!itemId || !order_status || !inventoryType) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        let item;
+        if (inventoryType === 'medicine') {
+            item = await Medicine.findById(itemId);
+        } else {
+            item = await Equipment.findById(itemId);
+        }
+
+        if (!item) {
+            return res.status(404).json({ message: `${inventoryType} not found` });
+        }
+
+        item.order_status = order_status;
+        await item.save();
+
+        res.status(200).json({ 
+            message: `Order ${order_status === 'ordered' ? 'accepted' : 'rejected'} successfully`,
+            item
+        });
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        res.status(500).json({ message: 'Failed to update order status', error });
+    }
+};
