@@ -4,6 +4,7 @@ import Employee from '../models/employee.js';
 import Patient from '../models/patient.js';
 import Medicine from '../models/inventory.js';
 import { Doctor, Nurse, Pharmacist, Receptionist, Admin, Pathologist, Driver } from '../models/staff.js';
+import Equipment from '../models/equipment.js';
 
 // Get consultations for doctor's calendar
 export const getDoctorCalendar = async (req, res) => {
@@ -259,71 +260,116 @@ export const updateProfile = async (req, res) => {
 
 export const searchInventory = async (req, res) => {
   try {
-      const { searchQuery } = req.query;
-      
-      if (!searchQuery) {
-          return res.status(400).json({ message: "Search query is required." });
+    const { searchQuery, page = 1, limit = 10, type = 'medicine', role = 'user', viewMode = 'inventory' } = req.query;
+    const skip = (page - 1) * limit;
+    
+    let searchFilter = {};
+    let results;
+    let total;
+    
+    // Base search filter based on type
+    if (searchQuery?.trim()) {
+      if (type === 'medicine') {
+        searchFilter.$or = [
+          { _id: isNaN(searchQuery) ? null : Number(searchQuery) },
+          { med_name: { $regex: searchQuery, $options: 'i' } },
+          { manufacturer: { $regex: searchQuery, $options: 'i' } }
+        ];
+      } else {
+        searchFilter.$or = [
+          { _id: isNaN(searchQuery) ? null : Number(searchQuery) },
+          { equipment_name: { $regex: searchQuery, $options: 'i' } }
+        ];
       }
+    }
 
-      let searchFilter = {};
+    // Add order status filter based on role and view mode
+    if (role !== 'admin') {
+      // Non-admin users can only see ordered items
+      searchFilter.order_status = 'ordered';
+    } else if (viewMode === 'pending') {
+      // Admin viewing pending requests
+      searchFilter.order_status = 'requested';
+    } else {
+      // Admin viewing inventory (show ordered items)
+      searchFilter.order_status = 'ordered';
+    }
 
-      // If searchQuery is a number, search by ID
-      if (!isNaN(searchQuery)) {
-          searchFilter = { _id: Number(searchQuery) };
-      } 
-      // If searchQuery is text, search by name, manufacturer, or dosage form
-      else {
-          searchFilter = {
-              $or: [
-                  { med_name: { $regex: searchQuery, $options: 'i' } },
-                  { manufacturer: { $regex: searchQuery, $options: 'i' } },
-                  { dosage_form: { $regex: searchQuery, $options: 'i' } }
-              ]
-          };
-      }
+    if (type === 'medicine') {
+      results = await Medicine.find(searchFilter)
+        .select('_id med_name manufacturer available inventory')
+        .sort({ _id: 1 })
+        .skip(skip)
+        .limit(Number(limit));
+        
+      total = await Medicine.countDocuments(searchFilter);
 
-      // Apply the search filter to the find query
-      const medicines = await Medicine.find(searchFilter)
-          .select('_id med_name effectiveness dosage_form manufacturer available inventory');
-
-      if (!medicines.length) {
-          return res.status(404).json({ 
-              message: "No medicines found matching the search criteria." 
-          });
-      }
-
-      // Transform the response to include the latest inventory details
-      const transformedMedicines = medicines.map(med => {
-          const latestInventory = med.inventory.length > 0 
-              ? med.inventory[med.inventory.length - 1] 
-              : null;
-
-          return {
-              id: med._id,
-              name: med.med_name,
-              effectiveness: med.effectiveness,
-              dosage_form: med.dosage_form,
-              manufacturer: med.manufacturer,
-              available: med.available,
-              current_stock: latestInventory ? {
-                  quantity: latestInventory.quantity,
-                  batch_no: latestInventory.batch_no,
-                  expiry_date: latestInventory.expiry_date,
-                  unit_price: latestInventory.unit_price,
-                  supplier: latestInventory.supplier
-              } : null
-          };
+      results = results.map(med => {
+        const latestInventory = med.inventory[med.inventory.length - 1] || {};
+        return {
+          id: med._id,
+          name: med.med_name,
+          manufacturer: med.manufacturer,
+          available: med.available,
+          quantity: latestInventory.quantity || 0,
+          next_availability: (!med.available || latestInventory.quantity === 0) ? 
+            new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0] : null,
+          expired_quantity: calculateExpiredQuantity(latestInventory)
+        };
       });
+    } else {
+      results = await Equipment.find(searchFilter)
+        .select('_id equipment_name quantity installation_date last_service_date next_service_date')
+        .sort({ _id: 1 })
+        .skip(skip)
+        .limit(Number(limit));
+        
+      total = await Equipment.countDocuments(searchFilter);
 
-      res.status(200).json({
-          count: medicines.length,
-          items: transformedMedicines
-      });
+      results = results.map(equip => ({
+        id: equip._id,
+        name: equip.equipment_name,
+        quantity: equip.quantity || 0,
+        last_service_date: equip.last_service_date,
+        next_service_date: equip.next_service_date,
+        service_status: calculateServiceStatus(equip.next_service_date)
+      }));
+    }
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      items: results,
+      total,
+      page: Number(page),
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    });
 
   } catch (error) {
-      res.status(500).json({ 
-          message: 'Error searching medicines',
-          error: error.message 
-      });
+    res.status(500).json({ 
+      message: 'Error searching inventory',
+      error: error.message 
+    });
   }
+};
+
+// Helper functions
+const calculateExpiredQuantity = (inventory) => {
+  if (!inventory || !inventory.expiry_date) return 0;
+  const expiryDate = new Date(inventory.expiry_date);
+  const today = new Date();
+  return expiryDate < today ? inventory.quantity : 0;
+};
+
+const calculateServiceStatus = (nextServiceDate) => {
+  if (!nextServiceDate) return 'Unknown';
+  const today = new Date();
+  const next = new Date(nextServiceDate);
+  const daysUntil = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
+  
+  if (daysUntil < 0) return 'Overdue';
+  if (daysUntil <= 30) return 'Due Soon';
+  return 'OK';
 };

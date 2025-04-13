@@ -55,7 +55,7 @@ app.use('/api/doctors', doctorRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/nurses', nurseRoutes);
 app.use('/api/pathologists', pathologistRoutes);
-app.use('/api/pharmaciSst', pharmacistRoutes);
+app.use('/api/pharmacist', pharmacistRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reception', receptionistRoutes);
 app.use('/api/inventory', inventoryRoutes);
