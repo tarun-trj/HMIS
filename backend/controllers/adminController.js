@@ -104,20 +104,46 @@ export const searchEmployees = async (req, res) => {
 
 export const updateInventory = async (req, res) => {
     try {
-        const { medicineId, med_name, effectiveness, dosage_form, manufacturer, available, batch_no, quantity, expiry_date, manufacturing_date, unit_price, supplier } = req.body;
+        const { 
+            medicineId, med_name, effectiveness, dosage_form, manufacturer, 
+            batch_no, quantity, expiry_date, manufacturing_date, unit_price, supplier 
+        } = req.body;
 
-        // Find the medicine by ID
-        let medicine = await Medicine.findById(medicineId);
+        // Basic validation for required fields
+        if (!batch_no || !quantity || !expiry_date || !manufacturing_date || !unit_price || !supplier) {
+            return res.status(400).json({ message: 'Missing required inventory fields' });
+        }
+
+        // Additional validation for new medicine
+        if (!medicineId && (!med_name || !effectiveness || !dosage_form || !manufacturer)) {
+            return res.status(400).json({ message: 'Missing required medicine fields' });
+        }
+
+        // Validate dates
+        const mfgDate = new Date(manufacturing_date);
+        const expDate = new Date(expiry_date);
+        
+        if (mfgDate >= expDate) {
+            return res.status(400).json({ message: 'Manufacturing date must be before expiry date' });
+        }
+
+        if (expDate <= new Date()) {
+            return res.status(400).json({ message: 'Expiry date must be in the future' });
+        }
+
+        let medicine;
+        if (medicineId) {
+            medicine = await Medicine.findById(medicineId);
+        }
 
         if (!medicine) {
-            // If medicine does not exist, create a new one
+            // Create new medicine with auto-incremented ID
             medicine = new Medicine({
-                _id: medicineId,
                 med_name,
                 effectiveness,
                 dosage_form,
                 manufacturer,
-                available,
+                available: true,
                 inventory: [{
                     batch_no,
                     quantity,
@@ -129,24 +155,28 @@ export const updateInventory = async (req, res) => {
             });
 
             await medicine.save();
-            return res.status(201).json({ message: 'Medicine added and inventory updated successfully', medicine });
+            return res.status(201).json({ 
+                message: 'New medicine added successfully', 
+                medicine,
+                isNewMedicine: true 
+            });
         }
 
-        // Check if the batch already exists
+        // Update existing medicine's inventory
         const batchIndex = medicine.inventory.findIndex(batch => batch.batch_no === batch_no);
 
         if (batchIndex !== -1) {
-            // Update the existing batch
+            // Update existing batch
             medicine.inventory[batchIndex] = {
-                ...medicine.inventory[batchIndex],
-                quantity: quantity || medicine.inventory[batchIndex].quantity,
-                expiry_date: expiry_date || medicine.inventory[batchIndex].expiry_date,
-                manufacturing_date: manufacturing_date || medicine.inventory[batchIndex].manufacturing_date,
-                unit_price: unit_price || medicine.inventory[batchIndex].unit_price,
-                supplier: supplier || medicine.inventory[batchIndex].supplier
+                batch_no,
+                quantity,
+                expiry_date,
+                manufacturing_date,
+                unit_price,
+                supplier
             };
         } else {
-            // Add a new batch
+            // Add new batch
             medicine.inventory.push({
                 batch_no,
                 quantity,
@@ -157,13 +187,23 @@ export const updateInventory = async (req, res) => {
             });
         }
 
-        // Save the updated medicine
-        await medicine.save();
+        // Update medicine manufacturer if provided
+        if (manufacturer) medicine.manufacturer = manufacturer;
 
-        res.status(200).json({ message: 'Inventory updated successfully', medicine });
+        // Update availability based on total quantity
+        const totalQuantity = medicine.inventory.reduce((sum, batch) => sum + batch.quantity, 0);
+        medicine.available = totalQuantity > 0;
+
+        await medicine.save();
+        res.status(200).json({ 
+            message: 'Medicine inventory updated successfully', 
+            medicine,
+            isNewMedicine: false
+        });
+
     } catch (error) {
-        console.error('Error updating inventory:', error);
-        res.status(500).json({ message: 'Failed to update inventory', error });
+        console.error('Error managing inventory:', error);
+        res.status(500).json({ message: 'Failed to manage inventory', error });
     }
 };
 
