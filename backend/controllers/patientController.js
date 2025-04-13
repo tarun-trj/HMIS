@@ -288,6 +288,19 @@ export const sendFeedback = async (req, res) => {
 
     await consultation.save();
 
+  const doctor = await Doctor.findById(consultation.doctor_id);
+    if (doctor) {
+      // Initialize rating and num_ratings if they don't exist
+      if (!doctor.rating) doctor.rating = 0;
+      if (!doctor.num_ratings) doctor.num_ratings = 0;
+      
+      // Calculate new average rating
+      const totalRatingPoints = doctor.rating * doctor.num_ratings + rating;
+      doctor.num_ratings += 1;
+      doctor.rating = totalRatingPoints / doctor.num_ratings;
+      
+      updatedDoctor = await doctor.save();
+    }
     res.status(200).json({ message: 'Feedback submitted successfully', feedback: consultation.feedback });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
