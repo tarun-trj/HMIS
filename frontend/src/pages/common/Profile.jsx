@@ -1,4 +1,4 @@
-import { useParams, Navigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Pencil } from "lucide-react";
 
@@ -19,8 +19,13 @@ const ProfileDashboard = () => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        
+        // In a real implementation, this would be replaced with an actual API call
+        // Example: const response = await fetch(`/api/users/profile/${userId}`);
+        //          const data = await response.json();
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulating API delay
 
+        // Mock data for demonstration - would be replaced with actual API response
         const mockData = {
           name: "Dr. John Doe",
           role: "Doctor",
@@ -45,11 +50,8 @@ const ProfileDashboard = () => {
       }
     };
 
-    // Only fetch data if the user has an authorized role
-    if (authorizedRoles.includes(currentUserRole.toLowerCase())) {
-      fetchUserData();
-    }
-  }, [currentUserRole]);
+    fetchUserData();
+  }, []);
 
   const handleProfilePicChange = async (event) => {
     const file = event.target.files[0];
@@ -62,7 +64,9 @@ const ProfileDashboard = () => {
     formData.append("profile_pic", file);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // In a real implementation, this would send the formData to your API
+      // Example: await fetch('/api/users/profile-picture', { method: 'POST', body: formData });
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Simulating API delay
       setUserData((prevData) => ({ ...prevData, profile_pic: previewURL }));
     } catch (error) {
       console.error("Error uploading profile picture:", error);
@@ -73,11 +77,7 @@ const ProfileDashboard = () => {
     fileInputRef.current.click();
   };
 
-  // // Check if user has access
-  // if (!authorizedRoles.includes(currentUserRole.toLowerCase())) {
-  //   return <Navigate to="/unauthorized" replace />;
-  // }
-
+  // Structure data for display
   const personalInfo = userData ? [
     { key: "Employee ID", value: userData.employee_id },
     { key: "Email", value: userData.email },
@@ -96,30 +96,21 @@ const ProfileDashboard = () => {
   ] : [];
 
   return (
-    <div className="bg-gray-100 h-full">
-      <div className="mx-auto p-4">
-        {/* Main content title */}
-        <div className="text-center my-4">
-          {/* <h1 className="text-2xl font-bold">{ role }'s profile</h1> */}
-        </div>
-
-        {/* Main Content */}
-        <div className="max-w-4xl mx-auto bg-white rounded shadow">
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          ) : userData ? (
-            <div>
-              {/* Profile Header with Blue Bar */}
-              <div className="bg-blue-500 text-white p-6 rounded-t flex justify-center items-center">
-                {/* <div className="text-xl font-bold">{ role }'s profile</div> */}
-              </div>
-
-              {/* Profile Photo */}
-              <div className="relative flex justify-center -mt-12">
+    <div className="flex-1 bg-gray-100 min-h-screen">
+      {/* Main content area - expanded to fill available space */}
+      <div className="p-4 h-full">
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : userData ? (
+          <div className="bg-white rounded shadow h-full">
+            {/* Profile Header with Blue Bar */}
+            <div className="bg-blue-500 h-32 rounded-t relative">
+              {/* Circle for profile pic */}
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
                 <div 
-                  className="w-24 h-24 rounded-full bg-white flex items-center justify-center border-4 border-white overflow-hidden cursor-pointer"
+                  className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-4 border-white overflow-hidden cursor-pointer"
                   onClick={handleEditClick}
                 >
                   {previewImage ? (
@@ -138,54 +129,54 @@ const ProfileDashboard = () => {
                   />
                 </div>
               </div>
+            </div>
 
-              {/* Name and Title */}
-              <div className="text-center mt-2 mb-6">
-                <h2 className="text-xl font-bold">{userData.name}</h2>
-                <p className="text-gray-500">{userData.role}</p>
-              </div>
+            {/* Name and Title */}
+            <div className="text-center mt-16 mb-8">
+              <h2 className="text-2xl font-bold">{userData.name}</h2>
+              <p className="text-gray-500">{userData.role}</p>
+            </div>
 
-              {/* Information Sections */}
-              <div className="px-8 pb-8">
-                <div className="flex flex-col md:flex-row gap-8">
-                  {/* Personal Information */}
-                  <div className="flex-1">
-                    <h3 className="text-blue-500 text-lg font-medium border-b border-blue-500 pb-2 mb-4">
-                      Personal Information
-                    </h3>
-                    <div className="space-y-3">
-                      {personalInfo.map((item) => (
-                        <div key={item.key} className="flex">
-                          <div className="font-medium w-32">{item.key}:</div>
-                          <div>{item.value}</div>
-                        </div>
-                      ))}
-                    </div>
+            {/* Information Sections - expanded to fill more space */}
+            <div className="px-8 pb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Personal Information */}
+                <div>
+                  <h3 className="text-blue-500 text-lg pb-2 mb-6 border-b">
+                    Personal Information
+                  </h3>
+                  <div className="space-y-4">
+                    {personalInfo.map((item, index) => (
+                      <div key={index} className="flex">
+                        <div className="font-medium w-36">{item.key}:</div>
+                        <div>{item.value}</div>
+                      </div>
+                    ))}
                   </div>
+                </div>
 
-                  {/* Employment Details */}
-                  <div className="flex-1">
-                    <h3 className="text-blue-500 text-lg font-medium border-b border-blue-500 pb-2 mb-4">
-                      Employment Details
-                    </h3>
-                    <div className="space-y-3">
-                      {employmentDetails.map((item) => (
-                        <div key={item.key} className="flex">
-                          <div className="font-medium w-32">{item.key}:</div>
-                          <div>{item.value}</div>
-                        </div>
-                      ))}
-                    </div>
+                {/* Employment Details */}
+                <div>
+                  <h3 className="text-blue-500 text-lg pb-2 mb-6 border-b">
+                    Employment Details
+                  </h3>
+                  <div className="space-y-4">
+                    {employmentDetails.map((item, index) => (
+                      <div key={index} className="flex">
+                        <div className="font-medium w-36">{item.key}:</div>
+                        <div>{item.value}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="p-8 text-center text-red-500">
-              No profile data available
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-red-500">
+            No profile data available
+          </div>
+        )}
       </div>
     </div>
   );
