@@ -20,9 +20,7 @@ const ProfileDashboard = () => {
       try {
         setLoading(true);
         
-        // In a real implementation, this would be replaced with an actual API call
-        // Example: const response = await fetch(`/api/users/profile/${userId}`);
-        //          const data = await response.json();
+       
         await new Promise((resolve) => setTimeout(resolve, 500)); // Simulating API delay
 
         // Mock data for demonstration - would be replaced with actual API response
@@ -64,8 +62,7 @@ const ProfileDashboard = () => {
     formData.append("profile_pic", file);
 
     try {
-      // In a real implementation, this would send the formData to your API
-      // Example: await fetch('/api/users/profile-picture', { method: 'POST', body: formData });
+      
       await new Promise((resolve) => setTimeout(resolve, 500)); // Simulating API delay
       setUserData((prevData) => ({ ...prevData, profile_pic: previewURL }));
     } catch (error) {
