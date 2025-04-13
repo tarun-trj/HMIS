@@ -3,7 +3,7 @@ import { Consultation } from '../models/consultation.js';
 import bcrypt from 'bcrypt';
 import { Doctor } from '../models/staff.js';
 import Employee from '../models/employee.js';
-
+import Department from '../models/department.js'
 export const registerPatient = async (req, res) => {
   try {
     const {
@@ -232,27 +232,69 @@ export const fetchConsultationsByPatientId = async (req, res) => {
 // @route   GET /api/doctors
 const getAllDoctors = async (req, res) => {
   try {
-    // Find all documents in the Doctor collection
-    // Populate the 'employee_id' field to get associated employee details
-    const doctors = await Doctor.find({}).populate({
+    const allDoctors = await Doctor.find({ employee_id: { $ne: null } })
+    .populate({
       path: 'employee_id',
-      model: Employee, // Specify the Employee model
-      select: 'name email phone_number address' 
+      select: 'name email phone_number address'
+    })
+    .populate({
+      path: 'department_id',
+      select: 'name'
     });
-
-    if (doctors.length === 0) {
-      return res.status(404).json({ message: 'No doctors found' });
-    }
-
-    res.status(200).json(doctors);
+  
+  // Filter out any that failed to populate properly
+  const doctors = allDoctors.filter(doc => doc.employee_id !== null);
+  
+  if (doctors.length === 0) {
+    return res.status(404).json({ message: 'No doctors found' });
+  }
+  
+  res.status(200).json(doctors);
+  
   } catch (error) {
     console.error('Error fetching doctors:', error);
     res.status(500).json({ message: 'Server error fetching doctors' });
   }
 };
+const getDoctorById = async (req, res) => {
+
+try {
+  const { id } = req.params;
+  
+  // Find specific doctor by ID and populate related data
+  const doctor = await Doctor.findById(id)
+    .populate({
+      path: 'employee_id',
+      select: 'name profile_pic phone_number email gender address emergency_contact',
+      model: Employee
+    })
+    .populate({
+      path: 'department_id',
+      select: 'name',
+      model: Department
+    });
+  
+  // If doctor not found
+  if (!doctor) {
+    return res.status(404).json({ message: 'Doctor not found' });
+  }
+  
+  // Return doctor object
+  res.status(200).json(doctor);
+} catch (error) {
+  console.error('Error fetching doctor details:', error);
+  
+  // Handle case where ID might be invalid format
+  if (error.kind === 'ObjectId') {
+    return res.status(404).json({ message: 'Doctor not found' });
+  }
+  
+  res.status(500).json({ message: 'Server error while fetching doctor details' });
+}
+};
 
 export {
-  getAllDoctors,
+  getAllDoctors,getDoctorById
 };
 
 
@@ -362,7 +404,7 @@ export const rescheduleConsultation = async (req, res) => {
 // @route   DELETE /api/consultations/:id
 // @access  Public (you can secure it with auth middleware if needed)
 export const cancelConsultation = async (req, res) => {
-  const { id } = req.params;
+  const { consultationId:id } = req.params;
 
   try {
     const consultation = await Consultation.findById(id);
@@ -401,3 +443,167 @@ export const cancelConsultation = async (req, res) => {
   }
 };
 
+
+/**
+ * Get all vitals for a specific patient
+ * @route GET /api/patients/:patientId/vitals
+ * @param {number} req.params.patientId - Patient ID
+ * @returns {Object} 200 - Patient vitals array
+ * @returns {Error} 404 - Patient not found
+ * @returns {Error} 500 - Server error
+ */
+export const getPatientVitals = async (req, res) => {
+  try {
+    const patientId = parseInt(req.params.patientId);
+    
+    // Validate patient ID
+    if (isNaN(patientId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid patient ID format' 
+      });
+    }
+
+    // Find patient by ID
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Patient not found' 
+      });
+    }
+    // Return the vitals array
+    return res.status(200).json({
+      success: true,
+      data: patient.vitals,
+      count: patient.vitals.length
+    });
+  } catch (error) {
+    console.error('Error fetching patient vitals:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while fetching patient vitals',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get a specific vital record for a patient
+ * @route GET /api/patients/:patientId/vitals/:vitalId
+ * @param {number} req.params.patientId - Patient ID
+ * @param {string} req.params.vitalId - Vital record ID
+ * @returns {Object} 200 - Patient vital record
+ * @returns {Error} 404 - Patient or vital record not found
+ * @returns {Error} 500 - Server error
+ */
+export const getPatientVitalById = async (req, res) => {
+  try {
+    const patientId = parseInt(req.params.patientId);
+    const vitalId = req.params.vitalId;
+    
+    // Validate patient ID
+    if (isNaN(patientId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid patient ID format' 
+      });
+    }
+
+    // Find patient by ID
+    const patient = await Patient.findById(patientId);
+    
+    if (!patient) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Patient not found' 
+      });
+    }
+
+    // Find the specific vital record
+    const vitalRecord = patient.vitals.id(vitalId);
+    
+    if (!vitalRecord) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Vital record not found' 
+      });
+    }
+
+    // Return the specific vital record
+    return res.status(200).json({
+      success: true,
+      data: vitalRecord
+    });
+  } catch (error) {
+    console.error('Error fetching patient vital record:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while fetching patient vital record',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get the latest vital record for a patient
+ * @route GET /api/patients/:patientId/vitals/latest
+ * @param {number} req.params.patientId - Patient ID
+ * @returns {Object} 200 - Latest patient vital record
+ * @returns {Error} 404 - Patient not found or no vitals recorded
+ * @returns {Error} 500 - Server error
+ */
+export const getLatestPatientVital = async (req, res) => {
+  try {
+    const patientId = parseInt(req.params.patientId);
+    
+    // Validate patient ID
+    if (isNaN(patientId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid patient ID format' 
+      });
+    }
+
+    // Find patient by ID
+    const patient = await Patient.findById(patientId);
+    
+    if (!patient) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Patient not found' 
+      });
+    }
+
+    if (!patient.vitals || patient.vitals.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No vital records found for this patient' 
+      });
+    }
+
+    // Get the latest vital by date and createdAt
+    const latestVital = patient.vitals.sort((a, b) => {
+      // First compare by date
+      const dateComparison = new Date(b.date) - new Date(a.date);
+      if (dateComparison !== 0) return dateComparison;
+      
+      // If dates are equal, compare by createdAt
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    })[0];
+
+    // Return the latest vital record
+    return res.status(200).json({
+      success: true,
+      data: latestVital
+    });
+  } catch (error) {
+    console.error('Error fetching latest patient vital:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while fetching latest patient vital',
+      error: error.message
+    });
+  }
+};

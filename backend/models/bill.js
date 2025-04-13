@@ -41,4 +41,4 @@ const BillSchema = new Schema({
 
 const Bill = mongoose.model('Bill', BillSchema);
 const BillItem = mongoose.model('BillItem', BillItemSchema);
-export default {Bill,BillItem};
+export default {Bill,BillItem}

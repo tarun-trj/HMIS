@@ -25,7 +25,7 @@ export const fetchConsultationsByPatientId = async (patientId) => {
     const pastConsultations = Array.isArray(data) 
       ? data.filter((c) => {
           const consultDate = new Date(c.booked_date_time);
-          return consultDate < now;
+          return consultDate > now;
         })
       : [];
 
@@ -56,7 +56,9 @@ export const deleteConsultationById = async (consultationId) => {
       method: "DELETE",
     });
 
+    
     const data = await res.json();
+    console.log(data)
 
     if (!res.ok) {
       throw new Error(data?.error || data?.message || "Failed to cancel consultation.");
@@ -99,7 +101,8 @@ const BookedConsultation = () => {
 
   const confirmReschedule = () => {
     if (selectedConsultation) {
-      
+      console.log(selectedConsultation)
+      navigate('/patient/reschedule-consultation/'+selectedConsultation.id)
       // Clear selection after navigation
       setSelectedConsultation(null);
     }
@@ -146,8 +149,29 @@ const BookedConsultation = () => {
                 <span className="consult-date">{consult.date}</span>
                 <span className="consult-doctor">{consult.doctor}</span>
                 <span className="consult-location">{consult.location}</span>
-                <button className="cancel-btn" onClick={() => handleCancel(consult.id)}>Cancel</button>
-                <button className="reschedule-btn" onClick={() => handleReschedule(consult)}>Reschedule</button>
+                <button
+  onClick={() => handleCancel(consult.id)}
+  disabled={consult.status === "cancelled"}
+  className={`px-4 py-2 rounded-md font-medium transition 
+    ${consult.status === "cancelled" 
+      ? "bg-gray-400 text-gray-700 cursor-not-allowed" 
+      : "bg-red-600 text-white hover:bg-red-700"}`}
+  title={consult.status === "cancelled" ? "Already cancelled" : "Cancel consultation"}
+>
+  Cancel
+</button>
+<button
+  onClick={() => handleReschedule(consult)}
+  disabled={consult.status === "completed"}
+  className={`px-4 py-2 rounded-md font-medium transition
+    ${consult.status === "completed"
+      ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+      : "bg-green-600 text-white hover:bg-green-700"}`}
+  title={consult.status === "completed" ? "Completed consultations cannot be rescheduled" : "Reschedule consultation"}
+>
+  Reschedule
+</button>
+
               </div>
             ))
           ) : (
