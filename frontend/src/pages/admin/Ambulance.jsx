@@ -2,7 +2,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-
+import axios from 'axios';
 const ManageAmbulance = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAmbulance, setSelectedAmbulance] = useState(null);
@@ -10,23 +10,37 @@ const ManageAmbulance = () => {
   const [filteredAmbulances, setFilteredAmbulances] = useState([]);
   const [noResults, setNoResults] = useState(false);
   const [newAmbulance, setNewAmbulance] = useState({
-    vehicleNumber: '',
-    driverId: '',
-    nurseId: '',
-    status: 'Active'
+    vehicle_number: '',
+    driver: '',
+    nurse_id: '',
+    status: 'active'
   });
   
-  // Sample data - in a real application, this would come from an API
-  const [ambulances, setAmbulances] = useState([
-    { id: 'AMB001', vehicleNumber: 'KA01M1234', driverId: 'DRV001', nurseId: 'NRS001', status: 'Active' },
-    { id: 'AMB002', vehicleNumber: 'KA01M5678', driverId: 'DRV002', nurseId: 'NRS002', status: 'Inactive' },
-    { id: 'AMB003', vehicleNumber: 'KA01M9012', driverId: 'DRV003', nurseId: 'NRS003', status: 'Active' },
-  ]);
 
-  // Initialize filtered ambulances on component mount
+  const [ambulances, setAmbulances] = useState([ ]);
+
+
   useEffect(() => {
-    setFilteredAmbulances(ambulances);
+    const fetchAmbulances = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/facility/ambulances'); 
+        for (let i = 0; i < response.data.length; i++) {
+          const ambulance = response.data[i];
+          ambulance.driver = ambulance.driver.employee_id;
+          ambulance.id = `AMB${String(i + 1).padStart(3, '0')}`; // Generate ID
+        }
+        setAmbulances(response.data);
+        setFilteredAmbulances(response.data);
+        console.log('Fetched ambulances:', response.data);
+      } catch (error) {
+        console.error('Error fetching ambulances:', error);
+      }
+
+    };
+
+    fetchAmbulances();
   }, []);
+
 
   // Filter ambulances as user types in search bar
   useEffect(() => {
@@ -35,7 +49,7 @@ const ManageAmbulance = () => {
       setNoResults(false);
     } else {
       const filtered = ambulances.filter(amb => 
-        amb.vehicleNumber.toLowerCase().startsWith(searchQuery.toLowerCase())
+        amb.vehicle_number.toLowerCase().startsWith(searchQuery.toLowerCase())
       );
       setFilteredAmbulances(filtered);
       setNoResults(filtered.length === 0);
@@ -57,18 +71,27 @@ const ManageAmbulance = () => {
       ...newAmbulance
     };
     
-    // Add to the list
+    //call API to add ambulance
+    axios.post('http://localhost:5000/api/facility/ambulance', ambulanceToAdd).then((response) => {
+      // Add to the list
     const updatedAmbulances = [...ambulances, ambulanceToAdd];
     setAmbulances(updatedAmbulances);
-    
     // Reset form and hide it
     setNewAmbulance({
-      vehicleNumber: '',
-      driverId: '',
-      nurseId: '',
-      status: 'Active'
+      vehicle_number: '',
+      driver: '',
+      nurse_id: '',
+      status: 'active'
     });
     setShowAddForm(false);
+    }
+    ).catch((error) => {
+      console.error('Error adding ambulance:', error.response.data.message);
+      alert('Error adding ambulance: ' + error.response.data.message);
+      return;
+    });
+
+    
   };
 
   const handleFormChange = (e) => {
@@ -82,10 +105,10 @@ const ManageAmbulance = () => {
   const handleCancelAdd = () => {
     setShowAddForm(false);
     setNewAmbulance({
-      vehicleNumber: '',
-      driverId: '',
-      nurseId: '',
-      status: 'Active'
+      vehicle_number: '',
+      driver: '',
+      nurse_id: '',
+      status: 'active'
     });
   };
 
@@ -93,10 +116,10 @@ const ManageAmbulance = () => {
     if (selectedAmbulance) {
       // Update selected ambulance status
       const updatedAmbulances = ambulances.map(amb => 
-        amb.id === selectedAmbulance.id ? { ...amb, status: 'Active' } : amb
+        amb.id === selectedAmbulance.id ? { ...amb, status: 'active' } : amb
       );
       setAmbulances(updatedAmbulances);
-      setSelectedAmbulance({ ...selectedAmbulance, status: 'Active' });
+      setSelectedAmbulance({ ...selectedAmbulance, status: 'active' });
     }
   };
 
@@ -104,19 +127,43 @@ const ManageAmbulance = () => {
     if (selectedAmbulance) {
       // Update selected ambulance status
       const updatedAmbulances = ambulances.map(amb => 
-        amb.id === selectedAmbulance.id ? { ...amb, status: 'Inactive' } : amb
+        amb.id === selectedAmbulance.id ? { ...amb, status: 'inactive' } : amb
       );
       setAmbulances(updatedAmbulances);
-      setSelectedAmbulance({ ...selectedAmbulance, status: 'Inactive' });
+      setSelectedAmbulance({ ...selectedAmbulance, status: 'inactive' });
     }
   };
+
+  const handleDecommission = () => {
+    if( selectedAmbulance){
+      const updatedAmbulances = ambulances.filter(amb => amb.id !== selectedAmbulance.id);
+
+      // Call API to decommission the ambulance
+      axios.delete(`http://localhost:5000/api/facility/ambulance/decommission`,
+        {
+          data: {
+            vehicle_number : selectedAmbulance.vehicle_number
+          }
+        }
+      )
+        .then(() => {
+          setAmbulances(updatedAmbulances);
+          setSelectedAmbulance(null);
+          alert('Ambulance decommissioned successfully.');
+        })
+        .catch(error => {
+          console.error('Error decommissioning ambulance:', error.response?.data?.message || error.message);
+          alert('Error decommissioning ambulance: ' + (error.response?.data?.message || error.message));
+        });
+    }
+  }
 
   // Toggle ambulance status directly from the list
   const handleToggleStatus = (e, ambulanceId) => {
     e.stopPropagation(); // Prevent selecting the ambulance
     
     const ambulanceToUpdate = ambulances.find(amb => amb.id === ambulanceId);
-    const newStatus = ambulanceToUpdate.status === 'Active' ? 'Inactive' : 'Active';
+    const newStatus = ambulanceToUpdate.status === 'active' ? 'inactive' : 'active';
     
     // Update the ambulance status
     const updatedAmbulances = ambulances.map(amb => 
@@ -181,29 +228,35 @@ const ManageAmbulance = () => {
             <div className="bg-white border p-4 rounded-md">
               <div className="grid grid-cols-5 gap-4">
                 <div className="text-center">{selectedAmbulance.id}</div>
-                <div className="text-center">{selectedAmbulance.vehicleNumber}</div>
-                <div className="text-center">{selectedAmbulance.driverId}</div>
-                <div className="text-center">{selectedAmbulance.nurseId}</div>
+                <div className="text-center">{selectedAmbulance.vehicle_number}</div>
+                <div className="text-center">{selectedAmbulance.driver}</div>
+                <div className="text-center">{selectedAmbulance.nurse_id}</div>
                 <div className="text-center">{selectedAmbulance.status}</div>
               </div>
               <div className="mt-4 flex justify-center space-x-4">
                 <button
                   onClick={handleMakeActive}
-                  disabled={selectedAmbulance.status === 'Active'}
+                  disabled={selectedAmbulance.status === 'active'}
                   className={`bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm ${
-                    selectedAmbulance.status === 'Active' ? 'opacity-50 cursor-not-allowed' : ''
+                    selectedAmbulance.status === 'active' ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   Make Active
                 </button>
                 <button
                   onClick={handleMakeInactive}
-                  disabled={selectedAmbulance.status === 'Inactive'}
+                  disabled={selectedAmbulance.status === 'inactive'}
                   className={`bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm ${
-                    selectedAmbulance.status === 'Inactive' ? 'opacity-50 cursor-not-allowed' : ''
+                    selectedAmbulance.status === 'inactive' ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   Make Inactive
+                </button>
+                <button
+                  onClick={handleDecommission}
+                  className={`bg-red-900 hover:bg-red-950 text-white px-3 py-1 rounded text-sm `}
+                >
+                  Decommission
                 </button>
               </div>
             </div>
@@ -222,8 +275,8 @@ const ManageAmbulance = () => {
                   </label>
                   <input
                     type="text"
-                    name="vehicleNumber"
-                    value={newAmbulance.vehicleNumber}
+                    name="vehicle_number"
+                    value={newAmbulance.vehicle_number}
                     onChange={handleFormChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -235,8 +288,8 @@ const ManageAmbulance = () => {
                   </label>
                   <input
                     type="text"
-                    name="driverId"
-                    value={newAmbulance.driverId}
+                    name="driver"
+                    value={newAmbulance.driver}
                     onChange={handleFormChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -248,8 +301,8 @@ const ManageAmbulance = () => {
                   </label>
                   <input
                     type="text"
-                    name="nurseId"
-                    value={newAmbulance.nurseId}
+                    name="nurse_id"
+                    value={newAmbulance.nurse_id}
                     onChange={handleFormChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -265,8 +318,8 @@ const ManageAmbulance = () => {
                     onChange={handleFormChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
                   </select>
                 </div>
               </div>
@@ -302,22 +355,22 @@ const ManageAmbulance = () => {
                   onClick={() => setSelectedAmbulance(ambulance)}
                 >
                   <div className="text-center">{ambulance.id}</div>
-                  <div className="text-center">{ambulance.vehicleNumber}</div>
-                  <div className="text-center">{ambulance.driverId}</div>
-                  <div className="text-center">{ambulance.nurseId}</div>
+                  <div className="text-center">{ambulance.vehicle_number}</div>
+                  <div className="text-center">{ambulance.driver}</div>
+                  <div className="text-center">{ambulance.nurse_id}</div>
                   <div className="text-center">
                     <span 
                       className={`px-2 py-1 rounded text-xs font-semibold cursor-pointer hover:opacity-80 ${
-                        ambulance.status === 'Active' 
+                        ambulance.status === 'active' 
                           ? 'bg-green-100 text-green-800 hover:bg-red-100 hover:text-red-800' 
                           : 'bg-red-100 text-red-800 hover:bg-green-100 hover:text-green-800'
                       }`}
                       onClick={(e) => handleToggleStatus(e, ambulance.id)}
-                      title={`Click to ${ambulance.status === 'Active' ? 'deactivate' : 'activate'}`}
+                      title={`Click to ${ambulance.status === 'active' ? 'deactivate' : 'activate'}`}
                     >
                       {ambulance.status}
                       <span className="ml-1 text-xs">
-                        {ambulance.status === 'Active' ? '▼' : '▲'}
+                        {ambulance.status === 'active' ? '▼' : '▲'}
                       </span>
                     </span>
                   </div>

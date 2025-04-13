@@ -4,8 +4,11 @@ import { Nurse } from '../models/staff.js';
 
 export const addAmbulance = async (req, res) => {
     try {
+        console.log(req.body);
         const { vehicle_number, driver, status, nurse_id } = req.body;
 
+        const allDrivers = await Driver.find();
+        console.log(allDrivers);
         // Find the driver object by driverId and get its ObjectId
         const existingAmbulance = await Ambulance.findOne({ vehicle_number:vehicle_number });
         if (existingAmbulance) {
@@ -50,7 +53,8 @@ export const getAmbulanceByVehicleNumber = async (req, res) => {
 
 export const decommissionAmbulance = async (req, res) => {
     try {
-        const { vehicle_number } = req.params;
+        const { vehicle_number } = req.body;
+        console.log(req.body);
         const ambulance = await Ambulance.findOne({ vehicle_number });
         if (!ambulance) {
             return res.status(404).json({ message: 'Ambulance not found' });
@@ -62,3 +66,12 @@ export const decommissionAmbulance = async (req, res) => {
         res.status(500).json({ message: 'Error decommissioning ambulance', error });
     }
 };
+
+export const getAllAmbulances = async (req, res) => {
+    try {
+        const ambulances = await Ambulance.find().populate('driver');
+        res.status(200).json(ambulances);
+    } catch (error) {
+        res.status(500).json({ message: 'Error retrieving ambulances', error });
+    }
+}
