@@ -12,7 +12,14 @@ const MedicineSchema = new Schema({
     enum: ["tablet", "capsule", "syrup", "injection", "cream", "ointment", "other"] 
   },
   manufacturer: String,
-  available: Boolean,
+  available: Boolean, //for availability
+  order_status:{
+    type: String,
+    enum: ["requested", "ordered", "cancelled"],
+    //requested : pharmacist places order for admin to see
+    //ordered : admin places order to supplier
+    //cancelled : admin cancels the order
+  },
   inventory: [{
     quantity: Number,
     batch_no: String,
