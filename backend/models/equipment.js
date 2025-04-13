@@ -7,7 +7,14 @@ const EquipmentSchema = new Schema({
   _id: Number, // Auto-incremented field
   equipment_name: String,
   owner_id: { type: mongoose.Types.ObjectId, ref: 'Department' },
-  quantity: Number,
+  quantity: Number, // can be used for availability status (==0 or not)
+  order_status:{
+    type: String,
+    enum: ["requested", "ordered", "cancelled"],
+    //requested : someone places order for admin to see
+    //ordered : admin places order to supplier
+    //cancelled : admin cancels the order
+  },
   installation_date: Date,
   last_service_date: Date,
   next_service_date: Date
