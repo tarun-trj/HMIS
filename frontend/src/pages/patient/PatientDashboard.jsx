@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Pencil, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/patient/PatientDashboard.css";
+import axios from 'axios';
+
+const calculateAge = dob => new Date().getFullYear() - new Date(dob).getFullYear() - (new Date() < new Date(new Date(dob).setFullYear(new Date().getFullYear())) ? 1 : 0);
 
 const PatientDashboard = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -10,39 +13,26 @@ const PatientDashboard = () => {
 
   useEffect(() => {
     const fetchPatientData = async () => {
-      const dummyData = {
-        patient_username: "johndoe123",
-        profile_pic: null,
-        patient_info: {
-          name: "John Doe",
-          age: 45,
-          height: 175,
-          weight: 80,
-          bloodGrp: "O+",
-          address: "123 Main St, New York",
-          familyHistory: "Hypertension",
-          bedNo: 5,
-          roomNo: 12,
-          other: "N/A",
-        },
-        appointments: [
-          { id: 1, doctorName: "Dr. Smith", time: "2024-04-05 10:00 AM", status: "Scheduled" },
-          { id: 2, doctorName: "Dr. Johnson", time: "2024-04-07 03:00 PM", status: "Completed" },
-          { id: 3, doctorName: "Dr. Lee", time: "2024-04-10 11:30 AM", status: "Scheduled" },
-        ],
-      };
-
-      setPatientData(dummyData);
+      try {
+        const patientId = localStorage.getItem("user_id");
+        const response = await axios.get(`http://localhost:5000/api/patients/profile/${patientId}`);  
+        setPatientData(response.data);
+        setProfilePhoto(response.data.profile_pic);
+      } catch (error) {
+        console.error('Failed to fetch patient data:', error);
+      }
     };
 
     fetchPatientData();
   }, []);
 
+
   if (!patientData) {
     return <div className="text-center p-8">Loading...</div>;
   }
 
-  const { patient_info, appointments } = patientData;
+  const patient_info = patientData.patient_info;
+  const appointments = [];
 
   return (
     <div className="patient-dashboard">
@@ -68,7 +58,7 @@ const PatientDashboard = () => {
 
           <div className="patient-detail">
             <label>Age:</label>
-            <span>{patient_info.age}</span>
+            <span>{calculateAge(patientData.date_of_birth)}</span>
           </div>
 
           <div className="patient-detail">
