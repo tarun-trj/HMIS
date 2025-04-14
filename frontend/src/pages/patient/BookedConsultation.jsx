@@ -2,50 +2,33 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home } from "lucide-react";
 import "../../styles/patient/BookedConsultations.css";
+import { useAuth } from "../../context/AuthContext";
 
-export const fetchConsultationsByPatientId = async (patientId) => {
+
+import axios from "axios";
+
+export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => {
   try {
-    const res = await fetch(`http://localhost:5000/api/patients/${patientId}/consultations`);
-    const data = await res.json();
+    const res = await axiosInstance.get(`http://localhost:5000/api/patients/${patientId}/consultations`);
+    const data = res.data;
 
-    if (!res.ok) {
+    if (!data.consultations) {
       throw new Error("Failed to fetch consultations");
     }
 
-    // Check if we received dummy data or actual consultations
-    if (data.dummy) {
-      return data.consultations; // Return the dummy data as is
-    }
-
-    // Handle actual data
-    // Get current date to compare
     const now = new Date();
 
-    // Filter only past consultations
-    const pastConsultations = Array.isArray(data) 
-      ? data.filter((c) => {
-          const consultDate = new Date(c.booked_date_time);
-          return consultDate < now;
-        })
-      : [];
+    const futureConsultations = data.consultations.filter((c) => {
+      const consultDate = new Date(c.date);
+      return consultDate >= now;
+    });
 
-    // Transform the data to match the component's expected format
-    const formattedConsultations = pastConsultations.map(consult => ({
-      id: consult._id,
-      date: new Date(consult.booked_date_time).toLocaleString(),
-      doctor: consult.doctor.name,
-      location: consult.appointment_type,
-      doctorId: consult.doctor_id,
-      status: consult.status,
-      reason: consult.reason,
-      // Add any other properties your component needs
-    }));
-      
-    console.log(formattedConsultations);
-    return formattedConsultations;
+    futureConsultations.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    return futureConsultations;
   } catch (err) {
     console.error("Error fetching consultations:", err);
-    return []; // fallback return
+    return [];
   }
 };
 
@@ -73,6 +56,9 @@ export const deleteConsultationById = async (consultationId) => {
 const BookedConsultation = () => {
   const [consultations, setConsultations] = useState([]);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
+  const[Loading,setLoading]=useState(true);
+  const{axiosInstance}=useAuth();
+
   
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelConsultationId, setCancelConsultationId] = useState(null);
@@ -81,12 +67,14 @@ const BookedConsultation = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const navigate = useNavigate();
-  const patientId = "10013";
+  const patientId = "10048";
 
   useEffect(() => {
-    const loadConsultations = async () => {
-      const data = await fetchConsultationsByPatientId(patientId);
+    const loadConsultations = async () => {      
+      const data = await fetchConsultationsByPatientId(patientId, axiosInstance);
+      if (window._authFailed) return; // Skip updating state if auth failed
       setConsultations(data);
+      setLoading(false);
     };
 
     loadConsultations();
@@ -130,7 +118,8 @@ const BookedConsultation = () => {
       }
     }
   };
-  ;
+  if(Loading) return <div className="loading">Loading...</div>;
+
 
   return (
     <div className="consultations-page">

@@ -254,10 +254,4 @@ export const addBill = async (req, res) => {
 };
 
 
-// module.exports = {
-//     registerNewPatient
-// };
-
-
-
 

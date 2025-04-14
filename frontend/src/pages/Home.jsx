@@ -83,7 +83,7 @@ const Home = () => {
           <div className="hero-buttons">
             <Link to="/login" className="btn">LOGIN</Link>
             <Link to="/register" className="btn">SIGN UP</Link>
-            <Link to="/access-data" className="btn">ACCESS DATA</Link>
+            <Link to="/public-data" className="btn">PUBLIC DATA</Link>
           </div>
           <div className="hero-dots">
             {slides.map((_, index) => (
