@@ -106,13 +106,6 @@ const EmployeeForm = () => {
     }
   };
   
-  const handleImageDrop = (file) => {
-    handleImageUpload(file);
-  };
-  
-
-  
-
   const handleSubmit = async(e) => {
     e.preventDefault();
     const data = new FormData();
