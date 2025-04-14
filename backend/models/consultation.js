@@ -75,4 +75,5 @@ const Prescription = mongoose.model('Prescription', PrescriptionSchema);
 const PrescriptionEntry = mongoose.model('PrescriptionEntry', PrescriptionEntrySchema);
 const Consultation = mongoose.model('Consultation', ConsultationSchema);
 const Feedback = mongoose.model('Feedback', FeedbackSchema);
+const Report = mongoose.model('Report', FeedbackSchema);
 export {Consultation, Prescription,PrescriptionEntry,Feedback};

@@ -18,14 +18,28 @@ export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => 
 
     const now = new Date();
 
-    const futureConsultations = data.consultations.filter((c) => {
-      const consultDate = new Date(c.date);
-      return consultDate >= now;
-    });
+    // Filter only past consultations
+    const pastConsultations = Array.isArray(data) 
+      ? data.filter((c) => {
+          const consultDate = new Date(c.booked_date_time);
+          return consultDate > now;
+        })
+      : [];
 
-    futureConsultations.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    return futureConsultations;
+    // Transform the data to match the component's expected format
+    const formattedConsultations = pastConsultations.map(consult => ({
+      id: consult._id,
+      date: new Date(consult.booked_date_time).toLocaleString(),
+      doctor: consult.doctor.name,
+      location: consult.appointment_type,
+      doctorId: consult.doctor_id,
+      status: consult.status,
+      reason: consult.reason,
+      // Add any other properties your component needs
+    }));
+      
+    console.log(formattedConsultations);
+    return formattedConsultations;
   } catch (err) {
     console.error("Error fetching consultations:", err);
     return [];
@@ -39,7 +53,9 @@ export const deleteConsultationById = async (consultationId) => {
       method: "DELETE",
     });
 
+    
     const data = await res.json();
+    console.log(data)
 
     if (!res.ok) {
       throw new Error(data?.error || data?.message || "Failed to cancel consultation.");
@@ -87,7 +103,8 @@ const BookedConsultation = () => {
 
   const confirmReschedule = () => {
     if (selectedConsultation) {
-      
+      console.log(selectedConsultation)
+      navigate('/patient/reschedule-consultation/'+selectedConsultation.id)
       // Clear selection after navigation
       setSelectedConsultation(null);
     }
@@ -135,8 +152,29 @@ const BookedConsultation = () => {
                 <span className="consult-date">{consult.date}</span>
                 <span className="consult-doctor">{consult.doctor}</span>
                 <span className="consult-location">{consult.location}</span>
-                <button className="cancel-btn" onClick={() => handleCancel(consult.id)}>Cancel</button>
-                <button className="reschedule-btn" onClick={() => handleReschedule(consult)}>Reschedule</button>
+                <button
+  onClick={() => handleCancel(consult.id)}
+  disabled={consult.status === "cancelled"}
+  className={`px-4 py-2 rounded-md font-medium transition 
+    ${consult.status === "cancelled" 
+      ? "bg-gray-400 text-gray-700 cursor-not-allowed" 
+      : "bg-red-600 text-white hover:bg-red-700"}`}
+  title={consult.status === "cancelled" ? "Already cancelled" : "Cancel consultation"}
+>
+  Cancel
+</button>
+<button
+  onClick={() => handleReschedule(consult)}
+  disabled={consult.status === "completed"}
+  className={`px-4 py-2 rounded-md font-medium transition
+    ${consult.status === "completed"
+      ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+      : "bg-green-600 text-white hover:bg-green-700"}`}
+  title={consult.status === "completed" ? "Completed consultations cannot be rescheduled" : "Reschedule consultation"}
+>
+  Reschedule
+</button>
+
               </div>
             ))
           ) : (

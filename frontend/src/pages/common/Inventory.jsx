@@ -1,192 +1,677 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import { Search, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
 
 const Inventory = () => {
   const { role } = useParams();
-  
-  // Dummy medicine data
-  const dummyMedicineInventory = [
-    { med_inv_id: 1001, med_id: 101, quantity: 250, batch_no: "A1234", expiry_date: "2025-12-31", manufacturing_date: "2024-01-15", unit_price: 0.75, supplier: "PharmSupply" },
-    { med_inv_id: 1002, med_id: 102, quantity: 120, batch_no: "B5678", expiry_date: "2025-06-30", manufacturing_date: "2023-12-10", unit_price: 1.25, supplier: "MediSource" },
-    { med_inv_id: 1003, med_id: 103, quantity: 500, batch_no: "C9123", expiry_date: "2026-03-15", manufacturing_date: "2024-03-05", unit_price: 0.50, supplier: "HealthDist" },
-    { med_inv_id: 1004, med_id: 104, quantity: 0, batch_no: "D4567", expiry_date: "2025-08-22", manufacturing_date: "2023-10-12", unit_price: 2.00, supplier: "PharmSupply" },
-    { med_inv_id: 1005, med_id: 105, quantity: 350, batch_no: "E7890", expiry_date: "2025-11-05", manufacturing_date: "2024-02-18", unit_price: 0.90, supplier: "MediSource" },
-    { med_inv_id: 1006, med_id: 106, quantity: 80, batch_no: "F2345", expiry_date: "2024-07-10", manufacturing_date: "2023-09-25", unit_price: 25.50, supplier: "InsulinPlus" },
-    { med_inv_id: 1007, med_id: 107, quantity: 200, batch_no: "G6789", expiry_date: "2026-01-20", manufacturing_date: "2024-01-10", unit_price: 1.80, supplier: "HealthDist" },
-    { med_inv_id: 1008, med_id: 108, quantity: 150, batch_no: "H0123", expiry_date: "2025-05-15", manufacturing_date: "2023-11-25", unit_price: 3.25, supplier: "PharmSupply" },
-    { med_inv_id: 1009, med_id: 109, quantity: 0, batch_no: "I4567", expiry_date: "2025-09-30", manufacturing_date: "2024-02-01", unit_price: 4.50, supplier: "MediSource" },
-    { med_inv_id: 1010, med_id: 110, quantity: 100, batch_no: "J8901", expiry_date: "2024-12-05", manufacturing_date: "2023-12-28", unit_price: 2.75, supplier: "HealthDist" },
-    { med_inv_id: 1011, med_id: 111, quantity: 300, batch_no: "K2345", expiry_date: "2026-02-28", manufacturing_date: "2024-03-15", unit_price: 1.15, supplier: "PharmSupply" },
-    { med_inv_id: 1012, med_id: 112, quantity: 75, batch_no: "L6789", expiry_date: "2025-07-20", manufacturing_date: "2023-10-25", unit_price: 5.25, supplier: "MediSource" },
-    { med_inv_id: 1013, med_id: 113, quantity: 0, batch_no: "M0123", expiry_date: "2024-10-10", manufacturing_date: "2023-11-01", unit_price: 3.50, supplier: "HealthDist" },
-    { med_inv_id: 1014, med_id: 114, quantity: 225, batch_no: "N4567", expiry_date: "2025-04-25", manufacturing_date: "2024-01-05", unit_price: 0.65, supplier: "PharmSupply" },
-    { med_inv_id: 1015, med_id: 115, quantity: 180, batch_no: "O8901", expiry_date: "2026-05-15", manufacturing_date: "2024-02-25", unit_price: 1.95, supplier: "MediSource" }
-  ];
-
-  // Dummy medicine data that would come from Medicine Collection
-  const dummyMedicines = [
-    { med_id: 101, med_name: "Amoxicillin", effectiveness: { type: "high" }, dosage_form: { type: "capsule" }, manufacturer: "PharmaCo", available: true },
-    { med_id: 102, med_name: "Lisinopril", effectiveness: { type: "high" }, dosage_form: { type: "tablet" }, manufacturer: "MediLabs", available: true },
-    { med_id: 103, med_name: "Ibuprofen", effectiveness: { type: "medium" }, dosage_form: { type: "tablet" }, manufacturer: "HealthPharm", available: true },
-    { med_id: 104, med_name: "Azithromycin", effectiveness: { type: "high" }, dosage_form: { type: "tablet" }, manufacturer: "PharmaCo", available: false },
-    { med_id: 105, med_name: "Loratadine", effectiveness: { type: "medium" }, dosage_form: { type: "tablet" }, manufacturer: "AllerCure", available: true },
-    { med_id: 106, med_name: "Insulin", effectiveness: { type: "high" }, dosage_form: { type: "injection" }, manufacturer: "DiabeCare", available: true },
-    { med_id: 107, med_name: "Atorvastatin", effectiveness: { type: "high" }, dosage_form: { type: "tablet" }, manufacturer: "HeartHealth", available: true },
-    { med_id: 108, med_name: "Albuterol", effectiveness: { type: "high" }, dosage_form: { type: "inhaler" }, manufacturer: "RespiCare", available: true },
-    { med_id: 109, med_name: "Metformin", effectiveness: { type: "medium" }, dosage_form: { type: "tablet" }, manufacturer: "DiabeCare", available: false },
-    { med_id: 110, med_name: "Cetirizine", effectiveness: { type: "medium" }, dosage_form: { type: "tablet" }, manufacturer: "AllerCure", available: true },
-    { med_id: 111, med_name: "Paracetamol", effectiveness: { type: "medium" }, dosage_form: { type: "tablet" }, manufacturer: "HealthPharm", available: true },
-    { med_id: 112, med_name: "Omeprazole", effectiveness: { type: "high" }, dosage_form: { type: "capsule" }, manufacturer: "GastroHelp", available: true },
-    { med_id: 113, med_name: "Amlodipine", effectiveness: { type: "high" }, dosage_form: { type: "tablet" }, manufacturer: "HeartHealth", available: false },
-    { med_id: 114, med_name: "Aspirin", effectiveness: { type: "medium" }, dosage_form: { type: "tablet" }, manufacturer: "HealthPharm", available: true },
-    { med_id: 115, med_name: "Metoprolol", effectiveness: { type: "high" }, dosage_form: { type: "tablet" }, manufacturer: "HeartHealth", available: true }
-  ];
-
-  // Dummy equipment data
-  const dummyEquipment = [
-    { _id: "e101", equipment_id: 201, equipment_name: "ECG Machine" },
-    { _id: "e102", equipment_id: 202, equipment_name: "Defibrillator" },
-    { _id: "e103", equipment_id: 203, equipment_name: "Ventilator" },
-    { _id: "e104", equipment_id: 204, equipment_name: "Patient Monitor" },
-    { _id: "e105", equipment_id: 205, equipment_name: "Infusion Pump" },
-    { _id: "e106", equipment_id: 206, equipment_name: "Syringe Pump" },
-    { _id: "e107", equipment_id: 207, equipment_name: "Ultrasound Machine" },
-    { _id: "e108", equipment_id: 208, equipment_name: "X-ray Machine" },
-    { _id: "e109", equipment_id: 209, equipment_name: "MRI Scanner" },
-    { _id: "e110", equipment_id: 210, equipment_name: "CT Scanner" }
-  ];
-
-  // Dummy equipment inventory data
-  const dummyEquipmentInventory = [
-    { _id: "ei101", equipment_id: 201, quantity: 5, installation_date: "2023-05-15", last_service_date: "2024-01-10", next_service_date: "2024-07-10" },
-    { _id: "ei102", equipment_id: 202, quantity: 8, installation_date: "2023-06-20", last_service_date: "2024-02-15", next_service_date: "2024-08-15" },
-    { _id: "ei103", equipment_id: 203, quantity: 2, installation_date: "2023-09-05", last_service_date: "2024-03-01", next_service_date: "2024-09-01" },
-    { _id: "ei104", equipment_id: 204, quantity: 15, installation_date: "2023-04-12", last_service_date: "2023-12-20", next_service_date: "2024-06-20" },
-    { _id: "ei105", equipment_id: 205, quantity: 10, installation_date: "2023-08-25", last_service_date: "2024-02-28", next_service_date: "2024-08-28" },
-    { _id: "ei106", equipment_id: 206, quantity: 12, installation_date: "2023-07-14", last_service_date: "2024-01-25", next_service_date: "2024-07-25" },
-    { _id: "ei107", equipment_id: 207, quantity: 3, installation_date: "2023-10-30", last_service_date: "2024-04-15", next_service_date: "2024-10-15" },
-    { _id: "ei108", equipment_id: 208, quantity: 1, installation_date: "2023-03-18", last_service_date: "2023-11-10", next_service_date: "2024-05-10" },
-    { _id: "ei109", equipment_id: 209, quantity: 1, installation_date: "2023-11-22", last_service_date: "2024-05-01", next_service_date: "2024-11-01" },
-    { _id: "ei110", equipment_id: 210, quantity: 1, installation_date: "2023-12-05", last_service_date: "2024-05-20", next_service_date: "2024-11-20" }
-  ];
-
-  // States for inventory management
   const [searchTerm, setSearchTerm] = useState('');
-  const [inventoryType, setInventoryType] = useState('medicine'); // 'medicine' or 'equipment'
-  const [filteredInventory, setFilteredInventory] = useState([]);
-  const [combinedMedicineInventory, setCombinedMedicineInventory] = useState([]);
-  const [combinedEquipmentInventory, setCombinedEquipmentInventory] = useState([]);
+  const [inventoryType, setInventoryType] = useState('medicine');
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [selectedMedicine, setSelectedMedicine] = useState(null);
+  const [modalMode, setModalMode] = useState('update'); // 'update' or 'add'
+  const [updateForm, setUpdateForm] = useState({
+    med_name: '',
+    effectiveness: 'medium',
+    dosage_form: 'tablet',
+    manufacturer: '',
+    quantity: '',
+    batch_no: '',
+    expiry_date: '',
+    manufacturing_date: '',
+    unit_price: '',
+    supplier: ''
+  });
+  const [viewMode, setViewMode] = useState('inventory'); // 'inventory' or 'pending'
   
-  // Determine if toggle should be shown based on role
+  const [equipmentForm, setEquipmentForm] = useState({
+    equipment_name: '',
+    quantity: '',
+    installation_date: '',
+    last_service_date: '',
+    next_service_date: ''
+  });
+
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
+
   const showToggle = ['doctor', 'admin', 'nurse'].includes(role);
-  const showEquipmentOnly = role === 'pathologist';
-  
-  // Set initial inventory type based on role
+
+  // Initialize inventory type based on role
   useEffect(() => {
-    if (role === 'pharmacist') {
-      setInventoryType('medicine');
-    } else if (role === 'pathologist') {
-      setInventoryType('equipment');
-    }
+    if (role === 'pharmacist') setInventoryType('medicine');
+    else if (role === 'pathologist') setInventoryType('equipment');
   }, [role]);
 
-  // Process medicine inventory data and combine with medicine details
-  useEffect(() => {
-    // Combine medicine details with inventory data
-    const combinedMed = dummyMedicineInventory.map(invItem => {
-      const medicine = dummyMedicines.find(med => med.med_id === invItem.med_id);
-      return {
-        ...invItem,
-        med_name: medicine ? medicine.med_name : 'Unknown Medicine',
-        available: medicine ? medicine.available : false,
-        // Calculate next availability date (dummy data - 7 days from today if quantity is 0)
-        nextAvailabilityDate: invItem.quantity === 0 ? getNextAvailabilityDate() : null,
-        // Calculate expired quantity (dummy logic - 10% of quantity is expired if expiry date is this year)
-        expiredQuantity: new Date(invItem.expiry_date).getFullYear() === new Date().getFullYear() 
-          ? Math.round(invItem.quantity * 0.1) 
-          : 0
-      };
-    });
-    setCombinedMedicineInventory(combinedMed);
-    
-    // Combine equipment details with inventory data
-    const combinedEquip = dummyEquipmentInventory.map(invItem => {
-      const equipment = dummyEquipment.find(equip => equip.equipment_id === invItem.equipment_id);
-      return {
-        ...invItem,
-        equipment_name: equipment ? equipment.equipment_name : 'Unknown Equipment',
-        // Calculate days until next service
-        daysUntilService: calculateDaysUntilService(invItem.next_service_date),
-        // Service status based on days until next service
-        serviceStatus: getServiceStatus(calculateDaysUntilService(invItem.next_service_date))
-      };
-    });
-    setCombinedEquipmentInventory(combinedEquip);
-  }, []);
+  // Fetch inventory data
+  const fetchInventory = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await axios.get('http://localhost:5000/api/inventory/search', {
+        params: {
+          searchQuery: searchTerm.trim(),
+          page: pagination.page,
+          limit: 10,
+          type: inventoryType,
+          role,
+          viewMode
+        }
+      });
 
-  // Set initial filtered inventory based on role and inventory type
-  useEffect(() => {
-    if (inventoryType === 'medicine') {
-      setFilteredInventory(combinedMedicineInventory);
-    } else {
-      setFilteredInventory(combinedEquipmentInventory);
+      setInventory(response.data.items);
+      setPagination({
+        page: response.data.page,
+        totalPages: response.data.totalPages,
+        hasNextPage: response.data.hasNextPage,
+        hasPrevPage: response.data.hasPrevPage
+      });
+    } catch (err) {
+      setError('Failed to fetch inventory data');
+      console.error('Error fetching inventory:', err);
+    } finally {
+      setLoading(false);
     }
-  }, [inventoryType, combinedMedicineInventory, combinedEquipmentInventory]);
-
-  // Helper function to generate a random next availability date
-  const getNextAvailabilityDate = () => {
-    const today = new Date();
-    const nextDate = new Date(today);
-    nextDate.setDate(today.getDate() + 7); // Add 7 days
-    return nextDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-  };
-  
-  // Helper function to calculate days until next service
-  const calculateDaysUntilService = (nextServiceDate) => {
-    const today = new Date();
-    const nextDate = new Date(nextServiceDate);
-    const diffTime = nextDate - today;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
-  
-  // Helper function to determine service status
-  const getServiceStatus = (daysUntilService) => {
-    if (daysUntilService < 0) return 'Overdue';
-    if (daysUntilService <= 30) return 'Due Soon';
-    return 'OK';
   };
 
-  // Filter inventory based on search term and inventory type
+  // Fetch data when search term, page or inventory type changes
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredInventory(inventoryType === 'medicine' ? combinedMedicineInventory : combinedEquipmentInventory);
-    } else {
-      if (inventoryType === 'medicine') {
-        const filtered = combinedMedicineInventory.filter(item => 
-          item.med_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          item.med_id.toString().includes(searchTerm) ||
-          item.med_inv_id.toString().includes(searchTerm)
-        );
-        setFilteredInventory(filtered);
-      } else {
-        const filtered = combinedEquipmentInventory.filter(item => 
-          item.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          item.equipment_id.toString().includes(searchTerm)
-        );
-        setFilteredInventory(filtered);
-      }
-    }
-  }, [searchTerm, inventoryType, combinedMedicineInventory, combinedEquipmentInventory]);
+    const delayDebounceFn = setTimeout(() => {
+      fetchInventory();
+    }, 500);
 
-  // Handle search input change
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, pagination.page, inventoryType, viewMode]);
+
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page on new search
   };
-  
-  // Handle toggle between medicine and equipment inventory
+
   const handleToggleInventory = () => {
     setInventoryType(prev => prev === 'medicine' ? 'equipment' : 'medicine');
-    setSearchTerm(''); // Reset search when toggling
+    setSearchTerm('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleModalOpen = (mode, item = null) => {
+    setModalMode(mode);
+    if (mode === 'update' && item) {
+      if (inventoryType === 'medicine') {
+        setSelectedMedicine(item);
+        setUpdateForm(prev => ({
+          ...prev,
+          med_name: item.name,
+          manufacturer: item.manufacturer
+        }));
+      } else {
+        setSelectedEquipment(item);
+        setEquipmentForm({
+          equipment_name: item.name,
+          quantity: item.quantity,
+          last_service_date: formatDate(item.last_service_date),
+          next_service_date: formatDate(item.next_service_date)
+        });
+      }
+    } else {
+      setSelectedMedicine(null);
+      setSelectedEquipment(null);
+      setUpdateForm({
+        med_name: '',
+        effectiveness: 'medium',
+        dosage_form: 'tablet',
+        manufacturer: '',
+        quantity: '',
+        batch_no: '',
+        expiry_date: '',
+        manufacturing_date: '',
+        unit_price: '',
+        supplier: ''
+      });
+      setEquipmentForm({
+        equipment_name: '',
+        quantity: '',
+        installation_date: '',
+        last_service_date: '',
+        next_service_date: ''
+      });
+    }
+    setShowUpdateModal(true);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+        
+      const payload = {
+        ...updateForm,
+        ...(modalMode === 'update' && { medicineId: selectedMedicine.id }),
+        available: true,
+        order_status: role === 'pharmacist' ? 'requested' : 'ordered'
+      };
+
+      const response = await axios.post(`http://localhost:5000/api/admin/update-inventory`, payload);
+
+      if (response.status === 200 || response.status === 201) {
+        fetchInventory();
+        setShowUpdateModal(false);
+        setSelectedMedicine(null);
+        setUpdateForm({
+          med_name: '',
+          effectiveness: 'medium',
+          dosage_form: 'tablet',
+          manufacturer: '',
+          quantity: '',
+          batch_no: '',
+          expiry_date: '',
+          manufacturing_date: '',
+          unit_price: '',
+          supplier: ''
+        });
+      }
+    } catch (err) {
+      setError(`Failed to ${modalMode} medicine`);
+      console.error(`Error ${modalMode}ing medicine:`, err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEquipmentSubmit = async () => {
+    try {
+      setLoading(true);
+      
+      const payload = {
+        inventoryType: 'equipment',
+        equipment_name: equipmentForm.equipment_name,
+        quantity: equipmentForm.quantity,
+        installation_date: equipmentForm.installation_date,
+        next_service_date: equipmentForm.next_service_date,
+        order_status: role === 'pathologist' ? 'requested' : 'ordered'
+      };
+
+      if (modalMode === 'update') {
+        payload.itemId = selectedEquipment.id;
+        payload.last_service_date = equipmentForm.last_service_date;
+      }
+
+      const response = await axios.post(
+        'http://localhost:5000/api/admin/update-inventory', 
+        payload
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        fetchInventory();
+        setShowUpdateModal(false);
+        setSelectedEquipment(null);
+        setEquipmentForm({
+          equipment_name: '',
+          quantity: '',
+          installation_date: '',
+          last_service_date: '',
+          next_service_date: ''
+        });
+      }
+    } catch (err) {
+      setError(`Failed to ${modalMode} equipment`);
+      console.error(`Error ${modalMode}ing equipment:`, err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOrderStatusUpdate = async (status) => {
+    try {
+      setLoading(true);
+      
+      const payload = {
+        inventoryType,
+        itemId: inventoryType === 'medicine' ? selectedMedicine.id : selectedEquipment.id,
+        order_status: status
+      };
+
+      const response = await axios.post(
+        'http://localhost:5000/api/admin/update-order-status',
+        payload
+      );
+
+      if (response.status === 200) {
+        fetchInventory();
+        setShowUpdateModal(false);
+        setSelectedMedicine(null);
+        setSelectedEquipment(null);
+      }
+    } catch (err) {
+      setError(`Failed to ${status} order`);
+      console.error(`Error ${status}ing order:`, err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const paginationControls = (
+    <div className="flex justify-center items-center gap-4 mt-6">
+      <button
+        onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+        disabled={!pagination.hasPrevPage}
+        className="p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <span>
+        Page {pagination.page} of {pagination.totalPages}
+      </span>
+      <button
+        onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+        disabled={!pagination.hasNextPage}
+        className="p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <ChevronRight className="h-5 w-5" />
+      </button>
+    </div>
+  );
+
+  const medicineColumns = (
+    <tr className="bg-gray-100">
+      <th className="p-3 text-left">ID</th>
+      <th className="p-3 text-left">Medicine Name</th>
+      <th className="p-3 text-left">Manufacturer</th>
+      {viewMode === 'inventory' ? (
+        <>
+          <th className="p-3 text-left">Available Quantity</th>
+          <th className="p-3 text-left">Status</th>
+        </>
+      ):(<th className="p-3 text-left">Quantity Requested</th>)}
+      {role === 'admin' && <th className="p-3 text-left">Actions</th>}
+    </tr>
+  );
+
+  const medicineRow = (item) => (
+    <tr key={item.id} className="bg-gray-800 text-white rounded-md">
+      <td className="p-3 rounded-l-md">{item.id}</td>
+      <td className="p-3">{item.name}</td>
+      <td className="p-3">{item.manufacturer}</td>
+      <td className="p-3">{item.quantity}</td>
+      {viewMode === 'inventory' && (
+        <>
+          <td className={`p-3 ${
+            !item.available ? 'text-red-300' : 'text-green-300'
+          } ${role !== 'admin' ? 'rounded-r-md' : ''}`}>
+            {item.available ? 'Available' : `Expected: ${item.next_availability}`}
+          </td>
+        </>
+      )}
+      {role === 'admin' && (
+        <td className="p-3 rounded-r-md">
+          <button
+            onClick={() => handleModalOpen('update', item)}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+          >
+            {viewMode === 'pending' && item.order_status === 'requested' ? 'Review Order' : 'Update'}
+          </button>
+        </td>
+      )}
+    </tr>
+  );
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return dateString.split('T')[0];
+  };
+
+  const equipmentRow = (item) => (
+    <tr key={item.id} className="bg-gray-800 text-white rounded-md">
+      <td className="p-3 rounded-l-md">{item.id}</td>
+      <td className="p-3">{item.name}</td>
+      <td className="p-3">{item.quantity}</td>
+      {viewMode === 'inventory' && (
+        <>
+          <td className="p-3">{formatDate(item.last_service_date)}</td>
+          <td className="p-3">{formatDate(item.next_service_date)}</td>
+          <td className={`p-3 ${
+            item.service_status === 'Overdue' ? 'text-red-300' :
+            item.service_status === 'Due Soon' ? 'text-yellow-300' :
+            'text-green-300'
+          } ${role !== 'admin' ? 'rounded-r-md' : ''}`}>
+            {item.service_status}
+          </td>
+        </>
+      )}
+      {role === 'admin' && (
+        <td className="p-3 rounded-r-md">
+          <button
+            onClick={() => handleModalOpen('update', item)}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+          >
+            {viewMode === 'pending' && item.order_status === 'requested' ? 'Review Order' : 'Update'}
+          </button>
+        </td>
+      )}
+    </tr>
+  );
+
+  const renderModal = () => (
+    <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-[800px] relative max-h-[90vh] overflow-y-auto">
+        <button
+          onClick={() => setShowUpdateModal(false)}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        >
+          <X size={20} />
+        </button>
+        <h2 className="text-2xl font-semibold mb-6">
+          {modalMode === 'update' 
+            ? 'Update Medicine' 
+            : role === 'pharmacist' 
+              ? 'Order Medicine'
+              : 'Add New Medicine'}
+        </h2>
+        {(viewMode === 'pending' && modalMode==='update') ? (
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium">Review Order Request</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <p><span className="font-medium">Name:</span> {selectedMedicine?.name}</p>
+              <p><span className="font-medium">Quantity:</span> {selectedMedicine?.quantity}</p>
+              {/* Add other relevant details */}
+            </div>
+            <div className="flex gap-4 justify-end mt-6">
+              <button
+                onClick={() => handleOrderStatusUpdate('cancelled')}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+              >
+                Reject Order
+              </button>
+              <button
+                onClick={() => handleOrderStatusUpdate('ordered')}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+              >
+                Accept Order
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* New fields for Add mode */}
+            {modalMode === 'add' && (
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Medicine Name</label>
+                  <input
+                    type="text"
+                    value={updateForm.med_name}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, med_name: e.target.value }))}
+                    className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer</label>
+                  <input
+                    type="text"
+                    value={updateForm.manufacturer}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, manufacturer: e.target.value }))}
+                    className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Effectiveness</label>
+                  <select
+                    value={updateForm.effectiveness}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, effectiveness: e.target.value }))}
+                    className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dosage Form</label>
+                  <select
+                    value={updateForm.dosage_form}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, dosage_form: e.target.value }))}
+                    className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="tablet">Tablet</option>
+                    <option value="capsule">Capsule</option>
+                    <option value="syrup">Syrup</option>
+                    <option value="injection">Injection</option>
+                    <option value="cream">Cream</option>
+                    <option value="ointment">Ointment</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+            )}
+            
+            {/* Inventory fields in grid */}
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Batch Number</label>
+                <input
+                  type="text"
+                  value={updateForm.batch_no}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, batch_no: e.target.value }))}
+                  className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                <input
+                  type="number"
+                  value={updateForm.quantity}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, quantity: e.target.value }))}
+                  className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturing Date</label>
+                <input
+                  type="date"
+                  value={updateForm.manufacturing_date}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, manufacturing_date: e.target.value }))}
+                  className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                <input
+                  type="date"
+                  value={updateForm.expiry_date}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, expiry_date: e.target.value }))}
+                  className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price</label>
+                <input
+                  type="number"
+                  value={updateForm.unit_price}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, unit_price: e.target.value }))}
+                  className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                <input
+                  type="text"
+                  value={updateForm.supplier}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, supplier: e.target.value }))}
+                  className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleSubmit}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-md font-medium mt-6"
+            >
+              {modalMode === 'update' ? 'Update Medicine' : 'Add Medicine'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderEquipmentModal = () => (
+    <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-[800px] relative max-h-[90vh] overflow-y-auto">
+        <button
+          onClick={() => setShowUpdateModal(false)}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        >
+          <X size={20} />
+        </button>
+        <h2 className="text-2xl font-semibold mb-6">
+          {modalMode === 'update' 
+            ? 'Update Equipment'
+            : role === 'pathologist'
+              ? 'Order Equipment'
+              : 'Add New Equipment'}
+        </h2>
+        {(viewMode === 'pending' && modalMode==='update') ? (
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium">Review Equipment Request</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <p><span className="font-medium">Name:</span> {selectedEquipment?.name}</p>
+              <p><span className="font-medium">Quantity:</span> {selectedEquipment?.quantity}</p>
+              {/* Add other relevant details */}
+            </div>
+            <div className="flex gap-4 justify-end mt-6">
+              <button
+                onClick={() => handleOrderStatusUpdate('cancelled')}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+              >
+                Reject Order
+              </button>
+              <button
+                onClick={() => handleOrderStatusUpdate('ordered')}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+              >
+                Accept Order
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Name</label>
+                <input
+                  type="text"
+                  value={equipmentForm.equipment_name}
+                  onChange={(e) => setEquipmentForm(prev => ({ ...prev, equipment_name: e.target.value }))}
+                  className={`p-2 w-full border rounded focus:ring-2 focus:ring-blue-500 ${
+                    modalMode === 'update' ? 'bg-gray-100' : ''
+                  }`}
+                  required
+                  readOnly={modalMode === 'update'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                <input
+                  type="number"
+                  value={equipmentForm.quantity}
+                  onChange={(e) => setEquipmentForm(prev => ({ ...prev, quantity: e.target.value }))}
+                  className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                  required
+                />
+              </div>
+              {modalMode === 'add' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Installation Date</label>
+                  <input
+                    type="date"
+                    value={equipmentForm.installation_date}
+                    onChange={(e) => setEquipmentForm(prev => ({ ...prev, installation_date: e.target.value }))}
+                    className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              )}
+              {modalMode === 'update' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Service Date</label>
+                  <input
+                    type="date"
+                    value={equipmentForm.last_service_date}
+                    onChange={(e) => setEquipmentForm(prev => ({ ...prev, last_service_date: e.target.value }))}
+                    className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Next Service Date</label>
+                <input
+                  type="date"
+                  value={equipmentForm.next_service_date}
+                  onChange={(e) => setEquipmentForm(prev => ({ ...prev, next_service_date: e.target.value }))}
+                  className="p-2 w-full border rounded focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleEquipmentSubmit}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-md font-medium mt-6"
+            >
+              {modalMode === 'update' ? 'Update Equipment' : 'Add Equipment'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderTabs = () => {
+    if (role !== 'admin') return null;
+
+    return (
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setViewMode('inventory')}
+            className={`${
+              viewMode === 'inventory'
+                ? 'border-blue-500 text-blue-600 border-b-2'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+            } whitespace-nowrap py-4 px-1 font-medium`}
+          >
+            Inventory
+          </button>
+          <button
+            onClick={() => setViewMode('pending')}
+            className={`${
+              viewMode === 'pending'
+                ? 'border-blue-500 text-blue-600 border-b-2'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+            } whitespace-nowrap py-4 px-1 font-medium`}
+          >
+            Pending Requests
+          </button>
+        </nav>
+      </div>
+    );
   };
 
   return (
@@ -209,26 +694,39 @@ const Inventory = () => {
           )}
   
           {/* Pharmacist: Order Medicines */}
-          {role === 'pharmacist' && (
+          {role === 'pharmacist' && inventoryType === 'medicine' && (
             <button
-              onClick={() => navigate('/pharmacist/inventory/order-medicine')}
+              onClick={() => handleModalOpen('add')}
               className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200"
             >
               Order Medicines
             </button>
           )}
+
+          {/* Pathologist: Order Equipment */}
+          {role === 'pathologist' && inventoryType === 'equipment' && (
+            <button
+              onClick={() => handleModalOpen('add')}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200"
+            >
+              Order Equipment
+            </button>
+          )}
   
-          {/* Admin: Update Quantity */}
+          {/* Admin: Add Medicine/Equipment */}
           {role === 'admin' && (
             <button
-              onClick={() => navigate('/admin/inventory/update-quantity')}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-md transition duration-200"
+              onClick={() => handleModalOpen('add')}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 flex items-center gap-2"
             >
-              Update Quantity
+              <Plus size={20} />
+              Add {inventoryType === 'medicine' ? 'Medicine' : 'Equipment'}
             </button>
           )}
         </div>
       </div>
+  
+      {role === 'admin' && renderTabs()}
   
       {/* Search Bar */}
       <div className="mb-6 relative mx-auto">
@@ -239,92 +737,85 @@ const Inventory = () => {
           onChange={handleSearchChange}
           className="w-full p-3 border border-gray-300 rounded-md pr-10"
         />
-        <svg
-          className="absolute right-3 top-3 h-5 w-5 text-gray-400"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+        <Search className="absolute right-3 top-3 h-5 w-5 text-gray-400" />
       </div>
   
-      {/* Medicine Inventory Table */}
-      {inventoryType === 'medicine' && (
-        <div className="overflow-x-auto">
-          <table className="w-3/4 mx-auto border-separate border-spacing-y-2">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-3 text-left">ID</th>
-                <th className="p-3 text-left">Medicine Name</th>
-                <th className="p-3 text-left">Available Quantity</th>
-                <th className="p-3 text-left">Next Availability Date</th>
-                <th className="p-3 text-left">Expired Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInventory.map((item) => (
-                <tr key={item.med_inv_id} className="bg-gray-800 text-white rounded-md">
-                  <td className="p-3 rounded-l-md">{item.med_id}</td>
-                  <td className="p-3">{item.med_name}</td>
-                  <td className="p-3">{item.quantity}</td>
-                  <td className="p-3">{item.nextAvailabilityDate || 'In Stock'}</td>
-                  <td className="p-3 rounded-r-md">{item.expiredQuantity}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Loading and Error States */}
+      {loading && (
+        <div className="text-center py-4">
+          <p>Loading inventory...</p>
         </div>
       )}
-  
-      {/* Equipment Inventory Table */}
-      {inventoryType === 'equipment' && (
-        <div className="overflow-x-auto">
-          <table className="w-3/4 mx-auto border-separate border-spacing-y-2">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-3 text-left">ID</th>
-                <th className="p-3 text-left">Equipment Name</th>
-                <th className="p-3 text-left">Quantity</th>
-                <th className="p-3 text-left">Last Service Date</th>
-                <th className="p-3 text-left">Next Service Date</th>
-                <th className="p-3 text-left">Service Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInventory.map((item) => (
-                <tr key={item._id} className="bg-gray-800 text-white rounded-md">
-                  <td className="p-3 rounded-l-md">{item.equipment_id}</td>
-                  <td className="p-3">{item.equipment_name}</td>
-                  <td className="p-3">{item.quantity}</td>
-                  <td className="p-3">{item.last_service_date}</td>
-                  <td className="p-3">{item.next_service_date}</td>
-                  <td
-                    className={`p-3 rounded-r-md ${
-                      item.serviceStatus === 'Overdue'
-                        ? 'text-red-300'
-                        : item.serviceStatus === 'Due Soon'
-                        ? 'text-yellow-300'
-                        : 'text-green-300'
-                    }`}
-                  >
-                    {item.serviceStatus}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+      {error && (
+        <div className="text-center py-4 text-red-500">
+          <p>{error}</p>
         </div>
       )}
+
+      {/* Tables with updated data mapping */}
+      {!loading && !error && (
+        <>
+          {inventory.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-lg">
+                {viewMode === 'pending' 
+                  ? 'No pending requests found' 
+                  : `No ${inventoryType} items found`}
+              </p>
+            </div>
+          ) : (
+            <>
+              {inventoryType === 'medicine' ? (
+                <div className="overflow-x-auto">
+                  <table className="w-3/4 mx-auto border-separate border-spacing-y-2">
+                    <thead>
+                      {medicineColumns}
+                    </thead>
+                    <tbody>
+                      {inventory.map(medicineRow)}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                // Equipment table with similar updates
+                <div className="overflow-x-auto">
+                  <table className="w-3/4 mx-auto border-separate border-spacing-y-2">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="p-3 text-left">ID</th>
+                        <th className="p-3 text-left">Equipment Name</th>
+                        {viewMode === "inventory" ? (
+                          <>
+                            <th className="p-3 text-left">Available Quantity</th>
+                            <th className="p-3 text-left">Last Service Date</th>
+                            <th className="p-3 text-left">Next Service Date</th>
+                            <th className="p-3 text-left">Service Status</th>
+                          </>
+                        ) : (
+                          <th className="p-3 text-left">Quantity Requested</th>
+                        )}
+                        {role === 'admin' && <th className="p-3 text-left">Actions</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inventory.map(equipmentRow)}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Pagination Controls - Only show if there are items */}
+          {inventory.length > 0 && paginationControls}
+        </>
+      )}
+
+      {/* Update Quantity Modal */}
+      {showUpdateModal && (inventoryType === 'medicine' ? renderModal() : renderEquipmentModal())}
     </div>
   );
-  
 };
 
 export default Inventory;

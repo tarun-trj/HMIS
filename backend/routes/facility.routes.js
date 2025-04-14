@@ -1,5 +1,5 @@
 import express from 'express';
-import { addAmbulance, getAmbulanceByVehicleNumber, decommissionAmbulance } from '../controllers/facility.controller.js';
+import { addAmbulance, getAmbulanceByVehicleNumber, decommissionAmbulance, getAllAmbulances } from '../controllers/facility.controller.js';
 
 const router = express.Router();
 
@@ -10,6 +10,9 @@ router.post('/ambulance', addAmbulance);
 router.get('/ambulance/:vehicle_number', getAmbulanceByVehicleNumber);
 
 // Decommission ambulance
-router.patch('/ambulance/:vehicle_number/decommission', decommissionAmbulance);
+router.delete('/ambulance/decommission', decommissionAmbulance);
+
+// Get all ambulances
+router.get('/ambulances', getAllAmbulances);
 
 export default router;

@@ -91,6 +91,7 @@ import PublicData from "./pages/PublicData";
 import AddBill from "./pages/receptionist/AddBill";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import DoctorAppointment from "./pages/patient/DoctorAppointment";
 
 
 
@@ -178,6 +179,7 @@ function App() {
             <Route path="/patient/book-consultation" element={<BookConsultation />} />
             <Route path="/patient/booked-consultation" element={<BookedConsultation />} />
             <Route path="/patient/reschedule-consultation/:consultationId" element={<RescheduleConsultation />} />
+            <Route path="/patient/doctor/:doctorId" element={<DoctorAppointment />} />
 
           </Route>
 

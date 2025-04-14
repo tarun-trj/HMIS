@@ -29,7 +29,7 @@ router.get('/consultations/:patientId', authenticateUser, fetchPatientConsultati
 // - req.params.patientId: String (Patient ID)
 // - Authentication token with doctor_id in req.user
 // - Doctor must have previously had consultations with this patient
-router.get('/progress/:patientId', authenticateUser, fetchPatientProgress);
+router.get('/progress/:patientId', fetchPatientProgress);
 
 
 /**
