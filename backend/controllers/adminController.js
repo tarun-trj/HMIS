@@ -56,27 +56,89 @@ export const generatePayslip = async (req, res) => {
           ]
         });
   
-        // 4. Respond to client
-        res.status(200).json({ message: 'Payslip generated and emailed successfully!' });
-      });
-  
-      // 5. Write PDF content
-      doc.fontSize(20).text('Payslip', { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(12).text(`Employee ID: ${employee_id}`);
-      doc.text(`Month/Year: ${new Date(month_year).toLocaleDateString()}`);
-      doc.text(`Basic Salary: ${basic_salary}`);
-      doc.text(`Allowance: ${allowance}`);
-      doc.text(`Deduction: ${deduction}`);
-      doc.text(`Net Salary: ${net_salary}`);
-      doc.moveDown();
-      doc.text('Thank you for your service!', { align: 'center' });
-  
-      doc.end(); // This triggers the 'end' event
-  
-    } catch (error) {
+    });
+    
+    // 5. Write PDF content
+    doc.fontSize(20).text('Payslip', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Employee ID: ${employee_id}`);
+    doc.text(`Month/Year: ${new Date(month_year).toLocaleDateString()}`);
+    doc.text(`Basic Salary: ${basic_salary}`);
+    doc.text(`Allowance: ${allowance}`);
+    doc.text(`Deduction: ${deduction}`);
+    doc.text(`Net Salary: ${net_salary}`);
+    doc.moveDown();
+    doc.text('Thank you for your service!', { align: 'center' });
+    
+    doc.end(); // This triggers the 'end' event
+    res.status(200).json({ message: 'Payslip generated and emailed successfully!' });
+    
+} catch (error) {
       console.error('Error sending payslip email:', error);
       res.status(500).json({ message: 'Failed to generate/send payslip', error });
+    }
+  };
+const generatePayslipIn = async (req, res) => {
+    try {
+        const { employee_id } = req.body;
+        const employee = await Employee.findById(employee_id);
+        if (!employee) {
+            // return res.status(404).json({ message: 'Employee not found' });
+        }
+        const { salary: basic_salary, allowance, deduction, net_salary, month_year,email } = employee;
+  
+      // 1. Generate PDF in memory
+      const doc = new PDFDocument();
+      let buffers = [];
+      
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', async () => {
+        const pdfBuffer = Buffer.concat(buffers);
+  
+        // 2. Configure Nodemailer transporter
+        let transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.USER,
+            pass: process.env.PASS,
+          }
+        });
+  
+        // 3. Compose and send email with PDF as attachment
+        await transporter.sendMail({
+          from: '"Admin Department" hmis.iitg@gmail.com',
+          to: email,
+          subject: 'Your Monthly Payslip',
+          text: 'Please find your payslip attached.',
+          attachments: [
+            {
+              filename: `payslip_${employee_id}.pdf`,
+              content: pdfBuffer,
+              contentType: 'application/pdf'
+            }
+          ]
+        });
+  
+    });
+    
+    // 5. Write PDF content
+    doc.fontSize(20).text('Payslip', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Employee ID: ${employee_id}`);
+    doc.text(`Month/Year: ${new Date(month_year).toLocaleDateString()}`);
+    doc.text(`Basic Salary: ${basic_salary}`);
+    doc.text(`Allowance: ${allowance}`);
+    doc.text(`Deduction: ${deduction}`);
+    doc.text(`Net Salary: ${net_salary}`);
+    doc.moveDown();
+    doc.text('Thank you for your service!', { align: 'center' });
+    
+    doc.end(); // This triggers the 'end' event
+    // res.status(200).json({ message: 'Payslip generated and emailed successfully!' });
+    
+} catch (error) {
+      console.error('Error sending payslip email:', error);
+    //   res.status(500).json({ message: 'Failed to generate/send payslip', error });
     }
   };
 
@@ -372,7 +434,7 @@ export const addStaff = async (req, res) => {
 
 export const updateSalary = async (req, res) => {
     try {
-        const { employee_id, new_salary, basic_salary, allowance, deduction, net_salary } = req.body;
+        const { employee_id,  basic_salary, allowance, deduction, net_salary } = req.body;
 
         // Find the employee by ID
         const employee = await Employee.findById(employee_id);
@@ -382,7 +444,7 @@ export const updateSalary = async (req, res) => {
         }
 
         // Update the salary
-        employee.salary = new_salary;
+        employee.salary = net_salary;
 
         // Save the updated employee
         await employee.save();
@@ -415,7 +477,7 @@ export const updateSalary = async (req, res) => {
 export const processPayroll = async (req, res) => {
     try {
         const { employee_ids } = req.body;
-
+        // console.log('Processing payroll for employee IDs:', employee_ids);
         if (!Array.isArray(employee_ids) || employee_ids.length === 0) {
             return res.status(400).json({ message: 'Invalid employee IDs provided' });
         }
@@ -430,28 +492,24 @@ export const processPayroll = async (req, res) => {
             }
 
             if (payroll.net_salary <= 0) {
-                console.error(`Net salary is zero or already processed for employee ID: ${employee_id}`);
+                console.error(`Net salary is zero: ${employee_id}`);
                 continue;
             }
-
-            // Generate a finance log
-            const financeLog = new FinanceLogs({
-                user_id: employee_id,
-                transaction_type: "expense",
-                amount: payroll.net_salary,
-                description: `Salary payment for ${new Date(payroll.month_year).toLocaleDateString()}`
-            });
-            await financeLog.save();
-
+            if(payroll.month_year.getMonth() === new Date().getMonth()){
+                console.error(`Payroll already processed for this month: ${employee_id}`);
+                continue;
+            }
+            console.log("Here");
             // Generate payslip by calling the generatePayslip function
-            await generatePayslip({ body: { employee_id } }, {});
+            await generatePayslipIn({ body: { employee_id } }, {});
 
             // Update the payroll record
-            payroll.net_salary = 0;
+            // payroll.net_salary = 0;
             payroll.payment_status = "paid";
             payroll.generation_date = new Date();
             await payroll.save();
         }
+        console.log('Payroll processed successfully for all employees');
 
         res.status(200).json({ message: 'Payroll processed successfully' });
     } catch (error) {

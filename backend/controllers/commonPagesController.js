@@ -122,13 +122,13 @@ export const findPayrollById = async (req, res) => {
   try {
     const { employeeId } = req.query;
       console.log(req.query)
-
+      let employeePayrolls;
       if (!employeeId) {
-          return res.status(400).json({ message: "employeeId is required" });
+          employeePayrolls = await Payroll.find({});
       }
-
-      // Find all payrolls for this employee
-      const employeePayrolls = await Payroll.find({ employee_id: employeeId });
+      else {
+          employeePayrolls = await Payroll.find({ employee_id: employeeId }).populate('employee_id');
+      }
 
       //update has to be made here to fetch from finance logs
 
