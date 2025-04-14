@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useAuth } from "../../context/AuthContext";
 import axios from 'axios';
 import { Search } from 'lucide-react';
 
@@ -46,7 +45,10 @@ const formats = {
 };
 
 const MyCalendar = () => {
-  const { user } = useAuth();
+  // Replace useAuth with localStorage
+  const userId = localStorage.getItem("user_id");
+  const currentUserRole = localStorage.getItem("role");
+  
   const [events, setEvents] = useState([]);
   const [view, setView] = useState('month');
   const [date, setDate] = useState(new Date());
@@ -66,7 +68,7 @@ const MyCalendar = () => {
   useEffect(() => {
     const loadEvents = async () => {
       setLoading(true);
-      const doctorId = user?.role === 'doctor' ? user._id : selectedDoctor;
+      const doctorId = currentUserRole === 'doctor' ? userId : selectedDoctor;
       if (doctorId) {
         const events = await fetchConsultations(doctorId);
         setEvents(events);
@@ -76,7 +78,7 @@ const MyCalendar = () => {
       setLoading(false);
     };
     loadEvents();
-  }, [user, selectedDoctor]);
+  }, [userId, currentUserRole, selectedDoctor]);
 
   const handleSaveEvent = async () => {
     try {
@@ -91,7 +93,7 @@ const MyCalendar = () => {
         doctor_id: formData.doctor_id,
         booked_date_time: formData.booked_date_time,
         reason: formData.reason,
-        created_by: Number(user._id),
+        created_by: Number(userId),
         appointment_type: formData.appointment_type
       };
 
@@ -119,7 +121,7 @@ const MyCalendar = () => {
           <p className="text-gray-600">Manage appointments and consultations</p>
         </div>
         {/* Only show Add Appointment button for receptionists */}
-        {user?.role === 'receptionist' && (
+        {currentUserRole === 'receptionist' && (
           <button
             onClick={() => setShowPrompt(true)}
             className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
@@ -130,7 +132,7 @@ const MyCalendar = () => {
       </div>
 
       {/* Allow doctor search only for admin and receptionist */}
-      {['admin', 'receptionist'].includes(user?.role) && (
+      {['admin', 'receptionist'].includes(currentUserRole) && (
         <div className="mb-6 flex items-center gap-4">
           <div className="relative flex items-center gap-2">
             <Search className="text-gray-400" size={20} />
@@ -164,8 +166,8 @@ const MyCalendar = () => {
             onView={setView}
             date={date}
             onNavigate={setDate}
-            selectable={user?.role === 'receptionist'} // Only receptionist can select dates
-            onSelectSlot={user?.role === 'receptionist' ? () => setShowPrompt(true) : undefined}
+            selectable={currentUserRole === 'receptionist'} // Only receptionist can select dates
+            onSelectSlot={currentUserRole === 'receptionist' ? () => setShowPrompt(true) : undefined}
             formats={formats}
             defaultDate={new Date()}
             eventPropGetter={() => ({
@@ -182,7 +184,7 @@ const MyCalendar = () => {
       )}
 
       {/* Modal only for receptionist */}
-      {showPrompt && user?.role === 'receptionist' && (
+      {showPrompt && currentUserRole === 'receptionist' && (
         <>
           <div 
             className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity z-40"

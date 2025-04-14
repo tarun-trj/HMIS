@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Search, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react';
 
 const Inventory = () => {
-  const { role } = useParams();
+  const role = localStorage.getItem("role");
   const [searchTerm, setSearchTerm] = useState('');
   const [inventoryType, setInventoryType] = useState('medicine');
   const [inventory, setInventory] = useState([]);
