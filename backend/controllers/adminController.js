@@ -14,7 +14,7 @@ import { sendPasswordEmail } from "../config/sendMail.js"; // adjust the path
 import nodemailer from 'nodemailer';
 import PDFDocument from 'pdfkit';
 import Equipment from '../models/equipment.js';
-
+import Department from '../models/department.js';
 export const generatePayslip = async (req, res) => {
     try {
         const { employee_id } = req.body;
@@ -508,5 +508,33 @@ export const updateOrderStatus = async (req, res) => {
     } catch (error) {
         console.error('Error updating order status:', error);
         res.status(500).json({ message: 'Failed to update order status', error });
+    }
+};
+
+export const getUniqueDepartments = async (req, res) => {
+    try {
+        const uniqueDepartments = await Department.aggregate([
+            {
+                $group: {
+                    _id: "$dept_name",
+                    id: { $first: "$_id" } // can be random, or change to $last, $min, etc.
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    dept_name: "$_id",
+                    id: 1
+                }
+            }
+        ]);
+
+        res.status(200).json({ 
+            message: 'Unique departments fetched successfully',
+            departments: uniqueDepartments
+        });
+    } catch (error) {
+        console.error('Error fetching unique departments:', error);
+        res.status(500).json({ message: 'Failed to fetch unique departments', error });
     }
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const EmployeeForm = () => {
@@ -16,6 +16,9 @@ const EmployeeForm = () => {
     gender: '',
     blood_group: '',
     salary: '',
+    basic_salary: '',
+    allowance: '',
+    deduction: '',
     aadhar_id: '',
     bank_details: {
       bank_name: '',
@@ -25,13 +28,52 @@ const EmployeeForm = () => {
     }
   });
 
+  // State for departments data
+  const [departments, setDepartments] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const [profilePreview, setProfilePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // Fetch departments when component mounts
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get('http://localhost:5000/api/admin/get-departments');
+        setDepartments(response.data.departments);
+      } catch (err) {
+        console.error('Error fetching departments:', err);
+        setError('Failed to load departments. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  // Calculate total salary when basic salary, allowance, or deduction changes
+  useEffect(() => {
+    const basic = parseFloat(formData.basic_salary) || 0;
+    const allowance = parseFloat(formData.allowance) || 0;
+    const deduction = parseFloat(formData.deduction) || 0;
+    
+    const totalSalary = basic + allowance - deduction;
+    
+    if (totalSalary >= 0) {
+      setFormData(prev => ({
+        ...prev,
+        salary: totalSalary.toString()
+      }));
+    }
+  }, [formData.basic_salary, formData.allowance, formData.deduction]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log(name, value);
+    
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData({
@@ -47,7 +89,6 @@ const EmployeeForm = () => {
         [name]: value
       });
     }
-    console.log(formData);
   };
 
   const handleImageUpload = (e) => {
@@ -57,7 +98,7 @@ const EmployeeForm = () => {
         ...prev,
         profile_pic: file
       }));
-      console.log(formData);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfilePreview(reader.result);
@@ -66,76 +107,74 @@ const EmployeeForm = () => {
     }
   };
 
-  
   const handleSubmit = async(e) => {
     e.preventDefault();
-    const data= new FormData();
-  // Append simple fields
-  Object.entries(formData).forEach(([key, value]) => {
-    if (key === 'bank_details') {
-      Object.entries(value).forEach(([bk, bv]) => {
-        data.append(`bank_details[${bk}]`, bv); // Send as nested keys or convert to JSON
-      });
-    } else if (key === 'profile_pic' && value instanceof File) {
-      data.append(key, value);
-    } else {
-      data.append(key, value);
-    }
-  });   
-  setIsSubmitting(true); 
-  try {
-    const response = await axios.post('http://localhost:5000/api/admin/add-staff', data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  
-    const data1 = response.data;
-  
-    setMessage({ type: 'success', text: data1.message || 'Staff registered successfully!' });
-  
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      profile_pic: '',
-      role: '',
-      department_id: '67f565394f3afafa19aa8f23',
-      phone_number: '',
-      emergency_phone: '',
-      address: '',
-      date_of_birth: '',
-      date_of_joining: '',
-      gender: '',
-      blood_group: '',
-      salary: '',
-      aadhar_id: '',
-      bank_details: {
-        bank_name: '',
-        account_number: '',
-        ifsc_code: '',
-        branch_name: ''
+    const data = new FormData();
+    
+    // Append simple fields
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key === 'bank_details') {
+        Object.entries(value).forEach(([bk, bv]) => {
+          data.append(`bank_details[${bk}]`, bv);
+        });
+      } else if (key === 'profile_pic' && value instanceof File) {
+        data.append(key, value);
+      } else {
+        data.append(key, value);
       }
-    });
-    setProfilePreview(null);
-  
-    // Optionally navigate
-    // navigate("/receptionist/profile");
-  
-  } catch (error) {
-    console.error('Registration error:', error);
-  
-    if (error.response && error.response.data && error.response.data.message) {
-      setMessage({ type: 'error', text: error.response.data.message });
-    } else {
-      setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+    });   
+    
+    setIsSubmitting(true); 
+    try {
+      const response = await axios.post('http://localhost:5000/api/admin/add-staff', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    
+      const data1 = response.data;
+    
+      setMessage({ type: 'success', text: data1.message || 'Staff registered successfully!' });
+    
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        profile_pic: '',
+        role: '',
+        department_id: '',
+        phone_number: '',
+        emergency_phone: '',
+        address: '',
+        date_of_birth: '',
+        date_of_joining: '',
+        gender: '',
+        blood_group: '',
+        salary: '',
+        basic_salary: '',
+        allowance: '',
+        deduction: '',
+        aadhar_id: '',
+        bank_details: {
+          bank_name: '',
+          account_number: '',
+          ifsc_code: '',
+          branch_name: ''
+        }
+      });
+      setProfilePreview(null);
+    
+    } catch (error) {
+      console.error('Registration error:', error);
+    
+      if (error.response && error.response.data && error.response.data.message) {
+        setMessage({ type: 'error', text: error.response.data.message });
+      } else {
+        setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+      }
+    
+    } finally {
+      setIsSubmitting(false);
+      setTimeout(() => setMessage(null), 5000);
     }
-  
-  } finally {
-    setIsSubmitting(false);
-    setTimeout(() => setMessage(null), 5000);
-  }
-  
-
-    // Here you would send the data to your API
   };
 
   const inputStyles = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500";
@@ -148,6 +187,12 @@ const EmployeeForm = () => {
       {message && (
         <div className={`mb-6 p-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
           {message.text}
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-6 p-4 rounded-md bg-red-100 text-red-800">
+          {error}
         </div>
       )}
 
@@ -167,10 +212,10 @@ const EmployeeForm = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setProfilePreview(null); // Reset the preview image
+                      setProfilePreview(null);
                       setFormData((prev) => ({
                         ...prev,
-                        profile_pic: '' // Clear the file from formData
+                        profile_pic: ''
                       }));
                     }}
                     className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
@@ -224,9 +269,6 @@ const EmployeeForm = () => {
                 className={inputStyles}
               />
             </div>
-
-
-
           </div>
         </div>
 
@@ -352,12 +394,16 @@ const EmployeeForm = () => {
                 onChange={handleChange}
                 className={selectStyles}
                 required
+                disabled={isLoading}
               >
                 <option value="">Select Department</option>
-                <option value="67f565394f3afafa19aa8f23">Cardiology</option>
-                <option value="67f565394f3afafa19aa8f23">Neurology</option>  
-                {/* Department options would be populated from API */}
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.dept_name}
+                  </option>
+                ))}
               </select>
+              {isLoading && <p className="text-sm text-gray-500 mt-1">Loading departments...</p>}
             </div>
           </div>
 
@@ -375,35 +421,78 @@ const EmployeeForm = () => {
               />
             </div>
             <div>
-              <label htmlFor="salary" className={labelStyles}>Salary:</label>
+              <label htmlFor="address" className={labelStyles}>Address:</label>
+              <textarea
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                rows="1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500"
+              ></textarea>
+            </div>
+          </div>
+
+          {/* Salary Breakdown Section */}
+          <div className="pt-4 border-t border-gray-200">
+            <h3 className="text-lg font-medium mb-4">Salary Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label htmlFor="basic_salary" className={labelStyles}>Basic Salary:</label>
+                <input
+                  type="number"
+                  id="basic_salary"
+                  name="basic_salary"
+                  value={formData.basic_salary}
+                  onChange={handleChange}
+                  className={inputStyles}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="allowance" className={labelStyles}>Allowance:</label>
+                <input
+                  type="number"
+                  id="allowance"
+                  name="allowance"
+                  value={formData.allowance}
+                  onChange={handleChange}
+                  className={inputStyles}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="deduction" className={labelStyles}>Deduction:</label>
+                <input
+                  type="number"
+                  id="deduction"
+                  name="deduction"
+                  value={formData.deduction}
+                  onChange={handleChange}
+                  className={inputStyles}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <label htmlFor="salary" className={labelStyles}>Total Salary:</label>
               <input
                 type="number"
                 id="salary"
                 name="salary"
                 value={formData.salary}
-                onChange={handleChange}
-                className={inputStyles}
-                required
+                className={`${inputStyles} bg-gray-100`}
+                readOnly
               />
+              <p className="text-sm text-gray-500 mt-1">
+                Automatically calculated (Basic + Allowance - Deduction)
+              </p>
             </div>
           </div>
-
-<div>
-  <label htmlFor="address" className={labelStyles}>Address:</label>
-  <textarea
-    id="address"
-    name="address"
-    value={formData.address}
-    onChange={handleChange}
-    rows="2"
-    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500"
-  ></textarea>
-</div>
-
-
           
           {/* Bank Details Section */}
-          <div className="pt-4">
+          <div className="pt-4 border-t border-gray-200">
             <h3 className="text-lg font-medium mb-4">Bank Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -459,9 +548,10 @@ const EmployeeForm = () => {
           <div className="pt-6 flex justify-center">
             <button
               type="submit"
-              className="px-8 py-3 bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 uppercase"
+              disabled={isSubmitting}
+              className={`px-8 py-3 bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 uppercase ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              SUBMIT
+              {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
             </button>
           </div>
         </div>
