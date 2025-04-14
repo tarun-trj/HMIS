@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom';
+import axios from 'axios';
 
 const PatientInfo = () => {
   // getting the role for which the patient info shown
   const location = useLocation();
   const role = location.pathname.split('/')[1];
-
-  // console.log(role);
 
   // for saving the context of the fetched data
   const [inputValue, setInputValue] = useState('');
@@ -14,112 +13,45 @@ const PatientInfo = () => {
   const [patientDetails, setPatientDetails] = useState(null);
   const [tests, setTests] = useState([]);
   const [medicines, setMedicines] = useState([]);
+  const [lastConsultation, setLastConsultation] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const fetchPrescribedTests = async (patientId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockDB = {
-          "123": {
-            patient: {
-              name: "Alice",
-              patient_info: {
-                age: 28,
-                bloodgroup: "A+"
-              },
-              phone_number: "9876543210"
-            },
-            tests: [
-              { title: "MRI", status: "Pending" },
-              { title: "Blood Test", status: "Done" }
-            ]
-          },
-          "456": {
-            patient: {
-              name: "Bob",
-              patient_info: {
-                age: 40,
-                bloodgroup: "O-"
-              },
-              phone_number: "9123456780"
-            },
-            tests: [
-              { title: "X-Ray", status: "Done" }
-            ]
+    return new Promise(async (resolve) => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/pathologists/searchById`, {
+          params: {
+            searchById: patientId
           }
-        };
-
-        resolve(mockDB[patientId] || { patient: null, tests: [] });
-      }, 500);
+        });
+        return resolve(response.data);
+      } catch (error) {
+        console.error("Error fetching prescribed tests:", error);
+        resolve({ patient: null, tests: [], lastConsultation: null });
+      }
     });
   };
 
   const fetchPrescribedMedicines = async (patientId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockMedicineDB = {
-          "123": {
-            patient: {
-              name: "Alice",
-              patient_info: {
-                age: 28,
-                bloodgroup: "A+"
-              },
-              phone_number: "9876543210"
-            },
-            prescribed_medicines: [
-                {
-                  medicine_name: "Paracetamol",
-                  dosage_form: "Tablet",
-                  manufacturer: "ABC Pharma",
-                  dosage: "500mg",
-                  frequency: "Twice a day",
-                  duration: "5 days",
-                  quantity: 10,
-                  dispensed_qty: 10,
-                  prescription_status: "dispensed"
-                },
-                {
-                  medicine_name: "Cough Syrup",
-                  dosage_form: "Syrup",
-                  manufacturer: "XYZ Meds",
-                  dosage: "10ml",
-                  frequency: "Thrice a day",
-                  duration: "3 days",
-                  quantity: 1,
-                  dispensed_qty: 0,
-                  prescription_status: "pending"
-                }
-              ]
-            },
-            "456": {
-              patient: {
-                name: "Bob",
-                patient_info: {
-                  age: 40,
-                  bloodgroup: "O-"
-                },
-                phone_number: "9123456780"
-              },
-              prescribed_medicines: [
-                {
-                  medicine_name: "Amoxicillin",
-                  dosage_form: "Capsule",
-                  manufacturer: "MediCure",
-                  dosage: "250mg",
-                  frequency: "Once a day",
-                  duration: "7 days",
-                  quantity: 7,
-                  dispensed_qty: 3,
-                  prescription_status: "partially_dispensed"
-                }
-              ]
-            }
-          };
-
-          resolve(mockMedicineDB[patientId] || { patient: null, prescribed_medicines: [] });
-        }, 500);
-      });
+    return new Promise(async (resolve) => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/pharmacists/prescriptions`, {
+          params: {
+            searchById: patientId,
+            dispense: false
+          }
+        });
+        console.log(response.data);
+        return resolve({
+          patient: response.data.patient,
+          prescribed_medicines: response.data.prescribed_medicines || [],
+          lastConsultation: response.data.consultation || null
+        });
+      } catch (error) {
+        console.error("Error fetching prescribed medicines:", error);
+        resolve({ patient: null, prescribed_medicines: [], lastConsultation: null });
+      }
+    });
   };
 
   useEffect(() => {
@@ -132,10 +64,12 @@ const PatientInfo = () => {
           const data = await fetchPrescribedTests(patientId);
           setPatientDetails(data.patient);
           setTests(data.tests || []);
+          setLastConsultation(data.lastConsultation);
         } else if (role === 'pharmacist') {
           const data = await fetchPrescribedMedicines(patientId);
           setPatientDetails(data.patient);
           setMedicines(data.prescribed_medicines || []);
+          setLastConsultation(data.lastConsultation);
         }
       } catch (error) {
         console.error("Error fetching patient data:", error);
@@ -146,7 +80,6 @@ const PatientInfo = () => {
 
     getPatientData();
   }, [patientId, role]);
-
 
   return (
     <div className='p-5 pt-10 flex flex-col justify-center items-center space-y-6'>
@@ -170,8 +103,7 @@ const PatientInfo = () => {
             }
           }}
           // disabled={loading}
-          className={`ml-2 px-4 py-2 bg-[#4C7E75] text-white font-bold rounded ${
-              loading ? 'cursor-not-allowed bg-gray-400' : 'cursor-pointer'
+          className={`ml-2 px-4 py-2 bg-[#4C7E75] text-white font-bold rounded ${loading ? 'cursor-not-allowed bg-gray-400' : 'cursor-pointer'
             }`}
         >
           ENTER</button>
@@ -185,13 +117,34 @@ const PatientInfo = () => {
             <div className="space-y-2 text-black">
               <p><span className="font-medium text-black">Name:</span> {patientDetails.name}</p>
               <p><span className="font-medium text-black">Age:</span> {patientDetails.patient_info.age}</p>
-              <p><span className="font-medium text-black">Blood Group:</span> {patientDetails.patient_info.bloodgroup}</p>
+              <p><span className="font-medium text-black">Blood Group:</span> {patientDetails.patient_info.bloodGrp}</p>
               <p><span className="font-medium text-black">Phone Number:</span> {patientDetails.phone_number}</p>
             </div>
           ) : (
             <p className="">No patient selected.</p>
           )}
       </div>
+      {/* Last Consultation Section */}
+      {lastConsultation && (
+        <div className='border-t border-gray-300 w-full pt-4'>
+          <p className='font-bold pb-3'>Last Consultation</p>
+          <div className="bg-gray-50 p-4 rounded-md shadow-sm">
+            <div className="grid grid-cols-2 gap-4">
+              <p><span className="font-medium">Date:</span> {new Date(lastConsultation.date).toLocaleDateString()}</p>
+              <p><span className="font-medium">Doctor ID:</span> {lastConsultation.doctorId}</p>
+              <p><span className="font-medium">Reason:</span> {lastConsultation.reason}</p>
+              <p><span className="font-medium">Status:</span>
+                <span className={`ml-2 ${lastConsultation.status === 'Completed' ? 'text-green-600' :
+                  lastConsultation.status === 'Scheduled' ? 'text-blue-600' :
+                    'text-yellow-600'
+                  }`}>
+                  {lastConsultation.status}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {role === 'pathologist' && (
         <div className='border-t border-gray-300 w-full pt-4'>
           <p className='font-bold pb-3'>Prescribed Tests</p>
@@ -206,13 +159,12 @@ const PatientInfo = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    { tests.map((test, index) => (
+                    {tests.map((test, index) => (
                       <tr key={index}>
-                        <td className='px-4 py-2 border border-gray-700 text-center'> { test.title } </td>
-                        <td className={`px-4 py-2 border border-gray-700 text-center font-semibold ${
-                          test.status === 'Pending' ? 'text-red-500' : 'text-black'
-                        }`}
-                        > {test.status}
+                        <td className='px-4 py-2 border border-gray-700 text-center'> {test.title} </td>
+                        <td className={`px-4 py-2 border border-gray-700 text-center font-semibold ${test.status === 'pending' ? 'text-red-500' : 'text-black'
+                          }`}
+                        > {test.status.charAt(0).toUpperCase() + test.status.slice(1)}
                         </td>
                       </tr>))}
                   </tbody>
@@ -247,11 +199,10 @@ const PatientInfo = () => {
                       <td className='px-4 py-2 border border-gray-700 text-center'>{med.frequency}</td>
                       <td className='px-4 py-2 border border-gray-700 text-center'>{med.quantity}</td>
                       <td className='px-4 py-2 border border-gray-700 text-center'>{med.dispensed_qty}</td>
-                      <td className={`px-4 py-2 border border-gray-700 text-center font-semibold ${
-                        med.prescription_status === 'dispensed' ? 'text-green-600' :
+                      <td className={`px-4 py-2 border border-gray-700 text-center font-semibold ${med.prescription_status === 'dispensed' ? 'text-green-600' :
                         med.prescription_status === 'partially_dispensed' ? 'text-yellow-500' :
-                        'text-red-500'
-                      }`}>
+                          'text-red-500'
+                        }`}>
                         {med.prescription_status}
                       </td>
                     </tr>
