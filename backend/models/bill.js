@@ -16,7 +16,7 @@ const BillItemSchema = new Schema({
 });
 
 
-const PaymentSchema = new Schema({
+const PaymentSchema = new Schema({  
     amount: Number,
     insurance_id: { type: Schema.Types.ObjectId, ref: 'Insurance' },
     payment_date: Date,

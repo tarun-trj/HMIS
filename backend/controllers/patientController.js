@@ -27,6 +27,7 @@ export const registerPatient = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const calculateAge = dob => new Date().getFullYear() - new Date(dob).getFullYear() - (new Date() < new Date(new Date(dob).setFullYear(new Date().getFullYear())) ? 1 : 0);
 
     const newPatient = new Patient({
       password: hashedPassword,
@@ -39,8 +40,9 @@ export const registerPatient = async (req, res) => {
       gender: gender.toLowerCase(),
       address,
       patient_info: {
-        height,
-        weight,
+        age: calculateAge(dob),
+        height: height,
+        weight: weight,
         bloodGrp: bloodGroup
       }
     });
@@ -58,6 +60,7 @@ export const registerPatient = async (req, res) => {
 // @desc Get full patient profile
 export const FetchPatientProfile = async (req, res) => {
   try {
+    console.log("received profile request");
     const { patientId } = req.params;
     let patient = await Patient.findById(patientId);
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home } from "lucide-react";
+import { Home, X } from "lucide-react";
 import axios from "axios";
 
 // API base URL - adjust as needed
@@ -13,6 +13,15 @@ const Bills = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [newPayment, setNewPayment] = useState({
+    amount: 0,
+    payment_method: "cash",
+    payment_date: new Date().toISOString().split('T')[0],
+    transaction_id: "",
+    status: "success"
+  });
+  
   const navigate = useNavigate();
   const patientId = "10013"; // This should come from authentication/context in a real app
 
@@ -87,7 +96,7 @@ const Bills = () => {
   };
 
   const calculateSummary = () => {
-    if (!billDetails || !payments) return { billed: 0, discount: 0, insurance: 0, paid: 0, refunds: 0, net: 0 };
+    if (!billDetails || !payments) return { billed: 0, paid: 0, net: 0 };
     
     // Calculate total from bill items
     const billed = billDetails.bill_items?.reduce((sum, item) => 
@@ -101,63 +110,36 @@ const Bills = () => {
       return sum;
     }, 0);
   
-    // Calculate insurance payments
-    const insurance = payments.reduce((sum, payment) => {
-      if (payment?.status?.enum === "success" && 
-          payment?.payment_method?.enum === "insurance") {
-        return sum + (Number(payment.amount) || 0);
-      }
-      return sum;
-    }, 0);
-  
-    // For this example, assume no refunds and discount is a placeholder
-    const discount = 0;
-    const refunds = 0;
-    
     // Net amount is billed minus paid
-    const net = billed - paid - discount;
+    const net = billed - paid;
 
-    return { billed, discount, insurance, paid, refunds, net };
+    return { billed, paid, net };
   };
 
-  const handleAddBillingItem = async () => {
-    try {
-      // You would typically open a modal to collect item details
-      // This is a simplified example
-      const newItem = {
-        item_type: "consultation",
-        item_description: "Follow-up Consultation",
-        item_amount: 50.0,
-        quantity: 1
-      };
+  const handlePaymentInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewPayment({
+      ...newPayment,
+      [name]: name === "amount" ? Number(value) : value
+    });
+  };
 
-      const response = await axios.post(`${API_BASE_URL}/${selectedBill}/items`, newItem);
-      
-      if (response.data.success) {
-        // Refresh bill details
-        const updatedDetailsResponse = await axios.get(`${API_BASE_URL}/${selectedBill}`);
-        setBillDetails(updatedDetailsResponse.data.data);
-      } else {
-        setError("Failed to add billing item");
-      }
-    } catch (err) {
-      console.error("Error adding billing item:", err);
-      setError("Failed to add billing item. Please try again.");
-    }
+  const handleOpenPaymentModal = () => {
+    // Generate a unique transaction ID
+    setNewPayment({
+      ...newPayment,
+      transaction_id: `tx${Date.now()}`
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handleClosePaymentModal = () => {
+    setShowPaymentModal(false);
   };
 
   const handleAddPayment = async () => {
     try {
-      // You would typically open a modal to collect payment details
-      // This is a simplified example
-      const newPayment = {
-        amount: 50.0,
-        payment_method: "cash",
-        payment_date: new Date().toISOString().split('T')[0],
-        transaction_id: `tx${Date.now()}`,
-        status: "success"
-      };
-
+      setLoading(true);
       const response = await axios.post(`${API_BASE_URL}/${selectedBill}/payments`, newPayment);
       
       if (response.data.success) {
@@ -167,50 +149,25 @@ const Bills = () => {
         
         setPayments(updatedPaymentsResponse.data.data);
         setBillDetails(updatedDetailsResponse.data.data);
+        setShowPaymentModal(false);
+        setNewPayment({
+          amount: 0,
+          payment_method: "cash",
+          payment_date: new Date().toISOString().split('T')[0],
+          transaction_id: "",
+          status: "success"
+        });
       } else {
         setError("Failed to add payment");
       }
     } catch (err) {
       console.error("Error adding payment:", err);
       setError("Failed to add payment. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Other handler functions remain similar but would make actual API calls
-  const handleAddRegnChanges = () => {
-    console.log("Adding registration changes");
-    // Implementation would be added with actual API call
-  };
-
-  const handleAddDiscount = () => {
-    console.log("Adding discount");
-    // Implementation would be added with actual API call
-  };
-
-  const handleClearDiscount = () => {
-    console.log("Clearing discount");
-    // Implementation would be added with actual API call
-  };
-
-  const handleClearAll = () => {
-    console.log("Clearing all");
-    // Implementation would be added with actual API call
-  };
-
-  const handleSave = () => {
-    console.log("Saving bill");
-    // Implementation would make actual API call
-  };
-
-  const handleSaveAndPrint = () => {
-    console.log("Saving and printing bill");
-    // Implementation would make actual API call and trigger print
-  };
-
-  const handlePrint = () => {
-    console.log("Printing bill");
-    // Implementation would trigger print function
-  };
 
   const handlePrintReceipt = () => {
     console.log("Printing receipt");
@@ -282,52 +239,22 @@ const Bills = () => {
                 {/* Billing Items section */}
                 <div>
                   <h3 className="font-medium mb-2">Billing items</h3>
-                  <div className="flex space-x-2 mb-3">
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleAddBillingItem}
-                    >
-                      Add Billing Item
-                    </button>
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleAddRegnChanges}
-                    >
-                      Add Regn. Changes
-                    </button>
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleAddDiscount}
-                    >
-                      Add Discount
-                    </button>
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleClearDiscount}
-                    >
-                      Clear Discount
-                    </button>
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleClearAll}
-                    >
-                      Clear All
-                    </button>
-                  </div>
                   
                   {/* Billing items table */}
                   <div className="overflow-hidden rounded">
                     <div className="flex bg-[#1b2432] text-white py-2 rounded-t">
-                      <div className="w-1/3 text-center">Date</div>
-                      <div className="w-1/3 text-center">Item Description</div>
-                      <div className="w-1/3 text-center">Amount</div>
+                      <div className="w-1/4 text-center">Date</div>
+                      <div className="w-1/4 text-center">Type</div>
+                      <div className="w-1/4 text-center">Item Description</div>
+                      <div className="w-1/4 text-center">Amount</div>
                     </div>
                     {billDetails?.bill_items && billDetails.bill_items.length > 0 ? (
                       billDetails.bill_items.map((item) => (
                         <div key={item.bill_item_id} className="flex bg-[#1d2839] text-white py-2 border-t border-gray-700">
-                          <div className="w-1/3 text-center">{billDetails.generation_date}</div>
-                          <div className="w-1/3 text-center">{item.item_description}</div>
-                          <div className="w-1/3 text-center">{formatAmount(item.item_amount * (item.quantity || 1))}</div>
+                          <div className="w-1/4 text-center">{billDetails.generation_date}</div>
+                          <div className="w-1/4 text-center capitalize">{item.item_type?.enum || "N/A"}</div>
+                          <div className="w-1/4 text-center">{item.item_description}</div>
+                          <div className="w-1/4 text-center">{formatAmount(item.item_amount * (item.quantity || 1))}</div>
                         </div>
                       ))
                     ) : (
@@ -344,7 +271,7 @@ const Bills = () => {
                     <h3 className="font-medium">Payments</h3>
                     <button 
                       className="ml-4 bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleAddPayment}
+                      onClick={handleOpenPaymentModal}
                     >
                       + Add Payment
                     </button>
@@ -365,10 +292,10 @@ const Bills = () => {
                       payments.map((payment) => (
                         <div key={payment._id} className="flex bg-[#1d2839] text-white py-2 border-t border-gray-700">
                           <div className="w-1/4 truncate text-center px-1">{payment.payment_date}</div>
-                          <div className="w-1/4 truncate text-center px-1">{payment.payment_method.enum}</div>
+                          <div className="w-1/4 truncate text-center px-1 capitalize">{payment.payment_method?.enum}</div>
                           <div className="w-1/4 truncate text-center px-1">{formatAmount(payment.amount)}</div>
                           <div className="w-1/4 truncate text-center px-1">
-                            {payment.status.enum} ({payment.transaction_id})
+                            {payment.status?.enum} ({payment.transaction_id})
                           </div>
                         </div>
                       ))
@@ -380,37 +307,25 @@ const Bills = () => {
                   </div>
                 </div>
 
-                {/* Billing summary */}
-                <div className="text-center">
-                  <p className="mb-4">
-                    Billed: [{formatAmount(summary.billed)}] 
-                    Discount / Insurance: [{formatAmount(summary.discount + summary.insurance)}] 
-                    Paid: [{formatAmount(summary.paid)}]
-                    Refunds: [{formatAmount(summary.refunds)}] 
-                    Net: [{formatAmount(summary.net)}]
-                  </p>
+                {/* Billing summary - simplified design */}
+                <div className="bg-gray-100 p-4 rounded-lg flex justify-between items-center">
+                  <div className="text-center flex-1">
+                    <p className="text-gray-600 text-sm font-medium">Billed</p>
+                    <p className="text-2xl font-bold text-gray-800">{formatAmount(summary.billed)}</p>
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-gray-600 text-sm font-medium">Paid</p>
+                    <p className="text-2xl font-bold text-green-600">{formatAmount(summary.paid)}</p>
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-gray-600 text-sm font-medium">Balance</p>
+                    <p className="text-2xl font-bold text-blue-600">{formatAmount(summary.net)}</p>
+                  </div>
                 </div>
 
-              {/* Action buttons */}
-              <div className="flex space-x-2 justify-start">
-                  <button 
-                    className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
-                    onClick={handleSave}
-                  >
-                    Save
-                  </button>
-                  <button 
-                    className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
-                    onClick={handleSaveAndPrint}
-                  >
-                    Save and Print
-                  </button>
-                  <button 
-                    className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
-                    onClick={handlePrint}
-                  >
-                    Print
-                  </button>
+                {/* Action buttons */}
+                <div className="flex space-x-2 justify-start">
+              
                   <button 
                     className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
                     onClick={handlePrintReceipt}
@@ -426,7 +341,6 @@ const Bills = () => {
           <>
             <div className="mb-6 flex justify-between items-center">
               <h2 className="text-2xl font-semibold">Patient Bills</h2>
-             
             </div>
             
             {bills.length > 0 ? (
@@ -476,6 +390,93 @@ const Bills = () => {
           </>
         )}
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Add Payment</h3>
+              <button onClick={handleClosePaymentModal} className="text-gray-500 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={(e) => { e.preventDefault(); handleAddPayment(); }}>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Amount</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  name="amount"
+                  value={newPayment.amount}
+                  onChange={handlePaymentInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Payment Method</label>
+                <select
+                  name="payment_method"
+                  value={newPayment.payment_method}
+                  onChange={handlePaymentInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Payment Date</label>
+                <input
+                  type="date"
+                  name="payment_date"
+                  value={newPayment.payment_date}
+                  onChange={handlePaymentInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Transaction ID</label>
+                <input
+                  type="text"
+                  name="transaction_id"
+                  value={newPayment.transaction_id}
+                  onChange={handlePaymentInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  readOnly
+                />
+                <p className="text-xs text-gray-500 mt-1">Auto-generated transaction ID</p>
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={handleClosePaymentModal}
+                  className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#4C7E75] hover:bg-[#3d635c] text-white rounded"
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : "Add Payment"}
+                </button>s
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
