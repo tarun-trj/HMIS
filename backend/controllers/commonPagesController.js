@@ -5,6 +5,7 @@ import Patient from '../models/patient.js';
 import Medicine from '../models/inventory.js';
 import { Doctor, Nurse, Pharmacist, Receptionist, Admin, Pathologist, Driver } from '../models/staff.js';
 import Equipment from '../models/equipment.js';
+import cloudinary from "../config/cloudinary.js";
 
 // Get consultations for doctor's calendar
 export const getDoctorCalendar = async (req, res) => {
@@ -163,9 +164,14 @@ export const fetchProfile = async (req, res) => {
           }[userType];
 
           if (user && RoleModel) {
-              const roleSpecificInfo = await RoleModel.findOne({ employee_id: user._id })
-                  .select('-_id')
-                  .populate('department_id', 'dept_id dept_name');
+              let roleSpecificInfo = await RoleModel.findOne({ employee_id: user._id })
+                  .select('-_id');
+
+              // Only populate department_id for doctor and nurse
+              if (['doctor', 'nurse'].includes(userType)) {
+                  roleSpecificInfo = await roleSpecificInfo
+                      .populate(userType === 'doctor' ? 'department_id' : 'assigned_dept', 'dept_id dept_name');
+              }
               
               // Format rating to 2 decimal places if it exists
               if (roleSpecificInfo && roleSpecificInfo.rating) {
@@ -178,11 +184,9 @@ export const fetchProfile = async (req, res) => {
               };
           }
       }
-
       if (!user) {
           return res.status(404).json({ message: 'User not found' });
       }
-
       res.status(200).json(user);
   } catch (error) {
       res.status(500).json({ 
@@ -294,11 +298,17 @@ export const updateProfile = async (req, res) => {
               });
 
               if (Object.keys(filteredRoleData).length > 0 && RoleModel) {
-                  const roleSpecificInfo = await RoleModel.findOneAndUpdate(
+                  let roleSpecificInfo = await RoleModel.findOneAndUpdate(
                       { employee_id: user._id },
                       filteredRoleData,
                       { new: true, runValidators: true }
-                  ).populate('department_id', 'dept_id dept_name');
+                  );
+
+                  // Only populate department_id for doctor and nurse
+                  if (['doctor', 'nurse'].includes(userType)) {
+                      roleSpecificInfo = await roleSpecificInfo
+                          .populate(userType === 'doctor' ? 'department_id' : 'assigned_dept', 'dept_id dept_name');
+                  }
 
                   if (roleSpecificInfo?.rating) {
                       roleSpecificInfo.rating = Number(roleSpecificInfo.rating.toFixed(2));
@@ -442,4 +452,44 @@ const calculateServiceStatus = (nextServiceDate) => {
   if (daysUntil < 0) return 'Overdue';
   if (daysUntil <= 30) return 'Due Soon';
   return 'OK';
+};
+
+
+export const uploadEmployeePhoto = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    const newProfilePicUrl = req.file.path;
+
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Delete old image from Cloudinary
+    if (employee.profile_pic) {
+      const segments = employee.profile_pic.split('/');
+      const filenameWithExt = segments[segments.length - 1];
+      const publicId = `profile_pics/${filenameWithExt.split('.')[0]}`;
+      console.log("Deleting from Cloudinary:", publicId);
+      await cloudinary.uploader.destroy(publicId);
+    }
+
+    // Update new image URL
+    employee.profile_pic = newProfilePicUrl;
+    await employee.save();
+
+    return res.status(200).json({
+      message: "Profile photo uploaded successfully",
+      profile_pic: newProfilePicUrl,
+    });
+
+  } catch (err) {
+    console.error("Upload error:", err);
+    return res.status(500).json({ message: "Server error during upload" });
+  }
 };
