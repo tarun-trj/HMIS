@@ -130,7 +130,7 @@ function App() {
 
 
          {/* Role-Based Common Pages */}                  
-         <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "receptionist", "admin", "patient", "pathologist"]} />}>
+         <Route element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "nurse", "admin", "pathologist","pharmacist"]} />}>
             <Route path=":role/profile" element={<Profile />} />
           </Route>
                      
