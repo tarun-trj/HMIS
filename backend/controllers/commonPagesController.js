@@ -10,7 +10,7 @@ import Equipment from '../models/equipment.js';
 export const getDoctorCalendar = async (req, res) => {
   try {
     const { doctorId, startDate, endDate } = req.query;
-    console.log(req.query);
+    // console.log(req.query);
     
     if (!doctorId) {
       return res.status(400).json({ message: "Doctor ID is required" });
@@ -35,7 +35,7 @@ export const getDoctorCalendar = async (req, res) => {
       .populate('patient_id', 'name email phone_number')
       .sort({ booked_date_time: 1 });
     
-    console.log(consultations);
+    // console.log(consultations);
     
     // Transform data for calendar view
     const calendarEvents = consultations.map(consultation => {
