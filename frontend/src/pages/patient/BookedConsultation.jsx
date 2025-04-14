@@ -83,7 +83,7 @@ const BookedConsultation = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const navigate = useNavigate();
-  const patientId = "10013";
+  const patientId = localStorage.getItem("user_id");
 
   useEffect(() => {
     const loadConsultations = async () => {

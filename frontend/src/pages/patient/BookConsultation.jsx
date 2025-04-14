@@ -160,7 +160,7 @@ const BookConsultation = () => {
                     {doctor.qualification} • {doctor.experience} years experience
                   </span>
                   <div className="doctor-rating">
-                    Rating: {doctor.rating}/5 ({doctor.num_ratings} ratings)
+                    Rating: {doctor.rating.toFixed(1)}/5 ({doctor.num_ratings} ratings)
                   </div>
                 </div>
               </label>
