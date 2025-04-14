@@ -148,7 +148,8 @@ export const fetchProfile = async (req, res) => {
               .select('-password');
       } else if (['doctor', 'nurse', 'pathologist', 'receptionist', 'pharmacist', 'admin', 'driver'].includes(userType)) {
           user = await Employee.findById(Number(id))
-              .select('-password -bank_details.account_number');
+              .select('-password -bank_details.account_number')
+              .populate('dept_id', 'dept_id dept_name');
 
           // Get role specific details
           const RoleModel = {
@@ -163,7 +164,13 @@ export const fetchProfile = async (req, res) => {
 
           if (user && RoleModel) {
               const roleSpecificInfo = await RoleModel.findOne({ employee_id: user._id })
-                  .select('-_id');
+                  .select('-_id')
+                  .populate('department_id', 'dept_id dept_name');
+              
+              // Format rating to 2 decimal places if it exists
+              if (roleSpecificInfo && roleSpecificInfo.rating) {
+                  roleSpecificInfo.rating = Number(roleSpecificInfo.rating.toFixed(2));
+              }
               
               user = {
                   ...user.toObject(),
@@ -189,37 +196,73 @@ export const updateProfile = async (req, res) => {
   try {
       const { userType, id } = req.params;
       const updateData = req.body;
-      const requestingUser = req.user;
       let user;
 
-      // Only allow users to edit their own profile
-      if (requestingUser.id !== Number(id)) {
-          return res.status(403).json({ 
-              message: 'Unauthorized to update other user profiles' 
+      // Completely protected fields (never editable by user)
+      const protectedFields = [
+          '_id',
+          'email',
+          'aadhar_number',
+          'date_of_joining',
+          'password',
+          'role',
+          'salary',
+          'dept_id'
+      ];
+
+      // Fields that can be edited by user
+      const editableFields = [
+          'name',
+          'phone_number',
+          'emergency_contact',
+          'address',
+          'gender',
+          'bloodGrp',
+          'profile_pic',
+          'date_of_birth'
+      ];
+
+      // Bank details fields that can be edited
+      const editableBankFields = [
+          'bank_name',
+          'ifsc_code',
+          'branch_name'
+      ];
+
+      // Filter update data to only include editable fields
+      const filteredUpdateData = {};
+      editableFields.forEach(field => {
+          if (updateData[field] !== undefined) {
+              filteredUpdateData[field] = updateData[field];
+          }
+      });
+
+      // Handle bank details update separately
+      if (updateData.bank_details) {
+          filteredUpdateData.bank_details = {};
+          editableBankFields.forEach(field => {
+              if (updateData.bank_details[field] !== undefined) {
+                  filteredUpdateData.bank_details[field] = updateData.bank_details[field];
+              }
           });
       }
 
       if (userType === 'patient') {
           user = await Patient.findByIdAndUpdate(
               Number(id),
-              updateData,
+              filteredUpdateData,
               { new: true, runValidators: true }
           ).select('-password');
       } else if (['doctor', 'nurse', 'pathologist', 'receptionist', 'pharmacist', 'admin', 'driver'].includes(userType)) {
-          // Only admin can update these fields
-          delete updateData.salary;
-          delete updateData.bank_details;
-          delete updateData.role;
-          delete updateData.dept_id;
-
           // Update main employee document
           user = await Employee.findByIdAndUpdate(
               Number(id),
-              updateData,
+              filteredUpdateData,
               { new: true, runValidators: true }
-          ).select('-password -bank_details.account_number');
+          ).select('-password -bank_details.account_number -bank_details.balance')
+           .populate('dept_id', 'dept_id dept_name');
 
-          // Update role-specific details if provided
+          // Handle role-specific updates
           if (updateData.role_details) {
               const RoleModel = {
                   'doctor': Doctor,
@@ -231,12 +274,40 @@ export const updateProfile = async (req, res) => {
                   'driver': Driver
               }[userType];
 
-              if (RoleModel) {
-                  await RoleModel.findOneAndUpdate(
+              // Role-specific editable fields
+              const roleEditableFields = {
+                  'doctor': ['specialization', 'qualification', 'experience', 'room_num'],
+                  'nurse': ['location', 'assigned_room', 'assigned_bed', 'assigned_amb'],
+                  'pathologist': [],
+                  'receptionist': [],
+                  'pharmacist': [],
+                  'admin': [],
+                  'driver': []
+              }[userType] || [];
+
+              // Filter role-specific updates
+              const filteredRoleData = {};
+              roleEditableFields.forEach(field => {
+                  if (updateData.role_details[field] !== undefined) {
+                      filteredRoleData[field] = updateData.role_details[field];
+                  }
+              });
+
+              if (Object.keys(filteredRoleData).length > 0 && RoleModel) {
+                  const roleSpecificInfo = await RoleModel.findOneAndUpdate(
                       { employee_id: user._id },
-                      updateData.role_details,
+                      filteredRoleData,
                       { new: true, runValidators: true }
-                  );
+                  ).populate('department_id', 'dept_id dept_name');
+
+                  if (roleSpecificInfo?.rating) {
+                      roleSpecificInfo.rating = Number(roleSpecificInfo.rating.toFixed(2));
+                  }
+
+                  user = {
+                      ...user.toObject(),
+                      role_details: roleSpecificInfo
+                  };
               }
           }
       }
@@ -244,7 +315,6 @@ export const updateProfile = async (req, res) => {
       if (!user) {
           return res.status(404).json({ message: 'User not found' });
       }
-
       res.status(200).json({
           message: 'Profile updated successfully',
           user

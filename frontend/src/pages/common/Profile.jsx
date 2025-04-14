@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, User, Briefcase, Phone, Mail, MapPin, Calendar, Building, Award, Save, X } from "lucide-react";
+import axios from 'axios';
 
 const ProfileDashboard = () => {
   const { role } = useParams();
@@ -8,39 +9,29 @@ const ProfileDashboard = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [error, setError] = useState(null);
   
   // List of authorized roles
-  const authorizedRoles = ["doctor", "receptionist", "nurse", "pathologist","pharmacist"];
+  const authorizedRoles = ["doctor", "receptionist", "nurse", "admin", "pathologist","pharmacist"];
   
-  // Get current user role from localStorage or context
-  const currentUserRole = role || localStorage.getItem("userRole") || "";
+  // Get current user role from localStorage
+  const userId = localStorage.getItem("user_id");
+  const currentUserRole = localStorage.getItem("role");
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        setLoading(true);
+        setLoading(true);        
+        const response = await axios.get(`http://localhost:5000/api/common/profile/${currentUserRole}/${userId}`);
+        const userData = response.data;
         
-       
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulating API delay
-
-        // Mock data for demonstration - would be replaced with actual API response
-        const mockData = {
-          name: "Dr. John Doe",
-          role: "Doctor",
-          employee_id: "1",
-          email: "john.doe@example.com",
-          phone: "+1 (555) 123-4567",
-          address: "123 Main St, City, Country",
-          gender: "Male",
-          date_of_birth: "1980-01-15",
-          department_id: "101",
-          date_of_joining: "2020-05-01",
-          salary: "$120,000",
-          bank_details_id: "5001",
-          payroll_id: "9001"
-        };
-
-        setUserData(mockData);
+        // Transform date strings to readable format
+        userData.date_of_birth = new Date(userData.date_of_birth).toLocaleDateString();
+        userData.date_of_joining = new Date(userData.date_of_joining).toLocaleDateString();
+        
+        setUserData(userData);
       } catch (error) {
         console.error("Error fetching profile data:", error);
       } finally {
@@ -74,103 +65,420 @@ const ProfileDashboard = () => {
     fileInputRef.current.click();
   };
 
-  // Structure data for display
-  const personalInfo = userData ? [
-    { key: "Employee ID", value: userData.employee_id },
-    { key: "Email", value: userData.email },
-    { key: "Phone", value: userData.phone },
-    { key: "Address", value: userData.address },
-    { key: "Gender", value: userData.gender },
-    { key: "Date of Birth", value: userData.date_of_birth }
-  ] : [];
+  const handleEdit = () => {
+    setEditData(userData);
+    setIsEditing(true);
+  };
 
-  const employmentDetails = userData ? [
-    { key: "Department ID", value: userData.department_id },
-    { key: "Date of Joining", value: userData.date_of_joining },
-    { key: "Salary", value: userData.salary },
-    { key: "Bank Details ID", value: userData.bank_details_id },
-    { key: "Payroll ID", value: userData.payroll_id }
-  ] : [];
+  const handleCancel = () => {
+    setEditData(null);
+    setIsEditing(false);
+    setError(null);
+  };
+
+  const handleChange = (field, value, section = 'main') => {
+    setEditData(prev => {
+      switch (section) {
+        case 'bank':
+          return {
+            ...prev,
+            bank_details: {
+              ...prev.bank_details,
+              [field]: value
+            }
+          };
+        case 'role_details':
+          return {
+            ...prev,
+            role_details: {
+              ...prev.role_details,
+              [field]: value
+            }
+          };
+        default:
+          return {
+            ...prev,
+            [field]: value
+          };
+      }
+    });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const response = await axios.put(
+        `http://localhost:5000/api/common/profile/${currentUserRole}/${userId}`,
+        editData
+      );
+
+      // Transform the returned user data
+      const updatedUser = response.data.user;
+      
+      // Format dates
+      if (updatedUser.date_of_birth) {
+        updatedUser.date_of_birth = new Date(updatedUser.date_of_birth).toLocaleDateString();
+      }
+      if (updatedUser.date_of_joining) {
+        updatedUser.date_of_joining = new Date(updatedUser.date_of_joining).toLocaleDateString();
+      }
+
+      setUserData(updatedUser);
+      setIsEditing(false);
+      setEditData(null);
+      setError(null);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error updating profile');
+    }
+  };
+
+  // Structure data for display based on role
+  const getPersonalInfo = (data) => [
+    { key: "Employee ID", value: data._id, icon: <User size={20} /> },
+    { key: "Email", value: data.email, icon: <Mail size={20} /> },
+    { key: "Phone", value: data.phone_number, icon: <Phone size={20} /> },
+    { key: "Address", value: data.address, icon: <MapPin size={20} /> },
+    { key: "Date of Birth", value: data.date_of_birth, icon: <Calendar size={20} /> },
+    { key: "Blood Group", value: data.bloodGrp, icon: <Award size={20} /> }
+  ];
+
+  const getEmploymentDetails = (data) => [
+    { 
+      key: "Department", 
+      value: data?.dept_id?.dept_name ? 
+        `${data.dept_id.dept_name} (${data.dept_id.dept_id})` : 
+        data?.role_details?.department_id?.dept_name ? 
+        `${data.role_details.department_id.dept_name} (${data.role_details.department_id.dept_id})` : 
+        "Not Assigned",
+      icon: <Building size={20} /> 
+    },
+    { key: "Join Date", value: data.date_of_joining, icon: <Calendar size={20} /> },
+    { key: "Role", value: data.role?.charAt(0).toUpperCase() + data.role?.slice(1), icon: <Briefcase size={20} /> }
+  ];
+
+  const getRoleSpecificDetails = (data) => {
+    if (!data?.role_details) return [];
+    
+    switch (data.role) {
+      case 'doctor':
+        return [
+          { 
+            key: "Department", 
+            value: data?.role_details?.department_id?.dept_name ? 
+              `${data.role_details.department_id.dept_name} (${data.role_details.department_id.dept_id})` : 
+              "Not Assigned" 
+          },
+          { key: "Specialization", value: data.role_details.specialization },
+          { key: "Qualification", value: data.role_details.qualification },
+          { key: "Experience", value: `${data.role_details.experience} years` },
+          { key: "Room Number", value: data.role_details.room_num },
+          { key: "Rating", value: data.role_details.rating ? 
+            `${data.role_details.rating}/5 (${data.role_details.num_ratings || 0} reviews)` : 
+            "No ratings yet" 
+          }
+        ];
+      case 'nurse':
+        return [
+          { 
+            key: "Assigned Department", 
+            value: data?.role_details?.assigned_dept?.dept_name ? 
+              `${data.role_details.assigned_dept.dept_name} (${data.role_details.assigned_dept.dept_id})` : 
+              "Not Assigned" 
+          },
+          { key: "Location", value: data.role_details.location },
+          { key: "Assigned Room", value: data.role_details.assigned_room || "Not Assigned" }
+        ];
+      // Add other role-specific details as needed
+      default:
+        return [];
+    }
+  };
+
+  // Role-specific editable fields
+  const getRoleEditableFields = (data) => {
+    if (!data?.role_details) return [];
+    
+    switch (data.role) {
+      case 'doctor':
+        return [
+          { key: "room_num", label: "Room Number", type: "number" },
+          { key: "qualification", label: "Qualification", type: "text" },
+          { key: "experience", label: "Experience (years)", type: "number" }
+        ];
+      case 'nurse':
+        return [
+          { key: "location", label: "Location", type: "select", 
+            options: ["ward", "icu", "ot", "emergency"] }
+        ];
+      // Add other roles as needed
+      default:
+        return [];
+    }
+  };
+
+  const getEditableFields = () => {
+    const commonFields = [
+      { key: "name", label: "Name", type: "text" },
+      { key: "phone_number", label: "Phone Number", type: "text" },
+      { key: "emergency_contact", label: "Emergency Contact", type: "text" },
+      { key: "address", label: "Address", type: "textarea" },
+      { key: "gender", label: "Gender", type: "select", options: ["male", "female"] },
+      { key: "bloodGrp", label: "Blood Group", type: "select", 
+        options: ["A+", "B+", "AB+", "O+", "A-", "B-", "AB-", "O-"] },
+      { key: "date_of_birth", label: "Date of Birth", type: "date" }
+    ];
+
+    const bankFields = [
+      { key: "bank_name", label: "Bank Name", type: "text" },
+      { key: "ifsc_code", label: "IFSC Code", type: "text" },
+      { key: "branch_name", label: "Branch Name", type: "text" }
+    ];
+
+    return { commonFields, bankFields };
+  };
+
+  const renderRoleFields = () => {
+    if (!getRoleEditableFields(editData).length) return null;
+  
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h3 className="text-lg font-semibold mb-4">Role Information</h3>
+        <div className="space-y-4">
+          {getRoleEditableFields(editData).map((field) => (
+            <div key={field.key} className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">{field.label}</label>
+              {field.type === 'select' ? (
+                <select
+                  value={editData.role_details?.[field.key] || ''}
+                  onChange={(e) => handleChange(field.key, e.target.value, 'role_details')}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select {field.label}</option>
+                  {field.options.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type={field.type}
+                  value={editData.role_details?.[field.key] || ''}
+                  onChange={(e) => handleChange(field.key, e.target.value, 'role_details')}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderEditForm = () => (
+    <div className="w-full space-y-6">
+      {/* Personal Information Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6 w-full">
+        <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          {getEditableFields().commonFields.map((field) => (
+            <div key={field.key} className={`space-y-2 ${field.key === 'address' ? 'md:col-span-2' : ''}`}>
+              <label className="text-sm font-medium text-gray-600">{field.label}</label>
+              {field.type === 'select' ? (
+                <select
+                  value={editData[field.key] || ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select {field.label}</option>
+                  {field.options.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : field.type === 'textarea' ? (
+                <textarea
+                  value={editData[field.key] || ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                  rows="3"
+                />
+              ) : (
+                <input
+                  type={field.type}
+                  value={editData[field.key] || ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Update the Information Grid section to use full width */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        {/* Bank Details */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold mb-4">Bank Details</h3>
+          <div className="space-y-4">
+            {getEditableFields().bankFields.map((field) => (
+              <div key={field.key} className="space-y-2">
+                <label className="text-sm font-medium text-gray-600">{field.label}</label>
+                <input
+                  type="text"
+                  value={editData.bank_details?.[field.key] || ''}
+                  onChange={(e) => handleChange(field.key, e.target.value, 'bank')}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Role Specific Fields */}
+        {renderRoleFields()}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex-1 bg-gray-100 min-h-screen">
-      {/* Main content area - expanded to fill available space */}
-      <div className="p-4 h-full">
+    <div className="flex-1 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         ) : userData ? (
-          <div className="bg-white rounded shadow h-full">
-            {/* Profile Header with Blue Bar */}
-            <div className="bg-blue-500 h-32 rounded-t relative">
-              {/* Circle for profile pic */}
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
-                <div 
-                  className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-4 border-white overflow-hidden cursor-pointer"
-                  onClick={handleEditClick}
-                >
-                  {previewImage ? (
-                    <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <Pencil size={16} className="text-blue-500" />
+          <div className="space-y-8">
+            {/* Profile Header */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-32 relative">
+                <div className="absolute -bottom-12 left-8">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full bg-white p-1 shadow-lg">
+                      <div 
+                        className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
+                        onClick={handleEditClick}
+                      >
+                        {previewImage || userData.profile_pic ? (
+                          <img 
+                            src={previewImage || userData.profile_pic} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User size={40} className="text-gray-400" />
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleProfilePicChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-16 pb-6 px-8 flex justify-between items-center">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{userData.name}</h1>
+                  <p className="text-gray-500">{userData.role?.charAt(0).toUpperCase() + userData.role?.slice(1)}</p>
+                </div>
+                {!isEditing ? (
+                  <button
+                    onClick={handleEdit}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                  >
+                    <Pencil size={16} />
+                    Edit Profile
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSubmit}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                    >
+                      <Save size={16} />
+                      Save
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                    >
+                      <X size={16} />
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                {error}
+              </div>
+            )}
+
+            {/* Information Grid */}
+            <div className="grid gap-8">
+              {isEditing ? (
+                renderEditForm()
+              ) : (
+                <>
+                  {/* Personal Information */}
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-6">Personal Information</h2>
+                    <div className="space-y-4">
+                      {getPersonalInfo(userData).map((item, index) => (
+                        <div key={index} className="flex items-center space-x-3">
+                          <div className="text-gray-400">{item.icon}</div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-500">{item.key}</p>
+                            <p className="text-gray-900">{item.value}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Employment Details */}
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-6">Employment Details</h2>
+                    <div className="space-y-4">
+                      {getEmploymentDetails(userData).map((item, index) => (
+                        <div key={index} className="flex items-center space-x-3">
+                          <div className="text-gray-400">{item.icon}</div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-500">{item.key}</p>
+                            <p className="text-gray-900">{item.value}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Role Specific Details */}
+                  {getRoleSpecificDetails(userData).length > 0 && (
+                    <div className="bg-white rounded-lg shadow-sm p-6 md:col-span-2">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-6">Role Information</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {getRoleSpecificDetails(userData).map((item, index) => (
+                          <div key={index} className="flex items-center space-x-3">
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-500">{item.key}</p>
+                              <p className="text-gray-900">{item.value}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleProfilePicChange}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Name and Title */}
-            <div className="text-center mt-16 mb-8">
-              <h2 className="text-2xl font-bold">{userData.name}</h2>
-              <p className="text-gray-500">{userData.role}</p>
-            </div>
-
-            {/* Information Sections - expanded to fill more space */}
-            <div className="px-8 pb-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Personal Information */}
-                <div>
-                  <h3 className="text-blue-500 text-lg pb-2 mb-6 border-b">
-                    Personal Information
-                  </h3>
-                  <div className="space-y-4">
-                    {personalInfo.map((item, index) => (
-                      <div key={index} className="flex">
-                        <div className="font-medium w-36">{item.key}:</div>
-                        <div>{item.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Employment Details */}
-                <div>
-                  <h3 className="text-blue-500 text-lg pb-2 mb-6 border-b">
-                    Employment Details
-                  </h3>
-                  <div className="space-y-4">
-                    {employmentDetails.map((item, index) => (
-                      <div key={index} className="flex">
-                        <div className="font-medium w-36">{item.key}:</div>
-                        <div>{item.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
         ) : (
-          <div className="p-8 text-center text-red-500">
+          <div className="text-center text-red-500">
             No profile data available
           </div>
         )}
