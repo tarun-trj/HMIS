@@ -4,9 +4,11 @@ import {findPayrollById, getPatientCalendar,getDoctorCalendar, fetchProfile, upd
 const router = express.Router();
 
 router.get("/findPayroll",findPayrollById );
-router.get("/getPatientCalendar", getPatientCalendar);
-router.get("/getDoctorCalendar",getDoctorCalendar );
+
 router.get('/profile/:userType/:id', fetchProfile);
 router.put('/profile/:userType/:id', updateProfile);
+
+router.get('/calendar/doctor', getDoctorCalendar);
+router.get('/calendar/patient', getPatientCalendar);
 
 export default router;
