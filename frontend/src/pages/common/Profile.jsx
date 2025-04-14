@@ -10,7 +10,7 @@ const ProfileDashboard = () => {
   const fileInputRef = useRef(null);
   
   // List of authorized roles
-  const authorizedRoles = ["doctor", "receptionist", "nurse", "pathologist"];
+  const authorizedRoles = ["doctor", "receptionist", "nurse", "pathologist","pharmacist"];
   
   // Get current user role from localStorage or context
   const currentUserRole = role || localStorage.getItem("userRole") || "";
