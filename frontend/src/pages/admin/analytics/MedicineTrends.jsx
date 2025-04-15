@@ -97,142 +97,27 @@ const MedicineTrends = () => {
 
   // Fetch medicine inventory data
   const fetchMedicineInventoryData = async () => {
-    try {
+    try {      
       setLoading(true);
-      
-      // In a real implementation, this would be an API call:
-      // The backend API call would be:
-      // fetch(`/api/medicine-inventory?medicineId=${selectedMedicineInventory}&startDate=${inventoryStartDate.toISOString()}&endDate=${inventoryEndDate.toISOString()}`)
-      
-      /* 
-      Backend MongoDB Query for Medicine Inventory Analysis:
-      
-      exports.getMedicineInventoryTrends = async (req, res) => {
-        try {
-          const { medicineId, startDate, endDate } = req.query;
-          
-          // Validate dates
-          const start = new Date(startDate);
-          const end = new Date(endDate);
-          
-          // Query MedicineInventoryLogs for the specified medicine and date range
-          const inventoryLogs = await MedicineInventoryLogs.aggregate([
-            {
-              $match: {
-                med_id: parseInt(medicineId),
-                order_date: { $gte: start, $lte: end },
-                status: "received"
-              }
-            },
-            {
-              $group: {
-                _id: {
-                  year: { $year: "$order_date" },
-                  month: { $month: "$order_date" }
-                },
-                totalQuantity: { $sum: "$quantity" }
-              }
-            },
-            {
-              $sort: {
-                "_id.year": 1,
-                "_id.month": 1
-              }
-            }
-          ]);
-          
-          // Format monthly data
-          const monthLabels = [];
-          const monthValues = [];
-          
-          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-          inventoryLogs.forEach(item => {
-            const monthName = monthNames[item._id.month - 1];
-            monthLabels.push(`${monthName} ${item._id.year}`);
-            monthValues.push(item.totalQuantity);
-          });
-          
-          // Get weekly data for each month
-          const weeklyDataByMonth = {};
-          
-          for (const monthLabel of monthLabels) {
-            const [month, year] = monthLabel.split(' ');
-            const monthIndex = monthNames.indexOf(month);
-            
-            // Find first and last day of the month
-            const firstDay = new Date(parseInt(year), monthIndex, 1);
-            const lastDay = new Date(parseInt(year), monthIndex + 1, 0);
-            
-            // Group by week within month
-            const weeklyData = await MedicineInventoryLogs.aggregate([
-              {
-                $match: {
-                  med_id: parseInt(medicineId),
-                  order_date: { $gte: firstDay, $lte: lastDay },
-                  status: "received"
-                }
-              },
-              {
-                $group: {
-                  _id: { $week: "$order_date" },
-                  totalQuantity: { $sum: "$quantity" }
-                }
-              },
-              {
-                $sort: { "_id": 1 }
-              }
-            ]);
-            
-            // Format weekly data
-            const weekLabels = [];
-            const weekValues = [];
-            
-            weeklyData.forEach((item, index) => {
-              weekLabels.push(`Week ${index + 1}`);
-              weekValues.push(item.totalQuantity);
-            });
-            
-            weeklyDataByMonth[monthLabel] = {
-              labels: weekLabels,
-              values: weekValues
-            };
-          }
-          
-          // Get medicine details
-          const medicine = await Medicine.findOne({ med_id: parseInt(medicineId) });
-          
-          // Calculate total orders
-          const totalOrders = monthValues.reduce((sum, val) => sum + val, 0);
-          
-          // Return formatted data
-          res.json({
-            medicine: {
-              id: medicine.med_id.toString(),
-              name: medicine.med_name
-            },
-            monthlyData: {
-              labels: monthLabels,
-              values: monthValues
-            },
-            weeklyDataByMonth,
-            totalOrders
-          });
-          
-        } catch (error) {
-          console.error('Error fetching medicine inventory trends:', error);
-          res.status(500).json({ message: 'Server error', error: error.message });
-        }
+
+      // Prepare request data
+      const requestData = {
+        medicineId: selectedMedicineInventory,
+        startDate: inventoryStartDate.toISOString(),
+        endDate: inventoryEndDate.toISOString()
       };
-      */
       
-      // Simulated backend response
-      setTimeout(() => {
-        const response = generateMedicineInventoryData(selectedMedicineInventory, inventoryStartDate, inventoryEndDate);
-        setInventoryData(response);
-        setSelectedInventoryMonth(null);
-        setInventoryView("monthly");
-        setLoading(false);
-      }, 500);
+      // Make API call to backend
+      const response = await axios.post(
+        'http://localhost:5000/api/analytics/medicine-trends', 
+        requestData
+      );
+      
+      // Update state with the response data
+      setInventoryData(response.data);
+      setSelectedInventoryMonth(null);
+      setInventoryView("monthly");
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching medicine inventory data:", error);
       setLoading(false);
@@ -243,255 +128,30 @@ const MedicineTrends = () => {
   const fetchMedicinePrescriptionData = async () => {
     try {
       setLoading(true);
-      
-      // In a real implementation, this would be an API call:
-      // The backend API call would be:
-      // fetch(`/api/medicine-prescriptions?medicineId=${selectedMedicinePrescription}&startDate=${prescriptionStartDate.toISOString()}&endDate=${prescriptionEndDate.toISOString()}`)
-      
-      /*
-      Backend MongoDB Query for Medicine Prescription Analysis:
-      
-      exports.getMedicinePrescriptionTrends = async (req, res) => {
-        try {
-          const { medicineId, startDate, endDate } = req.query;
-          
-          // Validate dates
-          const start = new Date(startDate);
-          const end = new Date(endDate);
-          
-          // Find bills in the date range
-          const bills = await Bill.find({
-            generation_date: { $gte: start, $lte: end }
-          });
-          
-          // Group the data by month
-          const monthlyData = {};
-          
-          for (const bill of bills) {
-            // Iterate through each bill item
-            for (const item of bill.items) {
-              // Check if the item is a medication
-              if (item.item_type === "medication" && item.prescription_id) {
-                // Find the prescription entries for this medicine
-                const prescriptionEntries = await PrescriptionEntry.find({
-                  prescription_id: item.prescription_id,
-                  medicine_id: parseInt(medicineId)
-                });
-                
-                // Sum up the dispensed quantity
-                const dispensedQty = prescriptionEntries.reduce((sum, entry) => sum + entry.dispensed_qty, 0);
-                
-                if (dispensedQty > 0) {
-                  // Format the month key
-                  const date = new Date(bill.generation_date);
-                  const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
                   
-                  // Add to monthly data
-                  if (!monthlyData[monthKey]) {
-                    monthlyData[monthKey] = {
-                      count: 0,
-                      quantity: 0,
-                      weeklyData: {}
-                    };
-                  }
-                  
-                  monthlyData[monthKey].count += 1;
-                  monthlyData[monthKey].quantity += dispensedQty;
-                  
-                  // Track weekly data
-                  const weekNum = Math.ceil(date.getDate() / 7);
-                  const weekKey = `Week ${weekNum}`;
-                  
-                  if (!monthlyData[monthKey].weeklyData[weekKey]) {
-                    monthlyData[monthKey].weeklyData[weekKey] = {
-                      count: 0,
-                      quantity: 0
-                    };
-                  }
-                  
-                  monthlyData[monthKey].weeklyData[weekKey].count += 1;
-                  monthlyData[monthKey].weeklyData[weekKey].quantity += dispensedQty;
-                }
-              }
-            }
-          }
-          
-          // Format the data for the frontend
-          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-          const monthLabels = [];
-          const monthValues = [];
-          const weeklyDataByMonth = {};
-          
-          // Sort the months
-          const sortedMonths = Object.keys(monthlyData).sort();
-          
-          for (const monthKey of sortedMonths) {
-            const [year, month] = monthKey.split('-');
-            const monthName = `${monthNames[parseInt(month) - 1]} ${year}`;
-            
-            monthLabels.push(monthName);
-            monthValues.push(monthlyData[monthKey].quantity);
-            
-            // Format weekly data
-            const weeklyLabels = [];
-            const weeklyValues = [];
-            
-            const weekKeys = Object.keys(monthlyData[monthKey].weeklyData).sort();
-            for (const weekKey of weekKeys) {
-              weeklyLabels.push(weekKey);
-              weeklyValues.push(monthlyData[monthKey].weeklyData[weekKey].quantity);
-            }
-            
-            weeklyDataByMonth[monthName] = {
-              labels: weeklyLabels,
-              values: weeklyValues
-            };
-          }
-          
-          // Get medicine details
-          const medicine = await Medicine.findOne({ med_id: parseInt(medicineId) });
-          
-          // Calculate total prescriptions
-          const totalPrescriptionsQuantity = monthValues.reduce((sum, val) => sum + val, 0);
-          
-          // Return formatted data
-          res.json({
-            medicine: {
-              id: medicine.med_id.toString(),
-              name: medicine.med_name
-            },
-            monthlyData: {
-              labels: monthLabels,
-              values: monthValues
-            },
-            weeklyDataByMonth,
-            totalPrescriptionsQuantity
-          });
-          
-        } catch (error) {
-          console.error('Error fetching medicine prescription trends:', error);
-          res.status(500).json({ message: 'Server error', error: error.message });
-        }
+      // Prepare request data
+      const requestData = {
+        medicineId: selectedMedicinePrescription,
+        startDate: prescriptionStartDate.toISOString(),
+        endDate: prescriptionEndDate.toISOString()
       };
-      */
       
-      // Simulated backend response
-      setTimeout(() => {
-        const response = generateMedicinePrescriptionData(selectedMedicinePrescription, prescriptionStartDate, prescriptionEndDate);
-        setPrescriptionData(response);
-        setSelectedPrescriptionMonth(null);
-        setPrescriptionView("monthly");
-        setLoading(false);
-      }, 500);
+      // Make API call to backend
+      const response = await axios.post(
+        'http://localhost:5000/api/analytics/medicine-prescription-trends', 
+        requestData
+      );
+      
+      // Update state with the response data
+      setPrescriptionData(response.data);
+      setSelectedPrescriptionMonth(null);
+      setPrescriptionView("monthly");
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching medicine prescription data:", error);
       setLoading(false);
     }
   };
-
-  // Simulation of backend data generation for medicine inventory
-  function generateMedicineInventoryData(medicineId, startDate, endDate) {
-    // Calculate date range for months
-    const monthlyLabels = [];
-    const monthlyValues = [];
-    const monthlyData = {};
-    
-    let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const monthLabel = currentDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-      monthlyLabels.push(monthLabel);
-      
-      // Generate random value for this month (in real app, this would be from DB)
-      const orderQuantity = Math.floor(Math.random() * 200) + 50;
-      monthlyValues.push(orderQuantity);
-      
-      // Generate weekly data for this month
-      const weeklyLabels = [];
-      const weeklyValues = [];
-      
-      // Get number of weeks in the month
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      const lastDay = new Date(year, month + 1, 0).getDate();
-      const weeksInMonth = Math.ceil(lastDay / 7);
-      
-      for (let week = 1; week <= weeksInMonth; week++) {
-        weeklyLabels.push(`Week ${week}`);
-        weeklyValues.push(Math.floor(Math.random() * 60) + 10);
-      }
-      
-      monthlyData[monthLabel] = {
-        labels: weeklyLabels,
-        values: weeklyValues
-      };
-      
-      // Move to next month
-      currentDate.setMonth(currentDate.getMonth() + 1);
-      currentDate.setDate(1);
-    }
-    
-    return {
-      medicine: medicines.find(m => m.id === medicineId),
-      monthlyData: {
-        labels: monthlyLabels,
-        values: monthlyValues
-      },
-      weeklyDataByMonth: monthlyData,
-      totalOrders: monthlyValues.reduce((sum, val) => sum + val, 0)
-    };
-  }
-
-  // Simulation of backend data generation for medicine prescriptions
-  function generateMedicinePrescriptionData(medicineId, startDate, endDate) {
-    // Calculate date range for months
-    const monthlyLabels = [];
-    const monthlyValues = [];
-    const monthlyData = {};
-    
-    let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const monthLabel = currentDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-      monthlyLabels.push(monthLabel);
-      
-      // Generate random value for this month (in real app, this would be from DB)
-      const prescriptionQuantity = Math.floor(Math.random() * 150) + 30;
-      monthlyValues.push(prescriptionQuantity);
-      
-      // Generate weekly data for this month
-      const weeklyLabels = [];
-      const weeklyValues = [];
-      
-      // Get number of weeks in the month
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      const lastDay = new Date(year, month + 1, 0).getDate();
-      const weeksInMonth = Math.ceil(lastDay / 7);
-      
-      for (let week = 1; week <= weeksInMonth; week++) {
-        weeklyLabels.push(`Week ${week}`);
-        weeklyValues.push(Math.floor(Math.random() * 40) + 5);
-      }
-      
-      monthlyData[monthLabel] = {
-        labels: weeklyLabels,
-        values: weeklyValues
-      };
-      
-      // Move to next month
-      currentDate.setMonth(currentDate.getMonth() + 1);
-      currentDate.setDate(1);
-    }
-    
-    return {
-      medicine: medicines.find(m => m.id === medicineId),
-      monthlyData: {
-        labels: monthlyLabels,
-        values: monthlyValues
-      },
-      weeklyDataByMonth: monthlyData,
-      totalPrescriptionsQuantity: monthlyValues.reduce((sum, val) => sum + val, 0)
-    };
-  }
 
   // Handle bar click to show weekly trend for inventory
   const handleInventoryBarClick = (_, elements) => {
