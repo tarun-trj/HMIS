@@ -5,8 +5,16 @@ import Medicine from '../models/inventory.js';
 import BillModels  from '../models/bill.js';
 import {Doctor} from '../models/staff.js';
 import Department from '../models/department.js';
-import {PrescriptionEntry,Prescription} from '../models/consultation.js';
+
+import {PrescriptionEntry,Prescription} from '../models/consultation.js'; 
+import Employee from '../models/employee.js';
+import Patient from '../models/patient.js';
+import {Receptionist} from '../models/staff.js';  
+
+import Diagnosis from '../models/diagnosis.js';
+import mongoose from 'mongoose';
 import moment from 'moment';
+
 
 
 const {Bill,BillItem} = BillModels;
@@ -1036,6 +1044,556 @@ export const getAllDoctorsData = async (req, res) => {
   };
 
 
+
+//Function for finance trends, monthly and weekly patient payment
+export const getFinanceTrends = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.body;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Common match + unwind
+    const baseStages = [
+      { $unwind: "$payments" },
+      {
+        $match: {
+          "payments.payment_date": { $gte: start, $lte: end },
+          "payments.status": "success"
+        }
+      }
+    ];
+
+    // Monthly aggregation
+    const monthlyAggregation = await Bill.aggregate([
+      ...baseStages,
+      {
+        $group: {
+          _id: {
+            year: { $year: "$payments.payment_date" },
+            month: { $month: "$payments.payment_date" }
+          },
+          totalAmount: { $sum: "$payments.amount" }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthly = monthlyAggregation.map(r => ({
+      label: `${monthNames[r._id.month - 1]} ${r._id.year}`,
+      amount: r.totalAmount
+    }));
+
+    // Weekly aggregation
+    const weeklyAggregation = await Bill.aggregate([
+      ...baseStages,
+      {
+        $group: {
+          _id: {
+            year: { $year: "$payments.payment_date" },
+            week: { $isoWeek: "$payments.payment_date" }
+          },
+          totalAmount: { $sum: "$payments.amount" }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.week": 1 } }
+    ]);
+
+    const weekly = weeklyAggregation.map(r => ({
+      label: `Week ${r._id.week} ${r._id.year}`,
+      amount: r.totalAmount
+    }));
+
+    res.json({ monthly, weekly });
+
+  } catch (err) {
+    console.error("Error fetching payment trends:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
+//Function for doctor working trends, monthly and weekly based on patient count
+export const getDoctorWorkingTrends = async (req, res) => {
+  try {
+    const { doctorName, startDate, endDate } = req.body;
+
+    if (!doctorName || !startDate || !endDate) {
+      return res.status(400).json({ message: "Missing parameters" });
+    }
+
+    const employee = await Employee.findOne({ name: doctorName.trim(), role: "doctor" });
+    if (!employee) return res.status(404).json({ message: "Doctor not found in employee records" });
+
+    const doctor = await Doctor.findOne({ employee_id: employee._id });
+    if (!doctor) return res.status(404).json({ message: "Doctor profile not found" });
+
+    const matchStage = {
+      doctor_id: doctor._id,
+      actual_start_datetime: {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      }
+    };
+
+    // Monthly aggregation
+    const monthlyAgg = await Consultation.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$actual_start_datetime" },
+            month: { $month: "$actual_start_datetime" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    const monthly = monthlyAgg.map(entry => ({
+      label: `${getMonthName(entry._id.month)} ${entry._id.year}`,
+      count: entry.count
+    }));
+
+    // Weekly aggregation
+    const weeklyAgg = await Consultation.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$actual_start_datetime" },
+            week: { $week: "$actual_start_datetime" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.week": 1 } }
+    ]);
+
+    const weekly = weeklyAgg.map(entry => ({
+      label: `Week ${entry._id.week} of ${entry._id.year}`,
+      count: entry.count
+    }));
+
+    res.status(200).json({ monthly, weekly });
+  } catch (error) {
+    console.error("Error in doctor working trends analytics:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+// Helper: convert month number to name
+function getMonthName(monthNum) {
+  return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][monthNum - 1];
+}
+
+
+//Functions for illness trneds page
+
+//Function to get top K diseases
+export const getTopKDiseases = async (req, res) => {
+  try {
+    const { startDate, endDate, k } = req.body;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const topK = parseInt(k) || 5;
+
+    // Total consultations with diagnoses in that time
+    const totalConsults = await Consultation.countDocuments({
+      actual_start_datetime: { $gte: start, $lte: end },
+      diagnosis: { $exists: true, $not: { $size: 0 } }
+    });
+
+    if (totalConsults === 0) {
+      return res.status(200).json({ message: "No diagnosis data found", data: [] });
+    }
+
+    const result = await Consultation.aggregate([
+      { $match: { actual_start_datetime: { $gte: start, $lte: end } } },
+      { $unwind: "$diagnosis" },
+      { $group: { _id: "$diagnosis", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: topK },
+      {
+        $lookup: {
+          from: "diagnoses", // collection name is lowercase plural
+          localField: "_id",
+          foreignField: "_id",
+          as: "diagnosis_info"
+        }
+      },
+      { $unwind: "$diagnosis_info" },
+      {
+        $project: {
+          diagnosisId: "$_id",
+          name: "$diagnosis_info.name",
+          count: 1
+        }
+      }
+    ]);
+
+    // Add percentage calculation
+    const trends = result.map(entry => ({
+      name: entry.name,
+      count: entry.count,
+      percentage: ((entry.count / totalConsults) * 100).toFixed(2)
+    }));
+
+    res.status(200).json({ totalConsultations: totalConsults, topDiagnoses: trends });
+
+  } catch (error) {
+    console.error("Error in illness trends analytics:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+//Function to get diease trends, monthly and weekly
+export const getDiseaseTrends = async (req, res) => {
+  try {
+    const { startDate, endDate, diagnosis_id } = req.body;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (isNaN(start) || isNaN(end)) {
+      return res.status(400).json({ message: "Invalid startDate or endDate" });
+    }
+
+    // Step 1: Resolve diagnosis_id
+    let diagnosisDoc = null;
+
+    // Check if it's a valid Mongo ObjectId
+    if (mongoose.Types.ObjectId.isValid(diagnosis_id)) {
+      diagnosisDoc = await Diagnosis.findById(diagnosis_id);
+    }
+
+    // Check against custom diagnosis_id code
+    if (!diagnosisDoc) {
+      diagnosisDoc = await Diagnosis.findOne({ diagnosis_id: diagnosis_id.trim() });
+    }
+
+    // Check against diagnosis name
+    if (!diagnosisDoc) {
+      diagnosisDoc = await Diagnosis.findOne({ name: diagnosis_id.trim() });
+    }
+
+    if (!diagnosisDoc) {
+      return res.status(404).json({ message: "Diagnosis not found" });
+    }
+
+    const resolvedDiagnosisId = diagnosisDoc._id;
+
+    // Match consultations with this diagnosis and in the time range
+    const matchStage = {
+      actual_start_datetime: { $gte: start, $lte: end },
+      diagnosis: resolvedDiagnosisId
+    };
+
+    // Total cases
+    const totalCases = await Consultation.countDocuments(matchStage);
+
+    if (totalCases === 0) {
+      return res.status(200).json({
+        message: "No cases found in the given time frame",
+        monthly: [],
+        weekly: [],
+        ageDistribution: {},
+        total: 0
+      });
+    }
+
+    // Monthly trend
+    const monthly = await Consultation.aggregate([
+      { $match: matchStage },
+      { $unwind: "$diagnosis" },
+      { $match: { diagnosis: resolvedDiagnosisId } },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$actual_start_datetime" },
+            month: { $month: "$actual_start_datetime" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthlyData = monthly.map(m => ({
+      label: `${monthNames[m._id.month - 1]} ${m._id.year}`,
+      count: m.count
+    }));
+
+    // Weekly trend
+    const weekly = await Consultation.aggregate([
+      { $match: matchStage },
+      { $unwind: "$diagnosis" },
+      { $match: { diagnosis: resolvedDiagnosisId } },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$actual_start_datetime" },
+            week: { $isoWeek: "$actual_start_datetime" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.week": 1 } }
+    ]);
+
+    const weeklyData = weekly.map(w => ({
+      label: `Week ${w._id.week} ${w._id.year}`,
+      count: w.count
+    }));
+
+    // Age distribution
+    const ageAgg = await Consultation.aggregate([
+      { $match: matchStage },
+      { $unwind: "$diagnosis" },
+      { $match: { diagnosis: resolvedDiagnosisId } },
+      {
+        $lookup: {
+          from: "patients",
+          localField: "patient_id",
+          foreignField: "_id",
+          as: "patient"
+        }
+      },
+      { $unwind: "$patient" },
+      {
+        $project: {
+          age: "$patient.patient_info.age"
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $switch: {
+              branches: [
+                { case: { $lte: ["$age", 18] }, then: "0-18" },
+                { case: { $and: [{ $gt: ["$age", 18] }, { $lte: ["$age", 35] }] }, then: "19-35" },
+                { case: { $and: [{ $gt: ["$age", 35] }, { $lte: ["$age", 50] }] }, then: "36-50" },
+                { case: { $and: [{ $gt: ["$age", 50] }, { $lte: ["$age", 65] }] }, then: "51-65" },
+                { case: { $gt: ["$age", 65] }, then: "65+" }
+              ],
+              default: "Unknown"
+            }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const ageDistribution = {};
+    ageAgg.forEach(bucket => {
+      const label = typeof bucket._id === "string" ? bucket._id : `${bucket._id}–${bucket._id + 17}`;
+      ageDistribution[label] = bucket.count;
+    });
+
+    // Final response
+    res.status(200).json({
+      total: totalCases,
+      monthly: monthlyData,
+      weekly: weeklyData,
+      ageDistribution
+    });
+
+  } catch (error) {
+    console.error("Error in disease trends analytics:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
+
+
+/*
+FOR TESTING
+export const getAllEmployees = async (req, res) => {
+  try {
+    const result = await Employee.find({ role: "doctor" });
+
+    if (!result || result.length === 0) {
+      return res.status(200).json({
+        message: 'No doctors found',
+        doctors: []
+      });
+    }
+
+    res.status(200).json({
+      totalDoctors: result.length,
+      doctors: result
+    });
+  } catch (error) {
+    console.error('Error fetching doctors:', error);
+    res.status(500).json({
+      message: 'Error retrieving doctors',
+      error: error.message
+    });
+  }
+};
+
+export const addNewDoctor = async (req, res) => {
+  try {
+    const { 
+      name, 
+      email, 
+      password, 
+      profile_pic, 
+      dept_id, 
+      phone_number, 
+      emergency_contact, 
+      bloodGrp, 
+      address, 
+      date_of_birth, 
+      aadhar_number, 
+      date_of_joining, 
+      gender, 
+      salary, 
+      bank_details 
+    } = req.body;
+
+    // Create a new Employee with role "doctor"
+    const newDoctor = new Employee({
+      name,
+      email,
+      password,
+      profile_pic,
+      role: "doctor",  // Ensures the role is set to doctor
+      dept_id,
+      phone_number,
+      emergency_contact,
+      bloodGrp,
+      address,
+      date_of_birth,
+      aadhar_number,
+      date_of_joining,
+      gender,
+      salary,
+      bank_details
+    });
+
+    // Save the new doctor record
+    const savedDoctor = await newDoctor.save();
+
+    res.status(201).json({
+      message: 'Doctor added successfully',
+      doctor: savedDoctor
+    });
+  } catch (error) {
+    console.error('Error adding doctor:', error);
+    res.status(500).json({
+      message: 'Error adding doctor',
+      error: error.message
+    });
+  }
+};
+
+export const addConsultation = async (req, res) => {
+  try {
+    const {
+      patient_id,
+      doctor_id,
+      booked_date_time,
+      status,
+      reason,
+      appointment_type,
+      actual_start_datetime,
+      diagnosis,
+      prescription,
+      reports,
+      feedback
+    } = req.body;
+
+    // Validate and convert dates
+    const bookedDate = booked_date_time ? new Date(booked_date_time) : new Date();
+    const actualStart = new Date(actual_start_datetime);
+
+    if (isNaN(actualStart.getTime())) {
+      return res.status(400).json({ message: "Invalid actual_start_datetime" });
+    }
+
+    const consultation = new Consultation({
+      patient_id,
+      doctor_id,
+      booked_date_time: bookedDate,
+      actual_start_datetime: actualStart,
+      status,
+      reason,
+      appointment_type,
+      diagnosis,
+      prescription: prescription || [],
+      reports: reports || [],
+      feedback
+    });
+
+    const saved = await consultation.save();
+    res.status(201).json({ message: "Consultation saved successfully", consultation: saved });
+
+  } catch (error) {
+    console.error("Error saving consultation:", error);
+    res.status(500).json({ message: "Error saving consultation", error: error.message });
+  }
+};
+
+
+
+
+export const getAllDiagnoses = async (req, res) => {
+  try {
+    const diagnoses = await Diagnosis.find(); // Fetch all entries
+
+    if (!diagnoses || diagnoses.length === 0) {
+      return res.status(200).json({
+        message: 'No diagnoses found',
+        diagnoses: []
+      });
+    }
+
+    res.status(200).json({
+      totalDiagnoses: diagnoses.length,
+      diagnoses
+    });
+  } catch (error) {
+    console.error('Error fetching diagnoses:', error);
+    res.status(500).json({
+      message: 'Error retrieving diagnoses',
+      error: error.message
+    });
+  }
+};
+*/
+
+/*
+export const printAllDoctors = async (req, res) => {
+  try {
+    const doctors = await Doctor.find().populate('employee_id'); // populate linked Employee info
+
+    if (!doctors.length) {
+      return res.status(200).json({ message: 'No doctors found', doctors: [] });
+    }
+    
+
+    res.status(200).json({
+      message: 'Doctors retrieved successfully',
+      total: doctors.length,
+      doctors
+    });
+
+  } catch (error) {
+    console.error('Error fetching doctors:', error);
+    res.status(500).json({
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};*/
+
 //function to get the metrics for dashboard
 export const getDashboardKPIs = async (req, res) => {
   try {
@@ -1169,3 +1727,4 @@ export const getDashboardKPIs = async (req, res) => {
     res.status(500).json({ message: 'Error fetching dashboard KPIs', error: error.message });
   }
 };
+
