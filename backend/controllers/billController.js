@@ -227,7 +227,10 @@ export const addPayment = async (req, res) => {
         message: 'Payment amount and method are required'
       });
     }
+    // Update the hospital's bank account balance
+    global.hospitalBankAccount.balance += paymentData.amount;
 
+    console.log(`Payment of ${paymentData.amount} added to hospital bank account. New balance: ${global.hospitalBankAccount.balance}`);
     const bill = await Bill.findById(billId);
     
     if (!bill) {

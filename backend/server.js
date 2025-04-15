@@ -45,7 +45,7 @@ app.get("/", (req, res) => {
 });
 
 // Global hospital bank account
-const hospitalBankAccount = {
+global.hospitalBankAccount = {
     bank_name: "Global Health Bank",
     account_number: 1234567890,
     ifsc_code: "GHBL0001234",
