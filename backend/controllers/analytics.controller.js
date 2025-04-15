@@ -1212,7 +1212,7 @@ export const getFinanceTrends = async (req, res) => {
 //Function for doctor working trends, monthly and weekly based on patient count
 export const getDoctorWorkingTrends = async (req, res) => {
   try {
-    const { doctorName, startDate, endDate } = req.body;
+    const { doctorName, startDate, endDate } = req.query;
 
     if (!doctorName || !startDate || !endDate) {
       return res.status(400).json({ message: "Missing parameters" });
