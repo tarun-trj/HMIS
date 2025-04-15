@@ -3,8 +3,9 @@ import { addRatingAndReview,calculateOverallRating, calculateDepartmentRating,ge
     getMedicineInventoryTrends,getMedicinePrescriptionTrends,addMedicine,addInventoryLog,createPrescription,createBill,addItemToBill,
     addPrescriptionEntry,getBedOccupancyTrends, getFacilityStatistics,getDoctorRatingDistribution,
     getAllConsultations ,getFeedbacksByRating ,getDoctorQuadrantData, getDepartmentQuadrantData,
-    getAllDoctorsData} from '../controllers/analytics.controller.js';
-
+    getAllDoctorsData, getDoctorWorkingTrends, getAllEmployees, addNewDoctor, addConsultation, getAllDiagnoses, printAllDoctors,
+    getFinanceTrends, getTopKDiseases, getDiseaseTrends} from '../controllers/analytics.controller.js';
+    
 const router = express.Router();
 
 // Route to add rating and review
@@ -37,4 +38,23 @@ router.get('/facility-stats', getFacilityStatistics);
 router.get('/doc-performance', getDoctorQuadrantData);
 router.get('/dept-performance',getDepartmentQuadrantData);
 router.get('/doctors/all',getAllDoctorsData);
+
+
+//doctor-working trends
+router.get('/doctor-working', getDoctorWorkingTrends);
+//financial-trends
+router.get('/finance-trends', getFinanceTrends);
+//illness-trends
+router.get('/illness-trends/topk', getTopKDiseases);
+router.get('/illness-trends/disease-trends', getDiseaseTrends);
+
+/*
+//FOR TESTING
+router.get('/employees-all', getAllEmployees);
+router.post('/add-doctor', addNewDoctor);
+router.post('/add-consultation', addConsultation);
+router.get('/diagnosis-all', getAllDiagnoses);
+router.get('/print-all-doctors', printAllDoctors);
+*/
+
 export default router;
