@@ -15,6 +15,13 @@ const BedLogSchema = new Schema({
   patient_id: { type: Number, ref: 'Patient' }
 });
 
+const DailyBedOccupancySchema = new Schema({
+date: { type: Date, required: true, unique: true },
+assignments: { type: Number, default: 0 },
+discharges: { type: Number, default: 0 },
+occupancyCount: { type: Number, default: 0 }
+});
+
 const MedicineInventoryLogSchema = new Schema({
   med_id: { type: Number, ref: 'Medicine' },
   quantity: Number,
@@ -40,6 +47,6 @@ const FinanceLogs = new Schema({
 const LoginLog = mongoose.model('LoginLog', LoginLogSchema);
 const BedLog = mongoose.model('BedLog', BedLogSchema);
 const MedicineInventoryLog = mongoose.model('MedicineInventoryLog', MedicineInventoryLogSchema);
-
+const DailyBedOccupancy = mongoose.model('DailyBedOccupancy',DailyBedOccupancySchema);
 const FinanceLog = mongoose.model('FinanceLog', FinanceLogs);
-export default { LoginLog, BedLog, MedicineInventoryLog, FinanceLog};
+export default { LoginLog, BedLog, DailyBedOccupancy, MedicineInventoryLog, FinanceLog};

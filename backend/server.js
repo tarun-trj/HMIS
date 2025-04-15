@@ -22,7 +22,8 @@ import cookieParser from "cookie-parser";
 import publicRoutes from './routes/public.routes.js';
 import commonPageRoutes from './routes/commonPages.routes.js';
 import consultationRoutes from './routes/consultation.routes.js';
-
+import cron from 'node-cron';
+import initializeDailyOccupancy from './controllers/analytics.controller.js';
 
 dotenv.config();
 
@@ -47,6 +48,12 @@ app.get("/", (req, res) => {
 app.get("/test",(req, res) => {
     res.send("Frontend Connected to Backend");
 })
+
+cron.schedule('0 0 * * *', async () => {
+    console.log('Running daily occupancy initializer at midnight...');
+    await initializeDailyOccupancy();
+  });
+
 //routes
 app.use("/api/tests", testRoutes);
 app.use('/api/employees', employeeRoutes);

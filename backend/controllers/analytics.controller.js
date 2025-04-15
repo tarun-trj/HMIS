@@ -1,14 +1,16 @@
 import {Consultation,Feedback} from '../models/consultation.js';
-import {Room,DailyOccupancy} from '../models/facility.js';
+import {Room} from '../models/facility.js';
 import LogModels from '../models/logs.js';
 import Medicine from '../models/inventory.js';
 import BillModels  from '../models/bill.js';
 import {Doctor} from '../models/staff.js';
 import Department from '../models/department.js';
 import {PrescriptionEntry,Prescription} from '../models/consultation.js';
+import moment from 'moment';
+
 
 const {Bill,BillItem} = BillModels;
-const {MedicineInventoryLog} = LogModels;
+const {DailyBedOccupancy, MedicineInventoryLog} = LogModels;
 
 export const addMedicine = async (req, res) => {
   try {
@@ -93,8 +95,6 @@ export const addItemToBill = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
-
 
   export const createBill = async (req, res) => {
     try {
@@ -280,106 +280,6 @@ export const getRatingDistribution = async () => {
     return { ratingDistribution: distribution };
 };
 
-export const getBedOccupancyTrends = async (req, res) => {
-    const { period } = req.params; // e.g., daily, weekly, monthly, yearly
-
-    try {
-        // Parse and normalize dates from query parameters
-        const startDate = new Date(req.query.startDate);
-        const endDate = new Date(req.query.endDate);
-
-        startDate.setHours(0, 0, 0, 0); // Set startDate to start of the day
-        endDate.setHours(23, 59, 59, 999); // Set endDate to end of the day
-
-        // Validate input dates
-        if (isNaN(startDate) || isNaN(endDate)) {
-            return res.status(400).json({ message: 'Invalid date format. Please provide valid startDate and endDate.' });
-        }
-        if (startDate > endDate) {
-            return res.status(400).json({ message: 'startDate cannot be later than endDate.' });
-        }
-
-        // Fetch all DailyOccupancy entries within the given date range
-        const occupancyEntries = await DailyOccupancy.find({
-            date: { $gte: startDate, $lte: endDate }
-        });
-
-        let trends = []; // Placeholder for results
-        if (period === 'daily') {
-            // Return the count of occupied beds for each day
-            trends = occupancyEntries.map(entry => ({
-                date: entry.date,
-                occupiedBedCount: entry.occupiedBeds.length
-            }));
-        } else if (period === 'weekly') {
-            // Aggregate occupied bed counts by week (Monday-Sunday)
-            const weekTrends = {};
-            occupancyEntries.forEach(entry => {
-                const weekStart = getStartOfWeek(entry.date); // Calculate the start of the week
-                if (!weekTrends[weekStart]) {
-                    weekTrends[weekStart] = { weekStart, occupiedBedCount: 0 };
-                }
-                weekTrends[weekStart].occupiedBedCount += entry.occupiedBeds.length;
-            });
-            trends = Object.values(weekTrends);
-        } else if (period === 'monthly') {
-            // Aggregate occupied bed counts by month
-            const monthTrends = {};
-            occupancyEntries.forEach(entry => {
-                const monthStart = getStartOfMonth(entry.date); // Calculate the start of the month
-                if (!monthTrends[monthStart]) {
-                    monthTrends[monthStart] = { monthStart, occupiedBedCount: 0 };
-                }
-                monthTrends[monthStart].occupiedBedCount += entry.occupiedBeds.length;
-            });
-            trends = Object.values(monthTrends);
-        } else if (period === 'yearly') {
-            // Aggregate occupied bed counts by year
-            const yearTrends = {};
-            occupancyEntries.forEach(entry => {
-                const yearStart = getStartOfYear(entry.date); // Calculate the start of the year
-                if (!yearTrends[yearStart]) {
-                    yearTrends[yearStart] = { yearStart, occupiedBedCount: 0 };
-                }
-                yearTrends[yearStart].occupiedBedCount += entry.occupiedBeds.length;
-            });
-            trends = Object.values(yearTrends);
-        } else {
-            // Handle invalid period input
-            return res.status(400).json({ message: 'Invalid period. Please provide one of daily, weekly, monthly, or yearly.' });
-        }
-
-        // Send successful response
-        res.status(200).json({
-            occupancyEntries,
-            period,
-            startDate,
-            endDate,
-            trends
-        });
-    } catch (error) {
-        console.error('Error calculating bed occupancy trends:', error);
-        res.status(500).json({ message: 'Error calculating bed occupancy trends', error });
-    }
-};
-
-// Helper Functions
-const getStartOfWeek = date => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday start
-    return new Date(d.setDate(diff)).toISOString().split('T')[0]; // Return as YYYY-MM-DD
-};
-
-const getStartOfMonth = date => {
-    const d = new Date(date);
-    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]; // YYYY-MM-DD
-};
-
-const getStartOfYear = date => {
-    const d = new Date(date);
-    return new Date(d.getFullYear(), 0, 1).toISOString().split('T')[0]; // YYYY-MM-DD
-};
 // Function to return overall statistics (total beds, total rooms)
 export const getFacilityStatistics = async (req, res) => {
     try {
@@ -397,48 +297,92 @@ export const getFacilityStatistics = async (req, res) => {
     }
 };
 
-export const updateDailyOccupancy = async () => {
-    try {
-        const today = new Date();
-        const todayDate = new Date(today.setHours(0, 0, 0, 0)); // Normalize to midnight
-
-        // Find all beds with 'occupied' status
-        const rooms = await Room.find({
-            "beds.status": "occupied",
-            "occupancy_start_date": { $lt: today } // Filter for occupancy_start_date before today
-        });
-        
-        const occupiedBedIds = [];
-        rooms.forEach(room => {
-            room.beds.forEach(bed => {
-                if (bed.status === "occupied") {
-                    occupiedBedIds.push(bed._id); // Collect all occupied bed IDs
-                }
-            });
-        });
-
-        // Insert or update today's entry in DailyOccupancy schema
-        const existingEntry = await DailyOccupancy.findOne({ date: todayDate });
-
-        if (existingEntry) {
-            // Update the entry if it exists
-            existingEntry.occupiedBeds = occupiedBedIds;
-            await existingEntry.save();
-            console.log('Daily occupancy updated for:', todayDate);
-        } else {
-            // Create a new entry for the day
-            const newEntry = new DailyOccupancy({
-                date: todayDate,
-                occupiedBeds: occupiedBedIds
-            });
-            await newEntry.save();
-            console.log('Daily occupancy created for:', todayDate);
-        }
-    } catch (error) {
-        console.error('Error updating daily occupancy:', error);
+async function initializeDailyOccupancy() {
+  try {
+    // Get today's date at midnight.
+    const today = new Date();
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    // Determine yesterday's date.
+    const yesterday = new Date(todayMidnight);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Fetch yesterday's document, if it exists.
+    const yesterdayDoc = await DailyBedOccupancy.findOne({ date: yesterday });
+    const previousOccupancy = yesterdayDoc ? yesterdayDoc.occupancyCount : 0;
+    
+    // Create today's document if it doesn't already exist.
+    const existingToday = await DailyBedOccupancy.findOne({ date: todayMidnight });
+    if (!existingToday) {
+      await DailyBedOccupancy.create({
+        date: todayMidnight,
+        assignments: 0,
+        discharges: 0,
+        occupancyCount: previousOccupancy
+      });
+      console.log(`Daily occupancy initialized for ${todayMidnight.toISOString().split('T')[0]} with count ${previousOccupancy}`);
     }
-};
+  } catch (error) {
+    console.error('Error initializing daily bed occupancy:', error);
+  }
+}
 
+export default initializeDailyOccupancy;
+
+export const getBedOccupancyTrends = async (req, res) => {
+  try {
+    const { period } = req.params;
+    const { startDate, endDate } = req.body;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (isNaN(start) || isNaN(end)) {
+      return res.status(400).json({ message: 'Invalid date format provided.' });
+    }
+
+    // Retrieve all DailyBedOccupancy documents within the given date range.
+    const dailyData = await DailyBedOccupancy.find({
+      date: { $gte: start, $lte: end }
+    }).sort({ date: 1 });
+
+    let trends = [];
+    if (period === 'weekly') {
+      const weeklyMap = {};
+      dailyData.forEach(doc => {
+        const m = moment(doc.date);
+        const key = `${m.isoWeekYear()}-W${m.isoWeek()}`;
+        if (!weeklyMap[key]) {
+          weeklyMap[key] = { week: key, totalOccupancy: 0 };
+        }
+        weeklyMap[key].totalOccupancy += doc.occupancyCount;
+      });
+      trends = Object.values(weeklyMap).sort((a, b) => a.week.localeCompare(b.week));
+    } else if (period === 'monthly') {
+      const monthlyMap = {};
+      dailyData.forEach(doc => {
+        const m = moment(doc.date);
+        const key = m.format("YYYY-MM");
+        if (!monthlyMap[key]) {
+          monthlyMap[key] = { month: key, totalOccupancy: 0 };
+        }
+        monthlyMap[key].totalOccupancy += doc.occupancyCount;
+      });
+      trends = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
+    } else {
+      return res.status(400).json({ message: 'Invalid period. Valid options are weekly or monthly.' });
+    }
+
+    res.status(200).json({
+      period,
+      startDate: moment(start).format("YYYY-MM-DD"),
+      endDate: moment(end).format("YYYY-MM-DD"),
+      trends
+    });
+  } catch (error) {
+    console.error("Error fetching bed occupancy trends:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
 
 export const getMedicineInventoryTrends = async (req, res) => {
   try {

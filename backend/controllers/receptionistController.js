@@ -159,6 +159,15 @@ export const assignBed = async (req, res) => {
 
         const savedAssignment = await newAssignment.save();
 
+         // Update today's occupancy document.
+        const today = new Date();
+        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        await DailyBedOccupancy.findOneAndUpdate(
+            { date: todayMidnight },
+            { $inc: { assignments: 1, occupancyCount: 1 } },
+            { new: true }
+        )
+
         res.status(201).json({
             message: 'Bed assigned successfully',
             assignment: savedAssignment
@@ -194,6 +203,15 @@ export const dischargeBed = async (req, res) => {
         assignment.status = "vacated";
         assignment.time = new Date();
         const updatedAssignment = await assignment.save();
+
+         // Update today's occupancy document.
+        const today = new Date();
+        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        await DailyBedOccupancy.findOneAndUpdate(
+            { date: todayMidnight },
+            { $inc: { discharges: 1, occupancyCount: -1 } },
+            { new: true }
+        );
 
         res.status(200).json({
             message: 'Patient discharged successfully',
