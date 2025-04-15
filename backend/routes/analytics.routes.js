@@ -3,7 +3,7 @@ import { addRatingAndReview,calculateOverallRating, calculateDepartmentRating,ge
     getMedicineInventoryTrends,getMedicinePrescriptionTrends,addMedicine,addInventoryLog,createPrescription,createBill,addItemToBill,
     addPrescriptionEntry,getBedOccupancyTrends, getFacilityStatistics,getDoctorRatingDistribution,
     getAllConsultations ,getFeedbacksByRating ,getDoctorQuadrantData, getDepartmentQuadrantData,
-    getAllDoctorsData, getDoctorWorkingTrends, getAllEmployees, addNewDoctor, addConsultation, getAllDiagnoses, printAllDoctors,
+    getAllDoctorsData, getDoctorWorkingTrends, /*getAllEmployees, addNewDoctor, addConsultation, getAllDiagnoses, printAllDoctors,*/
     getFinanceTrends, getTopKDiseases, getDiseaseTrends} from '../controllers/analytics.controller.js';
     
 const router = express.Router();
