@@ -416,6 +416,7 @@ export const addStaff = async (req, res) => {
             default:
                 return res.status(400).json({ message: 'Invalid role specified' });
         }
+        
         const payroll = new Payroll({
             employee_id: savedEmployee._id,
             basic_salary,
