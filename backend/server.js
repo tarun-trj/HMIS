@@ -24,7 +24,7 @@ import commonPageRoutes from './routes/commonPages.routes.js';
 import consultationRoutes from './routes/consultation.routes.js';
 import cron from 'node-cron';
 import initializeDailyOccupancy from './controllers/analytics.controller.js';
-
+import insuranceRoutes from './routes/insurance.routes.js'
 dotenv.config();
 
 const app = express();
@@ -46,6 +46,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/test",(req, res) => {
+  
     res.send("Frontend Connected to Backend");
 })
 
@@ -74,5 +75,6 @@ app.use('/api/facility', facilityRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/public-data', publicRoutes);
 app.use('/api/common', commonPageRoutes);
+app.use('/api/insurance', insuranceRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

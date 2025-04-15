@@ -54,7 +54,8 @@ export const getDoctorCalendar = async (req, res) => {
         reason: consultation.reason,
         patientId: consultation.patient_id._id,
         patientPhone: consultation.patient_id.phone_number,
-        patientEmail: consultation.patient_id.email
+        patientEmail: consultation.patient_id.email,
+        appointment_type:consultation.appointment_type
       };
     });
     

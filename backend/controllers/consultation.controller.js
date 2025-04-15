@@ -409,3 +409,41 @@ export const fetchDiagnosisByConsultationId = async (req, res) => {
     return res.status(500).json({ error: "Server error" });
   }
 };
+
+
+export const updateConsultation = async (req, res) => {
+  try {
+    const { consultationId } = req.params;
+    const { 
+      doctor_id, 
+      booked_date_time, 
+      reason, 
+      appointment_type, 
+      updated_by,
+      status
+    } = req.body;
+    const consultation = await Consultation.findById(consultationId);
+    if (!consultation) {
+      return res.status(404).json({ message: 'Consultation not found' });
+    }
+
+    // Update fields if provided
+    if (doctor_id) consultation.doctor_id = doctor_id;
+    if (booked_date_time) consultation.booked_date_time = new Date(booked_date_time);
+    if (reason) consultation.reason = reason;
+    if (appointment_type) consultation.appointment_type = appointment_type;
+    if (updated_by) consultation.updated_by = updated_by;
+    if (status)consultation.status=status
+    // Ensure status is always updated when date changes
+   
+
+    await consultation.save();
+
+    res.json({
+      message: 'Consultation updated successfully',
+      consultation
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
