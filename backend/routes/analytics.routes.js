@@ -4,7 +4,7 @@ import { addRatingAndReview,calculateOverallRating, calculateDepartmentRating,ge
     addPrescriptionEntry,getBedOccupancyTrends, getFacilityStatistics,getDoctorRatingDistribution,
     getAllConsultations ,getFeedbacksByRating ,getDoctorQuadrantData, getDepartmentQuadrantData,
     getAllDoctorsData, getDoctorWorkingTrends, /*getAllEmployees, addNewDoctor, addConsultation, getAllDiagnoses, printAllDoctors,*/
-    getFinanceTrends, getTopKDiseases, getDiseaseTrends, getDashboardKPIs} from '../controllers/analytics.controller.js';
+    getFinanceTrends, getTopKDiseases, getDiseaseTrends, getDashboardKPIs, getRatingDistribution} from '../controllers/analytics.controller.js';
 
 
     
@@ -51,6 +51,9 @@ router.get('/illness-trends/topk', getTopKDiseases);
 router.get('/illness-trends/disease-trends', getDiseaseTrends);
 
 router.get('/dashboard/kpis', getDashboardKPIs);
+
+// Doctor Rating Distribution for Feedback Rating Metrics
+router.get('/feedback-rating-metrics', getRatingDistribution);
 
 /*
 //FOR TESTING
