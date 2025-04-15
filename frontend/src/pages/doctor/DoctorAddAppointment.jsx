@@ -29,8 +29,9 @@ const DoctorAddAppointment = () => {
   const currentTranscriptRef = useRef('');
   
   // API configuration - using environment variables
-  const API_KEY = ''; // Add your Gemini API key here
-  const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+  const API_URL = import.meta.env.VITE_GEMINI_API_URL;
+
   
   // Animation for filled field
   useEffect(() => {
