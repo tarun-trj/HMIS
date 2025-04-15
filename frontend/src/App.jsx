@@ -82,6 +82,7 @@ import AnalyticsDashboard from "./pages/admin/analytics/AnalyticsDashboard";
 import IllnessTrends from "./pages/admin/analytics/IllnessTrends";
 import MedicineTrends from "./pages/admin/analytics/MedicineTrends";
 import FinancialTrends from "./pages/admin/analytics/FinancialTrends";
+import BedOccupancyTrends from "./pages/admin/analytics/BedOccupancyTrends";
 import DoctorPerformanceMetrics from "./pages/admin/analytics/DoctorPerformanceMetrics";
 import DoctorWorkingTrends from "./pages/admin/analytics/DoctorWorkingTrends";
 import TextualFeedbackAnalysis from "./pages/admin/analytics/FeedbackTextAnalysis";
@@ -249,6 +250,7 @@ function App() {
             <Route path="/admin/analytics/doctor-performance-trends" element={<DoctorPerformanceMetrics />} />
             <Route path="/admin/analytics/doctor-working-trends" element={<DoctorWorkingTrends />} />
             <Route path="/admin/analytics/text-feedback" element={<TextualFeedbackAnalysis />} />
+            <Route path="/admin/analytics/bed-occupancy" element={<BedOccupancyTrends />} />
             <Route path="/admin/analytics/feedbacks" element={<Feedbacks />} />
           </Route>
         </Routes>

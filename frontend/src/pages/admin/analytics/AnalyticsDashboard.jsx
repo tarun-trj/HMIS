@@ -122,7 +122,7 @@ const [dashboardData, setDashboardData] = useState({
       borderColor: "border-blue-200",
     },
     {
-      title: "Doctor Performance",
+      title: "Doctor Performance Analysis",
       description: "Correlates consultation count and average rating",
       icon: <FaBed className="text-indigo-500" />,
       path: "/admin/analytics/doctor-performance-trends",
@@ -130,7 +130,7 @@ const [dashboardData, setDashboardData] = useState({
       borderColor: "border-indigo-200",
     },
     {
-      title: "Doctor Workload",
+      title: "Doctor Working Trends",
       description: "Analyze physician schedules and patient loads",
       icon: <FaUserMd className="text-purple-500" />,
       path: "/admin/analytics/doctor-working-trends",
@@ -138,20 +138,28 @@ const [dashboardData, setDashboardData] = useState({
       borderColor: "border-purple-200",
     },
     {
-      title: "Feedback Analysis",
-      description: "AI-powered text analysis of patient comments",
+      title: "Feedback Textual Analysis",
+      description: "Statistics-powered text analysis of patient comments",
       icon: <FaComment className="text-amber-500" />,
       path: "/admin/analytics/text-feedback",
       color: "bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200",
       borderColor: "border-amber-200",
     },
     {
-      title: "Rating Metrics",
+      title: "Feedback Rating Metrics",
       description: "Track and analyze patient satisfaction ratings",
       icon: <FaStar className="text-yellow-500" />,
       path: "/admin/analytics/feedbacks",
       color: "bg-gradient-to-r from-yellow-50 to-yellow-100 hover:from-yellow-100 hover:to-yellow-200",
       borderColor: "border-yellow-200",
+    },
+    {
+      title: "Bed Occupancy Trends",
+      description: "Track and analyze bed occupancies",
+      icon: <FaBed className="text-blue-500" />,
+      path: "/admin/analytics/bed-occupancy",
+      color: "bg-gradient-to-r from-red-50 to-pink-100 hover:from-red-100 hover:to-pink-200",
+      borderColor: "border-pink-200",
     }
   ];
 
