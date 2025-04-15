@@ -15,7 +15,7 @@ import AboutPage from './pages/AboutPage';
 import TermsPage from './pages/terms';
 import PrivacyPolicyPage from './pages/privacy';
 import './App.css';
-
+import ProtectedLayout from "./components/ProtectedLayout";
 // Common Pages
 import Profile from "./pages/common/Profile";
 import Calendar from "./pages/common/Calendar";
@@ -106,11 +106,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <Navbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen}/>
-        <div className="flex">
 
-        <Sidebar isSidebarOpen={isSidebarOpen} />
-        <div className="flex-1 ml-0 transition-all">
 
         <Routes>
           {/* Authentication & Public Pages */}
@@ -129,6 +125,7 @@ function App() {
           <Route path="/reset-password/:token" element={<ResetPassword />} />
 
 
+          <Route element={<ProtectedLayout />}>
 
          {/* Role-Based Common Pages */}                  
          <Route element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "nurse", "admin", "pathologist","pharmacist"]} />}>
@@ -253,10 +250,11 @@ function App() {
             <Route path="/admin/analytics/bed-occupancy" element={<BedOccupancyTrends />} />
             <Route path="/admin/analytics/feedbacks" element={<Feedbacks />} />
           </Route>
-        </Routes>
-        </div>
 
-        </div>
+          </Route>
+
+        </Routes>
+
       </Router>
     </AuthProvider>
   );
