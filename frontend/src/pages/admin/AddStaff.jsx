@@ -91,8 +91,7 @@ const EmployeeForm = () => {
     }
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+  const handleImageUpload = (file) => {
     if (file) {
       setFormData((prev) => ({
         ...prev,
@@ -106,7 +105,7 @@ const EmployeeForm = () => {
       reader.readAsDataURL(file);
     }
   };
-
+  
   const handleSubmit = async(e) => {
     e.preventDefault();
     const data = new FormData();
@@ -199,50 +198,50 @@ const EmployeeForm = () => {
       <form onSubmit={handleSubmit} className="bg-gray-100 rounded-md p-6">
         <div className="flex flex-col md:flex-row gap-6 mb-6">
           {/* Profile Picture section with image preview */}
-          <div className="w-full md:w-1/5">
-            <label htmlFor="profile_pic" className={labelStyles}>Profile Picture:</label>
-            <div className="h-48 w-40 border-2 border-teal-300 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 overflow-hidden">
+          <div className="w-40">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Profile Picture</label>
+            <div
+              className="border border-dashed border-gray-300 h-48 w-40 bg-gray-50 rounded-md relative flex items-center justify-center text-center text-sm text-gray-500 cursor-pointer"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
+                if (file) handleImageUpload(file);
+              }}
+              onClick={() => document.getElementById('imageInput').click()}
+            >
               {profilePreview ? (
                 <div className="relative h-full w-full">
-                  <img 
-                    src={profilePreview} 
-                    alt="Profile preview" 
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={profilePreview} alt="Preview" className="w-full h-full object-cover rounded-md" />
                   <button
                     type="button"
-                    onClick={() => {
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full px-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setProfilePreview(null);
-                      setFormData((prev) => ({
-                        ...prev,
-                        profile_pic: ''
-                      }));
+                      setFormData((prev) => ({ ...prev, profile_pic: '' }));
                     }}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
-                    title="Remove image"
-                  >
-                    ✕
-                  </button>
+                  >×</button>
                 </div>
               ) : (
                 <label htmlFor="profile_pic" className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
                   <svg className="w-8 h-8 mb-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                   </svg>
-                  <p className="mb-1 text-sm text-gray-500 text-center"><span className="font-semibold">Upload</span></p>
-                  <p className="text-xs text-gray-500">Passport size</p>
+                  <p className="mb-1 text-sm text-gray-500 text-center"><span className="font-semibold">Drag & Drop or Click to Upload</span></p>
                 </label>
               )}
-              <input 
-                type="file" 
-                id="profile_pic" 
-                name="profile_pic" 
-                className="hidden"
+              <input
+                type="file"
                 accept="image/*"
-                onChange={handleImageUpload}
+                id="imageInput"
+                onChange={(e) => handleImageUpload(e.target.files[0])}
+                className="hidden"
               />
             </div>
           </div>
+
+
           
           <div className="w-full md:w-4/5">
             <div className="mt-8">

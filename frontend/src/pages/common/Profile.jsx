@@ -51,11 +51,22 @@ const ProfileDashboard = () => {
 
     const formData = new FormData();
     formData.append("profile_pic", file);
-
     try {
-      
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Simulating API delay
-      setUserData((prevData) => ({ ...prevData, profile_pic: previewURL }));
+      const response = await axios.post(
+        `http://localhost:5000/api/common/upload-photo/${userData._id}`, 
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+  
+      const { profile_pic } = response.data;
+  
+      // Set the uploaded image from Cloudinary
+      setUserData((prevData) => ({ ...prevData, profile_pic }));
+  
     } catch (error) {
       console.error("Error uploading profile picture:", error);
     }
@@ -106,6 +117,7 @@ const ProfileDashboard = () => {
 
   const handleSubmit = async () => {
     try {
+      console.log(editData);
       const response = await axios.put(
         `http://localhost:5000/api/common/profile/${currentUserRole}/${userId}`,
         editData
@@ -349,35 +361,37 @@ const ProfileDashboard = () => {
           <div className="space-y-8">
             {/* Profile Header */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-32 relative">
-                <div className="absolute -bottom-12 left-8">
-                  <div className="relative">
-                    <div className="w-24 h-24 rounded-full bg-white p-1 shadow-lg">
-                      <div 
-                        className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
-                        onClick={handleEditClick}
-                      >
-                        {previewImage || userData.profile_pic ? (
-                          <img 
-                            src={previewImage || userData.profile_pic} 
-                            alt="Profile" 
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <User size={40} className="text-gray-400" />
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleProfilePicChange}
-                      />
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-32 relative">
+              <div className="absolute -bottom-12 left-8">
+                <div className="relative">
+                  <div 
+                    className="w-24 h-24 rounded-full bg-white p-1 shadow-lg transition-transform duration-300 ease-in-out hover:scale-105"
+                  >
+                    <div 
+                      className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
+                      onClick={handleEditClick}
+                    >
+                      {previewImage || userData.profile_pic ? (
+                        <img 
+                          src={previewImage || userData.profile_pic} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User size={40} className="text-gray-400" />
+                      )}
                     </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleProfilePicChange}
+                    />
                   </div>
                 </div>
               </div>
+            </div>
               
               <div className="pt-16 pb-6 px-8 flex justify-between items-center">
                 <div>

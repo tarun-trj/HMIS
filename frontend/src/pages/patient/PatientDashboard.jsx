@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import { Pencil, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/patient/PatientDashboard.css";
 import axios from 'axios';
+import { useAuth } from "../../context/AuthContext";
+
 
 const calculateAge = dob => new Date().getFullYear() - new Date(dob).getFullYear() - (new Date() < new Date(new Date(dob).setFullYear(new Date().getFullYear())) ? 1 : 0);
 
@@ -52,12 +54,44 @@ export const fetchConsultationsByPatientId = async (patientId) => {
   }
 };
 
+
+
 const PatientDashboard = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [patientData, setPatientData] = useState(null);
   const [appointments, setAppointments] = useState(null);
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+  const {setUser } = useAuth();
+
   const patientId = localStorage.getItem("user_id");
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("profile_pic", file);
+    try {
+      const res = await axios.post(
+        `http://localhost:5000/api/patients/upload-photo/${patientId}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      const newProfilePicUrl = res.data.profile_pic;      // Assuming the server returns the new photo URL
+      setProfilePhoto(newProfilePicUrl);
+      setUser((prev) => ({
+        ...prev,
+        profile_pic: newProfilePicUrl,
+      }));
+
+    } catch (err) {
+      console.error("Upload failed", err);
+    }
+  };
 
   useEffect(() => {
     const fetchPatientData = async () => {
@@ -99,9 +133,20 @@ const PatientDashboard = () => {
             ) : (
               <span className="text-gray-600">Profile Photo</span>
             )}
-            <button className="edit-button">
+            <button
+              className="edit-button absolute bottom-1 right-1"
+              onClick={() => fileInputRef.current.click()}
+            >
               <Pencil />
             </button>
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+            />
+
           </div>
         </div>
 

@@ -2,23 +2,20 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home } from "lucide-react";
 import "../../styles/patient/BookedConsultations.css";
+import { useAuth } from "../../context/AuthContext";
 
-export const fetchConsultationsByPatientId = async (patientId) => {
+
+import axios from "axios";
+
+export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => {
   try {
-    const res = await fetch(`http://localhost:5000/api/patients/${patientId}/consultations`);
-    const data = await res.json();
+    const res = await axiosInstance.get(`http://localhost:5000/api/patients/${patientId}/consultations`);
+    const data = res.data;
 
-    if (!res.ok) {
+    if (!data.consultations) {
       throw new Error("Failed to fetch consultations");
     }
 
-    // Check if we received dummy data or actual consultations
-    if (data.dummy) {
-      return data.consultations; // Return the dummy data as is
-    }
-
-    // Handle actual data
-    // Get current date to compare
     const now = new Date();
 
     // Filter only past consultations
@@ -45,7 +42,7 @@ export const fetchConsultationsByPatientId = async (patientId) => {
     return formattedConsultations;
   } catch (err) {
     console.error("Error fetching consultations:", err);
-    return []; // fallback return
+    return [];
   }
 };
 
@@ -75,6 +72,9 @@ export const deleteConsultationById = async (consultationId) => {
 const BookedConsultation = () => {
   const [consultations, setConsultations] = useState([]);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
+  const[Loading,setLoading]=useState(true);
+  const{axiosInstance}=useAuth();
+
   
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelConsultationId, setCancelConsultationId] = useState(null);
@@ -86,9 +86,11 @@ const BookedConsultation = () => {
   const patientId = localStorage.getItem("user_id");
 
   useEffect(() => {
-    const loadConsultations = async () => {
-      const data = await fetchConsultationsByPatientId(patientId);
+    const loadConsultations = async () => {      
+      const data = await fetchConsultationsByPatientId(patientId, axiosInstance);
+      if (window._authFailed) return; // Skip updating state if auth failed
       setConsultations(data);
+      setLoading(false);
     };
 
     loadConsultations();
@@ -133,7 +135,8 @@ const BookedConsultation = () => {
       }
     }
   };
-  ;
+  if(Loading) return <div className="loading">Loading...</div>;
+
 
   return (
     <div className="consultations-page">

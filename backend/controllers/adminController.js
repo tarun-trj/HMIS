@@ -377,7 +377,7 @@ export const addStaff = async (req, res) => {
                 const { specialization, qualification, experience, room_num } = req.body;
                 await Doctor.create({
                     employee_id: savedEmployee._id,
-                    department_id: department_id,
+                    department_id: dept_id,
                     specialization,
                     qualification,
                     experience,
@@ -401,7 +401,7 @@ export const addStaff = async (req, res) => {
                 await Pharmacist.create({ employee_id: savedEmployee._id });
                 break;
             case 'receptionist':
-                await Receptionist.create({ employee_id: savedEmployee._id, assigned_dept: department_id });
+                await Receptionist.create({ employee_id: savedEmployee._id, assigned_dept: dept_id });
                 break;
             case 'admin':
                 await Admin.create({ employee_id: savedEmployee._id });
@@ -416,30 +416,15 @@ export const addStaff = async (req, res) => {
             default:
                 return res.status(400).json({ message: 'Invalid role specified' });
         }
-         // Check if a payroll record already exists for the employee
-        //  let payroll = await Payroll.findOne({ employee_id: savedEmployee._id });
-        //  if (payroll) {
-        //     // Update the existing payroll record
-        //     payroll.basic_salary = basic_salary;
-        //     payroll.allowance = allowance;
-        //     payroll.deduction = deduction;
-        //     payroll.net_salary = basic_salary + allowance - deduction;
-        //     payroll.month_year = new Date();
-        // } else {
-          
-        //     // Create a new payroll record
-        //     payroll = new Payroll({
-        //         employee_id: savedEmployee._id,
-        //         basic_salary,
-        //         allowance,
-        //         deduction,
-        //         net_salary: basic_salary + allowance - deduction, // Calculate net_salary here
-        //         month_year: new Date()
-        //     });
-           
-        // }
-        // await payroll.save();
-       
+        const payroll = new Payroll({
+            employee_id: savedEmployee._id,
+            basic_salary,
+            allowance,
+            deduction,
+            net_salary: basic_salary + allowance - deduction, // Calculate net_salary here
+            month_year: new Date()
+        });
+        await payroll.save();
         res.status(201).json({ message: 'Staff added successfully', employee: savedEmployee });
     } catch (error) {
         console.error('Error adding staff:', error);

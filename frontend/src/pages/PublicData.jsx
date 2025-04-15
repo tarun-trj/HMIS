@@ -1,18 +1,78 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
+import axios from "axios";
 
 const PublicData = () => {
-  const [disease, setDisease] = useState("covid");
+  const [selectedDisease, setSelectedDisease] = useState({ _id: "", name: "" });
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [diagonses, setDiagonses] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
 
-  const handleDownload = () => {
-    // Simulating download logic for now
-    console.log("Downloading data for:");
-    console.log("Disease:", disease);
-    console.log("From:", startTime);
-    console.log("To:", endTime);
-    alert(`Downloading ${disease.toUpperCase()} data from ${startTime} to ${endTime}...`);
+    useEffect(() => {
+      const fetchDiagonses = async () => {
+        setIsLoading(true);
+        try {
+          const response = await axios.get('http://localhost:5000/api/public-data/get-diagonses'); // replace with your actual backend URL
+          setDiagonses(response.data.diseases);
+          console.log(response.data.diseases);
+        } catch (err) {
+          console.error('Error fetching departments:', err);
+          setError('Failed to load departments. Please try again later.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+  
+      fetchDiagonses();
+    }, []);
+  
+
+  // const handleDownload = () => {
+  //   // Simulating download logic for now
+  //   console.log("Downloading data for:");
+  //   console.log("Disease:", disease);
+  //   console.log("From:", startTime);
+  //   console.log("To:", endTime);
+  //   alert(`Downloading ${disease.toUpperCase()} data from ${startTime} to ${endTime}...`);
+  // };
+
+
+  const handleDownload = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/public-data/download`,
+        {
+          params: {
+            diseaseId: selectedDisease._id,
+            diseaseName: selectedDisease.name,
+            startTime,
+            endTime,
+          },
+          responseType: 'blob',
+        }
+      );
+  
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+  
+      const contentDisposition = response.headers["content-disposition"];
+      const filename = contentDisposition
+        ? contentDisposition.split("filename=")[1].replace(/"/g, "")
+        : `${selectedDisease.name || "data"}-data.zip`;
+  
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Failed to download data. Please try again.");
+    }
   };
+  
+
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
@@ -20,18 +80,29 @@ const PublicData = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">Public Data</h1>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Disease Type</label>
-          <select
-            value={disease}
-            onChange={(e) => setDisease(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="covid">COVID-19</option>
-            <option value="flu">Influenza</option>
-            <option value="malaria">Malaria</option>
-            <option value="dengue">Dengue</option>
-          </select>
-        </div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Disease Type</label>
+  {isLoading ? (
+    <p>Loading...</p>
+  ) : (
+    <select
+  value={selectedDisease._id}
+  onChange={(e) => {
+    const selected = diagonses.find(d => d._id === e.target.value);
+    setSelectedDisease(selected || { _id: "", name: "" });
+  }}
+  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+>
+  <option value="">Select a disease</option>
+  {diagonses.map((diag) => (
+    <option key={diag._id} value={diag._id}>
+      {diag.name}
+    </option>
+  ))}
+</select>
+
+  )}
+</div>
+
 
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
