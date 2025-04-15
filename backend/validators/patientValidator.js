@@ -42,7 +42,9 @@ const PatientJoiSchema = Joi.object({
     phone_number: Joi.string().pattern(/^\d{10}$/).optional(),
     emergency_contact: Joi.string().pattern(/^\d{10}$/).optional(),
     email: Joi.string().email().optional(),
-    date_of_birth: Joi.date().optional(),
+    date_of_birth: Joi.date().less('now').optional().messages({
+        'date.less': 'Date of birth must be in the past'
+    }),
     aadhar_number: Joi.string().pattern(/^\d{12}$/).optional(),
     gender: Joi.string().valid("male", "female").optional(),
     address: Joi.string().optional(),

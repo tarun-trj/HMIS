@@ -29,7 +29,9 @@ const EmployeeJoiSchema = Joi.object({
             'string.pattern.base': 'Phone number must be 10 digits'
         }),
     address: Joi.string().optional(),
-    date_of_birth: Joi.date().optional(),
+    date_of_birth: Joi.date().less('now').optional().messages({
+        'date.less': 'Date of birth must be in the past'
+    }),
     date_of_joining: Joi.date().optional(),
     gender: Joi.string().valid("male", "female").optional(),
     salary: Joi.number().min(0).optional(),
