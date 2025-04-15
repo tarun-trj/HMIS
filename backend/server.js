@@ -22,8 +22,9 @@ import cookieParser from "cookie-parser";
 import publicRoutes from './routes/public.routes.js';
 import commonPageRoutes from './routes/commonPages.routes.js';
 import consultationRoutes from './routes/consultation.routes.js';
-
-
+import cron from 'node-cron';
+import initializeDailyOccupancy from './controllers/analytics.controller.js';
+import insuranceRoutes from './routes/insurance.routes.js'
 dotenv.config();
 
 const app = express();
@@ -43,6 +44,16 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 app.get("/", (req, res) => {
     res.send("Backend is running with ES Modules");
 });
+
+app.get("/test",(req, res) => {
+  
+    res.send("Frontend Connected to Backend");
+})
+
+cron.schedule('0 0 * * *', async () => {
+    console.log('Running daily occupancy initializer at midnight...');
+    await initializeDailyOccupancy();
+  });
 
 // Global hospital bank account
 global.hospitalBankAccount = {
@@ -76,5 +87,6 @@ app.use('/api/facility', facilityRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/public-data', publicRoutes);
 app.use('/api/common', commonPageRoutes);
+app.use('/api/insurance', insuranceRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
