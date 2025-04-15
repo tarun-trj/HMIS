@@ -177,7 +177,12 @@ export const updateInventory = async (req, res) => {
             // Common fields
             order_status = 'ordered'
         } = req.body;
-
+        // Deduct the total cost from the hospital bank account
+        const totalCost = unit_price * quantity;
+        if (global.hospitalBankAccount.balance < totalCost) {
+            return res.status(400).json({ message: 'Insufficient funds in hospital bank account' });
+        }
+        global.hospitalBankAccount.balance -= totalCost;
         if (inventoryType === 'medicine') {
             // Existing medicine validation and logic
             if (!batch_no || !quantity || !expiry_date || !manufacturing_date || !unit_price || !supplier) {
@@ -416,6 +421,7 @@ export const addStaff = async (req, res) => {
             default:
                 return res.status(400).json({ message: 'Invalid role specified' });
         }
+        
         const payroll = new Payroll({
             employee_id: savedEmployee._id,
             basic_salary,
@@ -508,6 +514,29 @@ export const processPayroll = async (req, res) => {
             payroll.payment_status = "paid";
             payroll.generation_date = new Date();
             await payroll.save();
+
+              // Perform transaction: Add amount to employee bank and subtract from hospital bank account
+        if (global.hospitalBankAccount.balance < payroll.net_salary) {
+            throw new Error('Insufficient funds in hospital bank account');
+        }
+
+        // Deduct from hospital account
+        global.hospitalBankAccount.balance -= payroll.net_salary;
+
+        // Add to employee bank account
+        const employeeBankAccount = await FinanceLogs.findOne({ account_type: 'employee', employee_id: employee_id });
+
+        if (!employeeBankAccount) {
+            const newEmployeeBankAccount = new FinanceLogs({
+            account_type: 'employee',
+            employee_id: savedEmployee._id,
+            balance: payroll.net_salary
+            });
+            await newEmployeeBankAccount.save();
+        } else {
+            employeeBankAccount.balance += payroll.net_salary;
+            await employeeBankAccount.save();
+        }
         }
         console.log('Payroll processed successfully for all employees');
 

@@ -55,6 +55,15 @@ cron.schedule('0 0 * * *', async () => {
     await initializeDailyOccupancy();
   });
 
+// Global hospital bank account
+global.hospitalBankAccount = {
+    bank_name: "Global Health Bank",
+    account_number: 1234567890,
+    ifsc_code: "GHBL0001234",
+    branch_name: "Main Branch",
+    balance: 5000 // Default balance
+};
+
 //routes
 app.use("/api/tests", testRoutes);
 app.use('/api/employees', employeeRoutes);
