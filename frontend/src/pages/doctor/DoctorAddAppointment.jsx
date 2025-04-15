@@ -28,10 +28,8 @@ const DoctorAddAppointment = () => {
   const recognitionRef = useRef(null);
   const currentTranscriptRef = useRef('');
   
-  // API configuration - using environment variables
-  const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-  const API_URL = import.meta.env.VITE_GEMINI_API_URL;
-
+  // Backend API endpoint
+  const BACKEND_API_URL = 'http://localhost:5000/api/gemini';
   
   // Animation for filled field
   useEffect(() => {
@@ -149,7 +147,7 @@ const DoctorAddAppointment = () => {
     }
   };
   
-  // Function to call Gemini API with voice transcript
+  // Function to call the backend API with voice transcript
   const processVoiceWithAI = async (transcript) => {
     if (!transcript.trim()) {
       setRecordingStatus('No text to process. Please try again.');
@@ -159,65 +157,48 @@ const DoctorAddAppointment = () => {
     setIsProcessing(true);
     setAiMessage('Extracting appointment details...');
     
-    if (!API_KEY) {
-      setAiMessage('API key is not configured. Please add your Gemini API key.');
-      setIsProcessing(false);
-      return;
-    }
-
     try {
-      const requestBody = {
-        contents: [
-          {
-            parts: [
-              {
-                text: `You are a hospital management system assistant that helps fill in appointment forms.
-                Parse the following spoken request and extract structured information for a patient appointment.
-                
-                Return the information in the following JSON format:
-                {
-                  "patientId": "",
-                  "patientName": "",
-                  "doctorId": "",
-                  "doctorName": "",
-                  "date": "YYYY-MM-DD",
-                  "time": "HH:MM",
-                  "roomNo": "",
-                  "appointmentType": "Regular/Emergency/Follow-up/Consultation",
-                  "notes": ""
-                }
-                
-                Only include fields that can be confidently extracted from the request. For appointment types, only use one of: Regular, Emergency, Follow-up, or Consultation.
-                
-                Voice transcript: ${transcript}`
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
+      // Create a special prompt for the appointment form
+      const appointmentPrompt = `
+        You are a hospital management system assistant that helps fill in appointment forms.
+        Parse the following spoken request and extract structured information for a patient appointment.
+        
+        Return the information in the following JSON format:
+        {
+          "patientId": "",
+          "patientName": "",
+          "doctorId": "",
+          "doctorName": "",
+          "date": "YYYY-MM-DD",
+          "time": "HH:MM",
+          "roomNo": "",
+          "appointmentType": "Regular/Emergency/Follow-up/Consultation",
+          "notes": ""
         }
-      };
+        
+        Only include fields that can be confidently extracted from the request. For appointment types, only use one of: Regular, Emergency, Follow-up, or Consultation.
+        
+        Voice transcript: ${transcript}
+      `;
 
-      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+      // Send request to our backend API
+      const response = await fetch(BACKEND_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ message: appointmentPrompt }),
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       
-      if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-        const aiText = data.candidates[0].content.parts[0].text;
+      if (data.success && data.data) {
+        const aiText = data.data;
         
         // Try to extract JSON from the response
         try {
