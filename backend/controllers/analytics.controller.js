@@ -719,16 +719,19 @@ export const getDoctorRatingDistribution = async (req, res) => {
     // Find all consultations with the specified rating
     const consultations = await Consultation.find(
       { 'feedback.rating': ratingValue },
-      { 'feedback.comments': 1, _id: 0 }
+      { 'feedback.comments': 1, _id: 0 , 'createdAt': 1 }
     );
     
     // Extract comments from results
-    const comments = consultations.map(consultation => consultation.feedback.comments);
-    
+    const comments = consultations.map(consultation => ({
+      comments: consultation.feedback.comments,
+      created_at: consultation.createdAt
+    }));
+
     res.status(200).json({
       rating: ratingValue,
       totalComments: comments.length,
-      comments
+      comments: comments
     });
   } catch (error) {
     console.error('Error in getFeedbacksByRating:', error);
