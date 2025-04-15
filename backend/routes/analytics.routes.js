@@ -3,7 +3,7 @@ import { addRatingAndReview,calculateOverallRating, calculateDepartmentRating,ge
     getMedicineInventoryTrends,getMedicinePrescriptionTrends,addMedicine,addInventoryLog,createPrescription,createBill,addItemToBill,
     addPrescriptionEntry,getBedOccupancyTrends, getFacilityStatistics,getDoctorRatingDistribution,
     getAllConsultations ,getFeedbacksByRating ,getDoctorQuadrantData, getDepartmentQuadrantData,
-    getAllDoctorsData} from '../controllers/analytics.controller.js';
+    getAllDoctorsData, getDashboardKPIs} from '../controllers/analytics.controller.js';
 
 const router = express.Router();
 
@@ -37,4 +37,7 @@ router.get('/facility-stats', getFacilityStatistics);
 router.get('/doc-performance', getDoctorQuadrantData);
 router.get('/dept-performance',getDepartmentQuadrantData);
 router.get('/doctors/all',getAllDoctorsData);
+
+//router to get the metrics for the dashboard
+router.get('/dashboard/kpis', getDashboardKPIs);
 export default router;

@@ -1090,3 +1090,138 @@ export const getAllDoctorsData = async (req, res) => {
       });
     }
   };
+
+
+//function to get the metrics for dashboard
+export const getDashboardKPIs = async (req, res) => {
+  try {
+    // Get the current date
+    const currentDate = new Date();
+    
+    // Calculate first day of current month
+    const firstDayCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    
+    // Calculate first day of previous month
+    const firstDayLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    
+    // Calculate last day of previous month (one day before first day of current month)
+    const lastDayLastMonth = new Date(firstDayCurrentMonth);
+    lastDayLastMonth.setDate(lastDayLastMonth.getDate() - 1);
+    lastDayLastMonth.setHours(23, 59, 59, 999);
+    
+    // 1. Get Total Patients count for current month (to date)
+    const currentMonthPatients = await Consultation.countDocuments({
+      booked_date_time: { $gte: firstDayCurrentMonth, $lte: currentDate }
+    });
+    
+    // Get Total Patients count for last month
+    const lastMonthPatients = await Consultation.countDocuments({
+      booked_date_time: { $gte: firstDayLastMonth, $lte: lastDayLastMonth }
+    });
+    
+    // Calculate patient growth percentage comparing current month to last month
+    const patientGrowth = lastMonthPatients > 0 
+      ? ((currentMonthPatients - lastMonthPatients) / lastMonthPatients) * 100 
+      : 0;
+    
+    // Check if the current month is ongoing
+    const isCurrentMonthOngoing = currentDate.getMonth() === new Date().getMonth() && 
+                               currentDate.getFullYear() === new Date().getFullYear();
+    
+    // 2. Get Revenue data
+    // Get revenue for current month till date
+    const currentMonthRevenue = await Bill.aggregate([
+      { $match: { generation_date: { $gte: firstDayCurrentMonth, $lte: currentDate } } },
+      { $group: { _id: null, total: { $sum: "$total_amount" } } }
+    ]);
+    
+    // Get last month's revenue for comparison
+    const lastMonthRevenue = await Bill.aggregate([
+      { $match: { generation_date: { $gte: firstDayLastMonth, $lte: lastDayLastMonth } } },
+      { $group: { _id: null, total: { $sum: "$total_amount" } } }
+    ]);
+    
+    const revenueAmount = currentMonthRevenue.length > 0 ? currentMonthRevenue[0].total : 0;
+    const revenuePeriod = `${currentDate.toLocaleString('default', { month: 'long' })} ${currentDate.getFullYear()} (till date)`;
+    
+    const lastMonthRevenueValue = lastMonthRevenue.length > 0 ? lastMonthRevenue[0].total : 0;
+    
+    // Calculate revenue growth percentage (comparing current month with previous month)
+    const revenueGrowth = lastMonthRevenueValue > 0 
+      ? ((revenueAmount - lastMonthRevenueValue) / lastMonthRevenueValue) * 100 
+      : 0;
+    
+    // 3. Get satisfaction rating with fallback logic
+    // Get feedbacks for the current month
+    let currentPeriodFeedbacks = await Feedback.find({ 
+      created_at: { $gte: firstDayCurrentMonth, $lte: currentDate },
+      rating: { $exists: true, $ne: null }
+    });
+    
+    let currentPeriodLabel = `${currentDate.toLocaleString('default', { month: 'long' })} ${currentDate.getFullYear()} (till date)`;
+    
+    // If no feedbacks in current month, fall back to previous month
+    if (!currentPeriodFeedbacks || currentPeriodFeedbacks.length === 0) {
+      currentPeriodFeedbacks = await Feedback.find({ 
+        created_at: { $gte: firstDayLastMonth, $lte: lastDayLastMonth },
+        rating: { $exists: true, $ne: null }
+      });
+      currentPeriodLabel = `${firstDayLastMonth.toLocaleString('default', { month: 'long' })} ${firstDayLastMonth.getFullYear()}`;
+    }
+    
+    // Get previous period feedbacks for comparison (last month)
+    const previousPeriodFeedbacks = await Feedback.find({ 
+      created_at: { $gte: firstDayLastMonth, $lte: lastDayLastMonth },
+      rating: { $exists: true, $ne: null }
+    });
+
+    // Calculate current period rating
+    let currentRating = 0;
+    if (currentPeriodFeedbacks && currentPeriodFeedbacks.length > 0) {
+      const totalRating = currentPeriodFeedbacks.reduce((sum, feedback) => {
+        // Ensure rating is treated as a number
+        return sum + Number(feedback.rating);
+      }, 0);
+      currentRating = totalRating / currentPeriodFeedbacks.length;
+    }
+
+    // Calculate previous period rating
+    let previousRating = 0;
+    if (previousPeriodFeedbacks && previousPeriodFeedbacks.length > 0) {
+      const totalRating = previousPeriodFeedbacks.reduce((sum, feedback) => {
+        return sum + Number(feedback.rating);
+      }, 0);
+      previousRating = totalRating / previousPeriodFeedbacks.length;
+    }
+
+    // Calculate rating change (as a percentage)
+    const ratingChange = previousRating > 0 
+      ? ((currentRating - previousRating) / previousRating) * 100 
+      : 0;
+    
+    // Return dashboard KPIs
+    return res.status(200).json({
+      totalPatients: {
+        value: currentMonthPatients,
+        change: patientGrowth.toFixed(1),
+        trend: patientGrowth >= 0 ? 'up' : 'down'
+      },
+      revenue: {
+        value: (revenueAmount / 100000).toFixed(1) + 'L', // Format as lakhs
+        period: revenuePeriod,
+        change: revenueGrowth.toFixed(1),
+        trend: revenueGrowth >= 0 ? 'up' : 'down'
+      },
+      satisfaction: {
+        value: currentRating.toFixed(1) + '/5.0',
+        period: currentPeriodLabel,
+        change: ratingChange.toFixed(1),
+        trend: ratingChange >= 0 ? 'up' : 'down'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching dashboard KPIs:', error);
+    res.status(500).json({ message: 'Error fetching dashboard KPIs', error: error.message });
+  }
+};
