@@ -276,17 +276,58 @@ export const calculateOverallRating = async (req, res) => {
 };
 
 // Function to calculate rating distribution
-export const getRatingDistribution = async () => {
-    const consultations = await Feedback.find({ "feedback.rating": { $exists: true } });
+export const getRatingDistribution = async (req, res) => {
+  try {
+    const distribution = await Consultation.aggregate([
+      // Filter documents that have a feedback rating
+      { $match: { 'feedback.rating': { $exists: true, $ne: null } } },
+      
+      // Group by rating and count occurrences
+      { $group: {
+          _id: '$feedback.rating',
+          count: { $sum: 1 }
+        }
+      },
+      
+      // Sort by rating (optional)
+      { $sort: { _id: 1 } },
+      
+      // Reshape to match the expected output format
+      { $group: {
+          _id: null,
+          distribution: { 
+            $push: { 
+              k: { $toString: '$_id' }, 
+              v: '$count' 
+            } 
+          }
+        }
+      },
+      
+      // Convert array to object with rating as key and count as value
+      { $replaceRoot: { 
+          newRoot: { 
+            $arrayToObject: { 
+              $map: { 
+                input: '$distribution', 
+                as: 'item', 
+                in: ['$$item.k', '$$item.v'] 
+              } 
+            } 
+          } 
+        }
+      }
+    ]);
 
-    const distribution = consultations.reduce((acc, consultation) => {
-        const rating = consultation.feedback.rating;
-        acc[rating] = (acc[rating] || 0) + 1;
-        return acc;
-    }, {});
-
-    return { ratingDistribution: distribution };
+    return res.json({ 
+      ratingDistribution: distribution.length > 0 ? distribution[0] : {} 
+    });
+  } catch (error) {
+    console.error('Error fetching rating distribution:', error);
+    return res.status(500).json({ error: 'Failed to fetch rating distribution' });
+  }
 };
+
 
 // Function to return overall statistics (total beds, total rooms)
 export const getFacilityStatistics = async (req, res) => {
