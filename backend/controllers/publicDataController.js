@@ -9,6 +9,8 @@ import mongoose from 'mongoose';
 // Import the correct models based on provided schemas
 import { Consultation, Prescription } from '../models/consultation.js';
 import Patient from '../models/patient.js';
+import Diagnosis from '../models/diagnosis.js';
+import Medicine from '../models/inventory.js';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -17,59 +19,44 @@ const __dirname = path.dirname(__filename);
 /**
  * Controller for handling consultation data downloads
  */
-const DataController = {
- 
-  downloadZip: async (req, res) => {
+
+export const getDiagonses = async (req, res) => {
+  try {
+    const diagnoses = await Diagnosis.find({}, '_id name diagnosis_id'); // only fetch needed fields
+
+    res.status(200).json({
+      message: 'Diagnoses fetched successfully',
+      diseases: diagnoses
+    });
+  } catch (error) {
+    console.error('Error fetching diagnoses:', error);
+    res.status(500).json({ message: 'Failed to fetch diagnoses', error });
+  }
+};
+
+export const downloadZip = async (req, res) => {
     console.log("Download request received with query:", req.query);
+    const tempFilesToDelete = [];
+
     try {
       // Extract filter parameters from request
-      const { disease, startTime, endTime } = req.query;
+      const {diseaseId,diseaseName, startTime, endTime } = req.query;
       
-      if (!disease || !startTime || !endTime) {
+      
+      if (!diseaseId || !startTime || !endTime) {
         return res.status(400).json({ 
           message: 'Missing required parameters: disease, startTime, and endTime are required' 
         });
       }
+      const tempDir = path.resolve(process.cwd(), 'temp');
 
       // Prepare file paths
-      const zipFileName = `${disease}-data-${new Date().getTime()}.zip`;
-      const tempDir = path.resolve(process.cwd(), 'temp');
-      const zipFilePath = path.join(tempDir, zipFileName);
-      
-      // Ensure temp directory exists
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-
-      // Create write stream
-      const output = fs.createWriteStream(zipFilePath);
-      const archive = archiver('zip', {
-        zlib: { level: 6 } // Balanced compression level
-      });
-
-      // Set up event listeners for the archive
-      output.on('close', () => {
-        console.log(`Archive created: ${archive.pointer()} total bytes`);
-
-        // Set headers for file download
-        res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
-
-        // Send the file
-        res.download(zipFilePath, zipFileName, (err) => {
-          if (err) {
-            console.error('Error downloading file:', err);
-            res.status(500).send('Error downloading file');
-          } else {
-            // Clean up: remove the temp file after download
-            fs.unlink(zipFilePath, (unlinkErr) => {
-              if (unlinkErr) console.error('Error deleting temp file:', unlinkErr);
-            });
-          }
-        });
-      });
-
-      // Handle warnings and errors
+      const zipFileName = `${diseaseName}-data-${new Date().getTime()}.zip`;
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
+      const archive = archiver('zip', { zlib: { level: 6 } });
+      archive.pipe(res);  // ✅ Stream zip to client instead of saving
+      // Handle errors and warnings
       archive.on('warning', (err) => {
         if (err.code === 'ENOENT') {
           console.warn('Archive warning:', err);
@@ -78,18 +65,16 @@ const DataController = {
           throw err;
         }
       });
-      
+
       archive.on('error', (err) => {
         console.error('Archive error:', err);
-        throw err;
+        res.status(500).send('Error creating zip file');
       });
 
-      // Pipe archive data to the output file
-      archive.pipe(output);
 
       
       const consultations = await Consultation.find({
-        diagnosis: disease, // Array of diagnosis, so we search for the disease in it
+        diagnosis: diseaseId, // Array of diagnosis, so we search for the disease in it
         recordedAt: { $gte: new Date(startTime), $lte: new Date(endTime) }
       }).populate('patient_id').populate('prescription');
 
@@ -100,19 +85,25 @@ const DataController = {
         const infoFilePath = path.join(tempDir, 'no-data.txt');
         fs.writeFileSync(
           infoFilePath, 
-          `No consultations found for ${disease} between ${startTime} and ${endTime}.`
+          `No consultations found for ${diseaseName} between ${startTime} and ${endTime}.`
         );
+        tempFilesToDelete.push(infoFilePath);
         archive.file(infoFilePath, { name: 'no-data.txt' });
         await archive.finalize();
         return;
       }
+      const allMedicines = await Medicine.find({}, '_id med_name').lean();
+      const medicineMap = {};
+      for (const med of allMedicines) {
+        medicineMap[med._id.toString()] = med.med_name;
+      }
+
 
       // Process each consultation
       for (const consultation of consultations) {
         const consultationId = consultation._id.toString();
         const patientId = consultation.patient_id._id.toString();
         const folderName = `consultation-${consultationId}`;
-        
         // 1. Process reports (embedded in consultation)
         if (consultation.reports && consultation.reports.length > 0) {
           // Create a report folder
@@ -122,15 +113,15 @@ const DataController = {
           consultation.reports.forEach((report, index) => {
             // Create a text file for each report
             const reportContent = `
-Report #${index + 1}
-Title: ${report.title || 'N/A'}
-Description: ${report.description || 'N/A'}
-Status: ${report.status || 'N/A'}
-Created At: ${report.createdAt ? new Date(report.createdAt).toISOString() : 'N/A'}
-Updated At: ${report.updatedAt ? new Date(report.updatedAt).toISOString() : 'N/A'}
+              Report #${index + 1}
+              Title: ${report.title || 'N/A'}
+              Description: ${report.description || 'N/A'}
+              Status: ${report.status || 'N/A'}
+              Created At: ${report.createdAt ? new Date(report.createdAt).toISOString() : 'N/A'}
+              Updated At: ${report.updatedAt ? new Date(report.updatedAt).toISOString() : 'N/A'}
 
-Report Content:
-${report.reportText || 'No report content available'}
+              Report Content:
+              ${report.reportText || 'No report content available'}
             `;
             
             archive.append(reportContent, { name: `${reportsFolderPath}/report-${index + 1}.txt` });
@@ -158,7 +149,7 @@ ${report.reportText || 'No report content available'}
               const prescriptionCsvWriter = createObjectCsvWriter({
                 path: prescriptionCsvPath,
                 header: [
-                  { id: 'medicine_id', title: 'Medicine ID' },
+                  { id: 'med_name', title: 'Medicine Name' },
                   { id: 'dosage', title: 'Dosage' },
                   { id: 'frequency', title: 'Frequency' },
                   { id: 'duration', title: 'Duration' },
@@ -166,14 +157,19 @@ ${report.reportText || 'No report content available'}
                   { id: 'dispensed_qty', title: 'Dispensed Quantity' }
                 ]
               });
+
+              const entriesWithMedName = prescriptionData.entries.map(entry => ({
+                med_name: medicineMap[entry.medicine_id?.toString()] || 'Unknown',
+                dosage: entry.dosage,
+                frequency: entry.frequency,
+                duration: entry.duration,
+                quantity: entry.quantity,
+                dispensed_qty: entry.dispensed_qty
+              }));
               
-              await prescriptionCsvWriter.writeRecords(prescriptionData.entries);
-              archive.file(prescriptionCsvPath, { name: `${folderName}/prescription-${prescriptionData._id}.csv` });
-              
-              // Delete temporary file
-              fs.promises.unlink(prescriptionCsvPath).catch(err => 
-                console.error(`Error deleting temp prescription file: ${err}`)
-              );
+              await prescriptionCsvWriter.writeRecords(entriesWithMedName);
+              archive.file(prescriptionCsvPath, { name: `${folderName}/prescription-${prescriptionData._id}.csv` }); 
+              tempFilesToDelete.push(prescriptionCsvPath);             
             } else {
               // Create empty prescription CSV if no entries
               const emptyPrescriptionContent = 'Medicine ID,Dosage,Frequency,Duration,Quantity,Dispensed Quantity\n';
@@ -182,9 +178,9 @@ ${report.reportText || 'No report content available'}
             
             // Add prescription metadata
             const prescriptionInfo = `
-Prescription #${prescriptionData._id}
-Date: ${prescriptionData.prescriptionDate ? new Date(prescriptionData.prescriptionDate).toISOString() : 'N/A'}
-Status: ${prescriptionData.status || 'N/A'}
+                Prescription #${prescriptionData._id}
+                Date: ${prescriptionData.prescriptionDate ? new Date(prescriptionData.prescriptionDate).toISOString() : 'N/A'}
+                Status: ${prescriptionData.status || 'N/A'}
             `;
             
             archive.append(prescriptionInfo, { name: `${folderName}/prescription-${prescriptionData._id}-info.txt` });
@@ -233,11 +229,7 @@ Status: ${prescriptionData.status || 'N/A'}
             
             await vitalsCsvWriter.writeRecords(vitalRecords);
             archive.file(vitalsCsvPath, { name: `${folderName}/vitals.csv` });
-            
-            // Delete temporary file
-            fs.promises.unlink(vitalsCsvPath).catch(err => 
-              console.error(`Error deleting temp vitals file: ${err}`)
-            );
+            tempFilesToDelete.push(vitalsCsvPath);
           } else {
             // Create empty vitals CSV if no matching vitals found
             const emptyVitalsContent = 'Date,Time,Blood Pressure,Body Temperature,Pulse Rate,Breathing Rate\n';
@@ -258,8 +250,11 @@ Status: ${prescriptionData.status || 'N/A'}
     } catch (error) {
       console.error('Error creating zip file:', error);
       res.status(500).send('Error creating zip file: ' + error.message);
+    } finally {
+      tempFilesToDelete.forEach(filePath => {
+        fs.promises.unlink(filePath).catch(err => 
+          console.error(`Error deleting temp file: ${err}`)
+        );
+      });
     }
-  }
-};
-
-export default DataController;
+  };
