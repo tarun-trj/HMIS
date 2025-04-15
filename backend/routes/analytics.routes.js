@@ -33,7 +33,7 @@ router.get('/medicine-trends',getMedicineInventoryTrends);
 router.get('/medicine-prescription-trends',getMedicinePrescriptionTrends);
 
 // Route to get occupied bed trends
-router.get('/occupied-beds/:period', getBedOccupancyTrends);
+router.post('/occupied-beds/:period', getBedOccupancyTrends);
 // Route to get facility statistics
 router.get('/facility-stats', getFacilityStatistics);
 
