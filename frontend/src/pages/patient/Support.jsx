@@ -25,9 +25,8 @@ const Support = () => {
   const speechRecognitionRef = useRef(null);
   const speechSynthesisRef = useRef(null);
   
-  // API configuration - using environment variables (keeping these as requested)
-  const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-  const API_URL = import.meta.env.VITE_GEMINI_API_URL;
+  // Backend API endpoint
+  const BACKEND_API_URL = 'http://localhost:5000/api/gemini';
 
   useEffect(() => {
     // Add welcome message when component mounts with animation delay
@@ -112,13 +111,21 @@ const Support = () => {
     } catch (error) {
       console.error('Error:', error);
       setIsBotTyping(false);
+      
+      // More specific error message based on the type of error
+      let errorMessage = "I'm sorry, there was an error processing your request. Please try again later.";
+      
+      if (error.message && error.message.includes('Failed to fetch')) {
+        errorMessage = "I'm unable to connect to the server. Please check your internet connection or try again later.";
+      }
+      
       setCharHistory(prev => [
         ...prev, 
         { 
           id: `error-msg-${Date.now()}`,
-          text: "I'm sorry, there was an error processing your request. Please try again later.", 
+          text: errorMessage, 
           sender: 'bot',
-          rawText: "I'm sorry, there was an error processing your request. Please try again later."
+          rawText: errorMessage
         }
       ]);
     }
@@ -139,109 +146,27 @@ const Support = () => {
   };
 
   const callGeminiAPI = async (message) => {
-    console.log('Making API call with message:', message);
-
-    // Check if API key is available
-    if (!API_KEY) {
-      console.error('API key is not defined in environment variables');
-      throw new Error('API key is missing');
-    }
-
-    const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              text: `You are a helpful assistant for a Hospital Management System. 
-                    Respond to the following question with helpful information:
-                    System Features:
-                    1. Profile Management
-                    - View personal patient information
-                    - Update personal details
-                    - See basic health metrics (age, blood group, height, weight)
-                    - Bed and room assignment
-
-                    2. Appointments Management
-                    - View scheduled appointments
-                    - See appointment status (Scheduled/Completed)
-                    - Appointments with different doctors (Dr. Smith, Dr. Johnson, Dr. Lee)
-
-                    3. Consultations
-                    - Book a new consultation
-                    - View previous consultations
-                    - View booked consultations
-                    - Access daily progress and consultation history
-
-                    4. Billing
-                    - Access and manage medical bills
-
-                    5. Feedback System
-                    - Provide ratings and comments about consultations
-                    - Select specific consultations for feedback
-                    - Rate experience with star system
-
-                    6. Help and Support
-                    - Access customer support information
-
-                    Contact Information:
-                    - Email: patient@hospital.com
-                    - Phone: +1 (555) 123-4567
-
-                    Guidelines:
-                    - Be patient-centric and empathetic
-                    - Provide clear, concise instructions
-                    - Help users navigate system features
-                    - If query is complex, suggest contacting customer support 
-                    ${message}`
-            }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1024,
-      },
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        }
-      ]
-    };
+    console.log('Sending message to backend API:', message);
 
     try {
-      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+      const response = await fetch(BACKEND_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ message }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('API error response:', errorData);
+        console.error('Backend API error response:', errorData);
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       
-      if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-        return data.candidates[0].content.parts[0].text;
+      if (data.success && data.data) {
+        return data.data;  // Return the AI-generated text from the response
       } else {
         console.error('Unexpected API response format:', data);
         return null;
