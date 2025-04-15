@@ -64,9 +64,6 @@ global.hospitalBankAccount = {
     balance: 5000 // Default balance
 };
 
-app.get("/test", (req, res) => {
-    res.send("Frontend Connected to Backend");
-});
 //routes
 app.use("/api/tests", testRoutes);
 app.use('/api/employees', employeeRoutes);
