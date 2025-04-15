@@ -18,7 +18,7 @@ import moment from 'moment';
 
 
 const {Bill,BillItem} = BillModels;
-const {DailyBedOccupancy, MedicineInventoryLog} = LogModels;
+const {MedicineInventoryLog, BedLog} = LogModels;
 
 export const addMedicine = async (req, res) => {
   try {
@@ -340,7 +340,7 @@ export default initializeDailyOccupancy;
 export const getBedOccupancyTrends = async (req, res) => {
   try {
     const { period } = req.params;
-    const { startDate, endDate } = req.body;
+    const { startDate, endDate, bedType } = req.body;
     const start = new Date(startDate);
     const end = new Date(endDate);
     
@@ -348,40 +348,92 @@ export const getBedOccupancyTrends = async (req, res) => {
       return res.status(400).json({ message: 'Invalid date format provided.' });
     }
 
-    // Retrieve all DailyBedOccupancy documents within the given date range.
-    const dailyData = await DailyBedOccupancy.find({
-      date: { $gte: start, $lte: end }
-    }).sort({ date: 1 });
+    // Build query filter
+    const filter = {
+      time: { $gte: start, $lte: end }
+    };
 
+    // Add bed type filter if specified
+    if (bedType && bedType !== 'all') {
+      filter.bed_type = bedType;
+    }
+
+    // Get all bed logs within the date range
+    const bedLogs = await BedLog.find(filter).sort({ time: 1 });
+
+    // Process data based on period
     let trends = [];
+    
     if (period === 'weekly') {
       const weeklyMap = {};
-      dailyData.forEach(doc => {
-        const m = moment(doc.date);
+      
+      // Process each log entry
+      bedLogs.forEach(log => {
+        const m = moment(log.time);
         const key = `${m.isoWeekYear()}-W${m.isoWeek()}`;
+        
         if (!weeklyMap[key]) {
-          weeklyMap[key] = { week: key, totalOccupancy: 0 };
+          weeklyMap[key] = { 
+            week: key, 
+            occupied: 0,
+            vacated: 0,
+            totalCount: 0
+          };
         }
-        weeklyMap[key].totalOccupancy += doc.occupancyCount;
+        
+        // Update counts based on status
+        if (log.status === 'occupied') {
+          weeklyMap[key].occupied++;
+        } else if (log.status === 'vacated') {
+          weeklyMap[key].vacated++;
+        }
+        
+        weeklyMap[key].totalCount++;
       });
+      
       trends = Object.values(weeklyMap).sort((a, b) => a.week.localeCompare(b.week));
+      
     } else if (period === 'monthly') {
       const monthlyMap = {};
-      dailyData.forEach(doc => {
-        const m = moment(doc.date);
+      
+      // Process each log entry
+      bedLogs.forEach(log => {
+        const m = moment(log.time);
         const key = m.format("YYYY-MM");
+        
         if (!monthlyMap[key]) {
-          monthlyMap[key] = { month: key, totalOccupancy: 0 };
+          monthlyMap[key] = { 
+            month: key, 
+            occupied: 0,
+            vacated: 0,
+            totalCount: 0
+          };
         }
-        monthlyMap[key].totalOccupancy += doc.occupancyCount;
+        
+        // Update counts based on status
+        if (log.status === 'occupied') {
+          monthlyMap[key].occupied++;
+        } else if (log.status === 'vacated') {
+          monthlyMap[key].vacated++;
+        }
+        
+        monthlyMap[key].totalCount++;
       });
+      
       trends = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
+      
     } else {
       return res.status(400).json({ message: 'Invalid period. Valid options are weekly or monthly.' });
     }
 
+    // Calculate net occupancy (occupied - vacated) for each period
+    trends.forEach(item => {
+      item.netOccupancy = item.occupied - item.vacated;
+    });
+
     res.status(200).json({
       period,
+      bedType: bedType || 'all',
       startDate: moment(start).format("YYYY-MM-DD"),
       endDate: moment(end).format("YYYY-MM-DD"),
       trends
