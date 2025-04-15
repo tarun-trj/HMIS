@@ -49,7 +49,8 @@ const Home = () => {
     <div className="home-container">
       <nav className="navbar">
         <div className="logo">
-          <img src="/shield-icon.png" alt="HMIS Logo" />
+        <Link to="/">
+          <img src="/shield-icon.png" alt="HMIS Logo" />  </Link>
           <span>HMIS</span>
         </div>
         <div className={`nav-links ${mobileMenuOpen ? 'show' : ''}`}>

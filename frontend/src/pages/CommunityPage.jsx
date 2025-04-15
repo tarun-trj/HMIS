@@ -10,7 +10,9 @@ const CommunityPage = () => {
     <div className="page-container">
       <nav className="navbar">
         <div className="logo">
+        <Link to="/">
           <img src="/shield-icon.png" alt="HMIS Logo" />
+          </Link>
           <span>HMIS</span>
         </div>
         <div className="nav-links">
