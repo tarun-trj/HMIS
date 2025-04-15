@@ -46,7 +46,7 @@ router.get('/doctors/all',getAllDoctorsData);
 //doctor-working trends
 router.get('/doctor-working', getDoctorWorkingTrends);
 //financial-trends
-router.get('/finance-trends', getFinanceTrends);
+router.post('/finance-trends', getFinanceTrends);
 //illness-trends
 router.get('/illness-trends/topk', getTopKDiseases);
 router.get('/illness-trends/disease-trends', getDiseaseTrends);
