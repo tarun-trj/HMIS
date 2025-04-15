@@ -113,12 +113,41 @@ const Feedbacks = () => {
     setLoading(true);
     try {
       // In production, this would be an actual API call:
-      // const response = await axios.get('/api/analytics/doctors/rating-distribution');
-      // const { ranges, data, minRating, maxRating } = response.data;
+      const response = await axios.get('http://localhost:5000/api/analytics/feedback-rating-metrics');
+      const distribution = response.data.ratingDistribution;
       
-      // For testing, use dummy data
-      const { ranges, data, minRating, maxRating } = generateDummyData();
+      // // For testing, use dummy data
+      // const { ranges, data, minRating, maxRating } = generateDummyData();
+
+      // Get all possible ratings and their counts
+      const ratings = Object.keys(distribution).map(Number);
+      const minRating = Math.min(...ratings);
+      const maxRating = Math.max(...ratings);
+      const rangeSize = (maxRating - minRating) / 5;      
+
+      // Generate range labels
+      const ranges = Array.from({ length: 5 }, (_, i) => {
+        const start = minRating + i * rangeSize;
+        const end = i === 4 ? maxRating : minRating + (i + 1) * rangeSize;
+        return `${start.toFixed(1)} - ${end.toFixed(1)}`;
+      });
+
+      // Count doctors in each range
+      const data = Array(5).fill(0);
       
+      Object.entries(distribution).forEach(([rating, count]) => {
+        const ratingNum = Number(rating);
+        for (let i = 0; i < 5; i++) {
+          const start = minRating + i * rangeSize;
+          const end = i === 4 ? maxRating + 0.001 : minRating + (i + 1) * rangeSize;
+          
+          if (ratingNum >= start && ratingNum < end) {
+            data[i] += count;
+            break;
+          }
+        }
+      });
+
       setRatingStats({
         min: minRating,
         max: maxRating
