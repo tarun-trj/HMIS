@@ -7,6 +7,7 @@ import Bill from '../models/bill.js'; // Ensure the correct path to the Bill mod
 import crypto from 'crypto';
 import { sendPasswordEmail } from "../config/sendMail.js"; // adjust the path
 
+
 // Controller for new patient registration
 export const registerNewPatient = async (req, res) => {
     try {
@@ -162,7 +163,7 @@ export const assignBed = async (req, res) => {
          // Update today's occupancy document.
         const today = new Date();
         const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        await DailyBedOccupancy.findOneAndUpdate(
+        await BedLog.DailyBedOccupancy.findOneAndUpdate(
             { date: todayMidnight },
             { $inc: { assignments: 1, occupancyCount: 1 } },
             { new: true }
@@ -207,7 +208,7 @@ export const dischargeBed = async (req, res) => {
          // Update today's occupancy document.
         const today = new Date();
         const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        await DailyBedOccupancy.findOneAndUpdate(
+        await BedLog.DailyBedOccupancy.findOneAndUpdate(
             { date: todayMidnight },
             { $inc: { discharges: 1, occupancyCount: -1 } },
             { new: true }
