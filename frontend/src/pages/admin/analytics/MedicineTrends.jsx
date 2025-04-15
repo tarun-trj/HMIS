@@ -14,6 +14,7 @@ import {
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { FaPills, FaChartLine, FaCalendarAlt, FaClipboardList } from "react-icons/fa";
+import axios from 'axios';
 
 // Register Chart.js components
 ChartJS.register(
@@ -76,32 +77,18 @@ const MedicineTrends = () => {
     }
   }, [selectedMedicinePrescription, prescriptionStartDate, prescriptionEndDate]);
 
-  // Fetch medicines list from backend
+
+  // Update fetchMedicines function in your React component
   const fetchMedicines = async () => {
     try {
       setLoading(true);
       
-      // In a real implementation, this would be an API call
-      // fetch('/api/medicines')
+      // Make API call to fetch medicines
+      const response = await axios.get('http://localhost:5000/api/analytics/medicines');
       
-      // Simulated backend response
-      setTimeout(() => {
-        const medicinesData = [
-          { id: "M001", name: "Paracetamol" },
-          { id: "M002", name: "Amoxicillin" },
-          { id: "M003", name: "Ibuprofen" },
-          { id: "M004", name: "Omeprazole" },
-          { id: "M005", name: "Metformin" },
-          { id: "M006", name: "Aspirin" },
-          { id: "M007", name: "Atorvastatin" },
-          { id: "M008", name: "Losartan" },
-          { id: "M009", name: "Cetirizine" },
-          { id: "M010", name: "Montelukast" }
-        ];
-        
-        setMedicines(medicinesData);
-        setLoading(false);
-      }, 300);
+      // Set medicines state with response data
+      setMedicines(response.data);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching medicines:", error);
       setLoading(false);

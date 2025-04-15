@@ -4,7 +4,7 @@ import { addRatingAndReview,calculateOverallRating, calculateDepartmentRating,ge
     addPrescriptionEntry,getBedOccupancyTrends, getFacilityStatistics,getDoctorRatingDistribution,
     getAllConsultations ,getFeedbacksByRating ,getDoctorQuadrantData, getDepartmentQuadrantData,
     getAllDoctorsData, getDoctorWorkingTrends, /*getAllEmployees, addNewDoctor, addConsultation, getAllDiagnoses, printAllDoctors,*/
-    getFinanceTrends, getTopKDiseases, getDiseaseTrends, getDashboardKPIs, getRatingDistribution} from '../controllers/analytics.controller.js';
+    getFinanceTrends, getTopKDiseases, getDiseaseTrends, getDashboardKPIs, getRatingDistribution, getMedicines} from '../controllers/analytics.controller.js';
 
 
     
@@ -28,9 +28,10 @@ router.post('/prescription/additem', addPrescriptionEntry);
 router.post('/bill/create', createBill);
 router.post('/bill/additem/:billId',addItemToBill);
 // Route to get medicine trends
-router.get('/medicine-trends',getMedicineInventoryTrends);
+router.post('/medicine-trends',getMedicineInventoryTrends);
 // Route to get medicine prescription trends
-router.get('/medicine-prescription-trends',getMedicinePrescriptionTrends);
+router.post('/medicine-prescription-trends',getMedicinePrescriptionTrends);
+router.get('/medicines', getMedicines);
 
 // Route to get occupied bed trends
 router.post('/occupied-beds/:period', getBedOccupancyTrends);
@@ -45,7 +46,7 @@ router.get('/doctors/all',getAllDoctorsData);
 //doctor-working trends
 router.get('/doctor-working', getDoctorWorkingTrends);
 //financial-trends
-router.get('/finance-trends', getFinanceTrends);
+router.post('/finance-trends', getFinanceTrends);
 //illness-trends
 router.get('/illness-trends/topk', getTopKDiseases);
 router.get('/illness-trends/disease-trends', getDiseaseTrends);

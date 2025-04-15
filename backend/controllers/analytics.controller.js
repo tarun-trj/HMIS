@@ -485,6 +485,27 @@ export const getBedOccupancyTrends = async (req, res) => {
   }
 };
 
+export const getMedicines = async (req, res) => {
+  try {
+    // Find all medicines, returning only id and name fields for efficiency
+    const medicines = await Medicine.find({}, '_id med_name');
+    
+    // Format the data for frontend consumption
+    const formattedMedicines = medicines.filter(medicine => {
+      return medicine._id;
+    }).map(medicine => ({
+      id: medicine._id.toString(),
+      name: medicine.med_name
+    }));
+    
+    // Return the formatted data
+    res.json(formattedMedicines);
+  } catch (error) {
+    console.error('Error fetching medicines:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 export const getMedicineInventoryTrends = async (req, res) => {
   try {
     const { medicineId, startDate, endDate } = req.body;
