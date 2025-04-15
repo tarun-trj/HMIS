@@ -6,8 +6,7 @@ import Bill from '../models/bill.js'; // Ensure the correct path to the Bill mod
 // import mongoose from 'mongoose';
 import crypto from 'crypto';
 import { sendPasswordEmail } from "../config/sendMail.js"; // adjust the path
-
-
+import Insurances from '../models/insurance.js'; // Ensure the correct path to the Insurances model
 // Controller for new patient registration
 export const registerNewPatient = async (req, res) => {
     try {
@@ -160,15 +159,6 @@ export const assignBed = async (req, res) => {
 
         const savedAssignment = await newAssignment.save();
 
-         // Update today's occupancy document.
-        const today = new Date();
-        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        await BedLog.DailyBedOccupancy.findOneAndUpdate(
-            { date: todayMidnight },
-            { $inc: { assignments: 1, occupancyCount: 1 } },
-            { new: true }
-        )
-
         res.status(201).json({
             message: 'Bed assigned successfully',
             assignment: savedAssignment
@@ -205,15 +195,6 @@ export const dischargeBed = async (req, res) => {
         assignment.time = new Date();
         const updatedAssignment = await assignment.save();
 
-         // Update today's occupancy document.
-        const today = new Date();
-        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        await BedLog.DailyBedOccupancy.findOneAndUpdate(
-            { date: todayMidnight },
-            { $inc: { discharges: 1, occupancyCount: -1 } },
-            { new: true }
-        );
-
         res.status(200).json({
             message: 'Patient discharged successfully',
             assignment: updatedAssignment
@@ -223,7 +204,25 @@ export const dischargeBed = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+// Function to apply insurance discount
+const applyInsuranceDiscount = (totalAmount, insuranceDetails, date) => {
+    if (!insuranceDetails) {
+        return totalAmount; // No discount if insurance details are not provided or coverage percentage is missing
+    }
+    if (date > insuranceDetails.policy_end_date) {
+        return totalAmount; // No discount if policy is expired
+    }
 
+    // Validate insurance_number and paid_amount
+    const insuranceNumber = parseFloat(insuranceDetails.insurance_number) || 0;
+    const paidAmount = parseFloat(insuranceDetails.paid_amount) || 0;
+
+    const maxCoverage = Math.min((insuranceNumber * 100000) - paidAmount, totalAmount);
+    insuranceDetails.paid_amount = paidAmount + maxCoverage;
+    totalAmount -= maxCoverage;
+    console.log('Discount applied. Remaining total amount:', totalAmount);
+    return totalAmount;
+};
 // Controller for adding new bills
 export const addBill = async (req, res) => {
     try {
@@ -232,23 +231,60 @@ export const addBill = async (req, res) => {
             generation_date,
             total_amount,
             payment_status,
-            services
+            services, 
+            insurance_provider
         } = req.body;
-
+        // Example Postman query body for adding a new bill
+       
         // Validate required fields
         if (!patient_id || !total_amount || !payment_status) {
             return res.status(400).json({
                 message: 'Patient ID, total amount, and payment status are required fields'
             });
         }
+        // Sample Postman query body for adding a new bill
+      
+        // return res.status(400).json({generation_date, total_amount, payment_status, services, insurance_provider});
+        // Fetch insurance details if insurance_provider is provided
+        let insuranceDetails = null;
+        if (insurance_provider) {
+            insuranceDetails = await Insurances.findOne({
+                insurance_provider: insurance_provider,
+                'patients.patient_id': patient_id
+            }, {
+                'patients.$': 1 // Fetch only the matching patient object from the patients array
+            });
 
+            if (!insuranceDetails || insuranceDetails.patients.length === 0) {
+            return res.status(404).json({ message: 'Insurance provider or patient not found' });
+            }
+
+            insuranceDetails = insuranceDetails.patients[0]; // Extract the matching patient object
+        }
+        let datee = generation_date; 
+        let tot = applyInsuranceDiscount(total_amount, insuranceDetails, datee);
         // Create a new bill instance
-        const newBill = new Bill({
-            patient_id,
-            generation_date: generation_date || new Date(),
-            total_amount,
-            payment_status,
-            items: services.map(service => ({
+        // Validate and format generation_date
+        if(!insuranceDetails){
+           return res.status(400).json({ message: 'Insurance details are required' });
+        }
+        // const formattedDate = new Date(datee);
+        // if (isNaN(formattedDate)) {
+        //     return res.status(400).json({ message: 'Invalid generation_date format' });
+        // }
+
+        // Validate total_amount
+        if (isNaN(tot) || tot < 0) {
+            return res.status(400).json({ message: 'Invalid total_amount value' });
+        }
+
+        // Validate item_type against allowed enum values
+        const allowedItemTypes = ['consultation', 'medication', 'surgery', 'diagnostic'];
+        const validatedItems = services.map(service => {
+            // if (!allowedItemTypes.includes(service.item_type)) {
+            //     throw new Error(`Invalid item_type: ${service.item_type}`);
+            // }
+            return {
                 item_type: service.item_type,
                 item_description: service.item_description,
                 price: service.price,
@@ -256,7 +292,15 @@ export const addBill = async (req, res) => {
                 report_id: service.report_id,
                 prescription_id: service.prescription_id,
                 room_id: service.room_id
-            }))
+            };
+        });
+
+        const newBill = new Bill.Bill({
+            patient_id,
+            generation_date: datee,
+            total_amount: tot,
+            payment_status,
+            items: validatedItems
         });
 
         // Save the bill to the database
@@ -271,6 +315,35 @@ export const addBill = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+export const fetchPatientInsurance = async (req, res) => {
+    try {
+        const { patient_id } = req.body;
+        
+        if (!patient_id) {
+            return res.status(400).json({ message: 'Patient ID is required' });
+        }
+
+        // Fetch insurances where the patient_id matches
+        const insurances = await Insurances.find({
+            'patients.patient_id': patient_id
+        }).populate('patients.patient_id');
+
+        res.status(200).json({
+            count: insurances.length,
+            insurances: insurances
+        });
+    } catch (error) {
+        console.error('Error fetching insurance data:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+
+// module.exports = {
+//     registerNewPatient
+// };
+
 
 
 
