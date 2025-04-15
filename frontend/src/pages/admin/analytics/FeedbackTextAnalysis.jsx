@@ -6,6 +6,7 @@ import nlp from 'compromise';
 import 'chartjs-plugin-datalabels';
 import { Chart } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import axios from 'axios';
 
 ChartJS.register(ArcElement, Tooltip, Legend, PointElement, LinearScale);
 Chart.register(ChartDataLabels);
@@ -38,11 +39,21 @@ const TextualFeedbackAnalysis = () => {
   const fetchFeedbackData = async (rating) => {
     setLoading(true);
     try {
-      // For demo purposes, use simulated data
-      setTimeout(() => {
-        const mockData = getMockFeedbackData(rating);
-        setRawFeedback(mockData);
-      }, 500);
+      const mockData = getMockFeedbackData(rating);
+      const response = await axios.get(`http://localhost:5000/api/analytics/feedbacks/rating/${rating}`);
+      const normalizedApiData = response.data.comments.map(item => {
+        if (item && typeof item === 'object' && item.comments) {
+          return {
+            ...item,
+            created_at: item.created_at || new Date().toISOString(),
+          };
+        } 
+        return null;
+      }).filter(Boolean); // Remove any null items
+      const combinedData = [...mockData, ...normalizedApiData];
+
+      setRawFeedback(combinedData);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching feedback data:", error);
       setLoading(false);
@@ -920,7 +931,8 @@ const getMockFeedbackData = (rating) => {
   const mockData = [];
   
   // Create a realistic number of feedback entries with better distribution
-  const count = rating === 5 ? 120 : rating === 4 ? 100 : rating === 3 ? 80 : rating === 2 ? 60 : 80;
+  let count = rating === 5 ? 120 : rating === 4 ? 100 : rating === 3 ? 80 : rating === 2 ? 60 : 80;
+  count /= 4;
   
   for (let i = 0; i < count; i++) {
     const templates = feedbackTemplates[rating] || feedbackTemplates[5];
@@ -958,13 +970,10 @@ const getMockFeedbackData = (rating) => {
     let daysAgo;
     const rand = Math.random();
     if (rand < 0.4) {
-      // 40% of feedback within last month
       daysAgo = Math.floor(Math.random() * 30);
     } else if (rand < 0.7) {
-      // 30% within 1-3 months
       daysAgo = 30 + Math.floor(Math.random() * 60);
     } else {
-      // 30% within 3-6 months
       daysAgo = 90 + Math.floor(Math.random() * 90);
     }
     
@@ -972,10 +981,6 @@ const getMockFeedbackData = (rating) => {
     randomDate.setDate(randomDate.getDate() - daysAgo);
     
     mockData.push({
-      feedback_id: i + 1,
-      consult_id: Math.floor(Math.random() * 1000) + 1,
-      doctor_id: Math.floor(Math.random() * 20) + 1,
-      rating: rating,
       comments: comment,
       created_at: randomDate.toISOString()
     });
