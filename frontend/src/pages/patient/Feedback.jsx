@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+
 export const fetchConsultationsByPatientId = async (patientId) => {
   try {
     const res = await fetch(`http://localhost:5000/api/patients/${patientId}/consultations`);
@@ -26,8 +27,9 @@ export const fetchConsultationsByPatientId = async (patientId) => {
     return []; // fallback return
   }
 };
-const PatientFeedbackForm = ({ patientId="10013"}) => {
-  
+
+const PatientFeedbackForm = () => {
+  const patientId = localStorage.getItem("user_id");
   const [patient, setPatient] = useState(null);
   const [consultationsWithoutFeedback, setConsultationsWithoutFeedback] = useState([]);
   const [consultationsWithFeedback, setConsultationsWithFeedback] = useState([]);

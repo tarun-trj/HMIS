@@ -1,5 +1,7 @@
 import express from 'express';
-
+import { authenticateUser } from '../middleware/authMiddleware.js';
+import  upload  from '../middleware/multer.js';
+import { uploadProfilePhoto } from "../controllers/patientController.js";
 const router = express.Router();
 
 // TODO: Add routes for patient
@@ -20,6 +22,7 @@ import {
 router.get('/doctors', getAllDoctors); // No params, safest to be first
 router.get('/profile/:patientId', FetchPatientProfile); // Single param
 router.get('/:patientId/consultations', fetchConsultationsByPatientId);
+// router.get('/:patientId/consultations',authenticateUser, fetchConsultationsByPatientId);
 router.post('/:patientId/consultations/:consultationId/feedback', sendFeedback);
 router.post('/register', registerPatient);
 router.get('/doctors/:id',getDoctorById );
@@ -28,11 +31,12 @@ router.get('/doctors/:id',getDoctorById );
 router.get('/:patientId/vitals', getPatientVitals);
 router.get('/:patientId/vitals/latest', getLatestPatientVital);
 router.get('/:patientId/vitals/:vitalId', getPatientVitalById);
+router.post("/upload-photo/:patientId",upload.single("profile_pic"), uploadProfilePhoto);
 
+// DELETE
+router.delete("/:consultationId/cancel", cancelConsultation);
 // PUTs
 router.put('/:consultationId/reschedule', rescheduleConsultation);
 export default router;
 
-// DELETE
-router.delete("/:consultationId/cancel", cancelConsultation);
 

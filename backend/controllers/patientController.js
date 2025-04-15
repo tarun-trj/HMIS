@@ -3,7 +3,9 @@ import { Consultation } from '../models/consultation.js';
 import bcrypt from 'bcrypt';
 import { Doctor } from '../models/staff.js';
 import Employee from '../models/employee.js';
-import Department from '../models/department.js'
+import Department from '../models/department.js';
+import cloudinary from "../config/cloudinary.js";
+
 export const registerPatient = async (req, res) => {
   try {
     const {
@@ -27,6 +29,7 @@ export const registerPatient = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const calculateAge = dob => new Date().getFullYear() - new Date(dob).getFullYear() - (new Date() < new Date(new Date(dob).setFullYear(new Date().getFullYear())) ? 1 : 0);
 
     const newPatient = new Patient({
       password: hashedPassword,
@@ -39,8 +42,9 @@ export const registerPatient = async (req, res) => {
       gender: gender.toLowerCase(),
       address,
       patient_info: {
-        height,
-        weight,
+        age: calculateAge(dob),
+        height: height,
+        weight: weight,
         bloodGrp: bloodGroup
       }
     });
@@ -58,6 +62,7 @@ export const registerPatient = async (req, res) => {
 // @desc Get full patient profile
 export const FetchPatientProfile = async (req, res) => {
   try {
+    console.log("received profile request");
     const { patientId } = req.params;
     let patient = await Patient.findById(patientId);
 
@@ -76,90 +81,7 @@ export const FetchPatientProfile = async (req, res) => {
   }
 };
 
-// export const fetchConsultationsByPatientId = async (req, res) => {
-//   try {
-//     const { patientId } = req.params;
-//     console.log(`Received request for consultations of patientId: ${patientId}`);
 
-//     let consultations = await Consultation.find({ patient_id: patientId }).sort({ booked_date_time: -1 });
-
-//     if (!consultations.length) {
-//       // Return dummy data
-//       const dummyConsultations = [
-//         {
-//           id: "6617f98e0a5f2dbf8c2d1234",
-//           date: "2025-05-05",
-//           doctor: "Dr. Smith",
-//           location: "Room 101",
-//           details: "Checkup",
-//         },
-//         {
-//           id: "6617f98e0a5f2dbf8c2d1235",
-//           date: "2025-05-05",
-//           doctor: "Dr. Adams",
-//           location: "Room 203",
-//           details: "Follow-up",
-//         },
-//         {
-//           id: "6617f98e0a5f2dbf8c2d1236",
-//           date: "2025-05-07",
-//           doctor: "Dr. Williams",
-//           location: "Room 305",
-//           details: "Diagnosis",
-//         },
-//         {
-//           id: "6617f98e0a5f2dbf8c2d1237",
-//           date: "2025-05-10",
-//           doctor: "Dr. Brown",
-//           location: "Room 408",
-//           details: "Consultation",
-//         },
-//       ];
-//       console.log(`No consultations found. Returning dummy data for patientId: ${patientId}`);
-//       return res.status(200).json({ consultations: dummyConsultations, dummy: true });
-//     }
-
-//     // First, populate the doctor_id field to get the Doctor document
-//     consultations = await Consultation.populate(consultations, {
-//       path: 'doctor_id',
-//       model: 'Doctor'
-//     });
-
-//     // Then, populate the employee_id field in the Doctor document to get the Employee info
-//     consultations = await Consultation.populate(consultations, {
-//       path: 'doctor_id.employee_id',
-//       model: 'Employee',
-//       select: 'name email profile_pic'
-//     });
-
-//     // Also populate the other related fields
-//     consultations = await Consultation.populate(consultations, [
-//       { path: 'created_by', select: 'name role' },
-//       { path: 'diagnosis', strictPopulate: false },
-//       { path: 'prescription', strictPopulate: false },
-//       { path: 'bill_id', strictPopulate: false }
-//     ]);
-
-//     // Format the response if needed
-//     const formattedConsultations = consultations.map(consultation => {
-//       return {
-//         ...consultation._doc,
-//         doctor: {
-//           id: consultation.doctor_id?._id,
-//           name: consultation.doctor_id?.employee_id?.name || 'Unknown Doctor',
-//           specialization: consultation.doctor_id?.specialization,
-//           profilePic: consultation.doctor_id?.employee_id?.profile_pic
-//         }
-//       };
-//     });
-
-//     console.log('Successfully populated consultation data');
-//     res.status(200).json(formattedConsultations);
-//   } catch (error) {
-//     console.error(`Error fetching consultations for patientId: ${req.params.patientId}`, error);
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// };
 
 export const fetchConsultationsByPatientId = async (req, res) => {
   try {
@@ -620,3 +542,51 @@ export const getLatestPatientVital = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+export const uploadProfilePhoto = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    // Check file uploaded by Cloudinary via multer
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    const newProfilePicUrl = req.file.path;
+
+    // Step 1: Find existing patient
+    const patient = await Patient.findById(patientId);
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    // Step 2: Delete old profile image from Cloudinary if it exists
+    if (patient.profile_pic) {
+      // Extract public_id from the old Cloudinary URL
+      const segments = patient.profile_pic.split('/');
+      const filenameWithExt = segments[segments.length - 1]; // eg: abc123.png
+      const publicId = `profile_pics/${filenameWithExt.split('.')[0]}`; // assuming folder is profile_pics
+      console.log(publicId);
+      await cloudinary.uploader.destroy(publicId);
+    }
+
+    // Step 3: Update patient with new image URL
+    patient.profile_pic = newProfilePicUrl;
+    await patient.save();
+
+    return res.status(200).json({
+      message: "Profile photo uploaded successfully",
+      profile_pic: newProfilePicUrl,
+    });
+
+  } catch (err) {
+    console.error("Upload error:", err);
+    return res.status(500).json({ message: "Server error during upload" });
+  }
+};
+
+

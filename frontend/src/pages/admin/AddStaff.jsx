@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const EmployeeForm = () => {
@@ -16,6 +16,9 @@ const EmployeeForm = () => {
     gender: '',
     blood_group: '',
     salary: '',
+    basic_salary: '',
+    allowance: '',
+    deduction: '',
     aadhar_id: '',
     bank_details: {
       bank_name: '',
@@ -25,13 +28,52 @@ const EmployeeForm = () => {
     }
   });
 
+  // State for departments data
+  const [departments, setDepartments] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const [profilePreview, setProfilePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // Fetch departments when component mounts
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get('http://localhost:5000/api/admin/get-departments');
+        setDepartments(response.data.departments);
+      } catch (err) {
+        console.error('Error fetching departments:', err);
+        setError('Failed to load departments. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  // Calculate total salary when basic salary, allowance, or deduction changes
+  useEffect(() => {
+    const basic = parseFloat(formData.basic_salary) || 0;
+    const allowance = parseFloat(formData.allowance) || 0;
+    const deduction = parseFloat(formData.deduction) || 0;
+    
+    const totalSalary = basic + allowance - deduction;
+    
+    if (totalSalary >= 0) {
+      setFormData(prev => ({
+        ...prev,
+        salary: totalSalary.toString()
+      }));
+    }
+  }, [formData.basic_salary, formData.allowance, formData.deduction]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log(name, value);
+    
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData({
@@ -47,17 +89,15 @@ const EmployeeForm = () => {
         [name]: value
       });
     }
-    console.log(formData);
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+  const handleImageUpload = (file) => {
     if (file) {
       setFormData((prev) => ({
         ...prev,
         profile_pic: file
       }));
-      console.log(formData);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfilePreview(reader.result);
@@ -65,77 +105,75 @@ const EmployeeForm = () => {
       reader.readAsDataURL(file);
     }
   };
-
   
   const handleSubmit = async(e) => {
     e.preventDefault();
-    const data= new FormData();
-  // Append simple fields
-  Object.entries(formData).forEach(([key, value]) => {
-    if (key === 'bank_details') {
-      Object.entries(value).forEach(([bk, bv]) => {
-        data.append(`bank_details[${bk}]`, bv); // Send as nested keys or convert to JSON
-      });
-    } else if (key === 'profile_pic' && value instanceof File) {
-      data.append(key, value);
-    } else {
-      data.append(key, value);
-    }
-  });   
-  setIsSubmitting(true); 
-  try {
-    const response = await axios.post('http://localhost:5000/api/admin/add-staff', data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  
-    const data1 = response.data;
-  
-    setMessage({ type: 'success', text: data1.message || 'Staff registered successfully!' });
-  
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      profile_pic: '',
-      role: '',
-      department_id: '67f565394f3afafa19aa8f23',
-      phone_number: '',
-      emergency_phone: '',
-      address: '',
-      date_of_birth: '',
-      date_of_joining: '',
-      gender: '',
-      blood_group: '',
-      salary: '',
-      aadhar_id: '',
-      bank_details: {
-        bank_name: '',
-        account_number: '',
-        ifsc_code: '',
-        branch_name: ''
+    const data = new FormData();
+    
+    // Append simple fields
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key === 'bank_details') {
+        Object.entries(value).forEach(([bk, bv]) => {
+          data.append(`bank_details[${bk}]`, bv);
+        });
+      } else if (key === 'profile_pic' && value instanceof File) {
+        data.append(key, value);
+      } else {
+        data.append(key, value);
       }
-    });
-    setProfilePreview(null);
-  
-    // Optionally navigate
-    // navigate("/receptionist/profile");
-  
-  } catch (error) {
-    console.error('Registration error:', error);
-  
-    if (error.response && error.response.data && error.response.data.message) {
-      setMessage({ type: 'error', text: error.response.data.message });
-    } else {
-      setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+    });   
+    
+    setIsSubmitting(true); 
+    try {
+      const response = await axios.post('http://localhost:5000/api/admin/add-staff', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    
+      const data1 = response.data;
+    
+      setMessage({ type: 'success', text: data1.message || 'Staff registered successfully!' });
+    
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        profile_pic: '',
+        role: '',
+        department_id: '',
+        phone_number: '',
+        emergency_phone: '',
+        address: '',
+        date_of_birth: '',
+        date_of_joining: '',
+        gender: '',
+        blood_group: '',
+        salary: '',
+        basic_salary: '',
+        allowance: '',
+        deduction: '',
+        aadhar_id: '',
+        bank_details: {
+          bank_name: '',
+          account_number: '',
+          ifsc_code: '',
+          branch_name: ''
+        }
+      });
+      setProfilePreview(null);
+    
+    } catch (error) {
+      console.error('Registration error:', error);
+    
+      if (error.response && error.response.data && error.response.data.message) {
+        setMessage({ type: 'error', text: error.response.data.message });
+      } else {
+        setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+      }
+    
+    } finally {
+      setIsSubmitting(false);
+      setTimeout(() => setMessage(null), 5000);
     }
-  
-  } finally {
-    setIsSubmitting(false);
-    setTimeout(() => setMessage(null), 5000);
-  }
-  
-
-    // Here you would send the data to your API
   };
 
   const inputStyles = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500";
@@ -151,53 +189,59 @@ const EmployeeForm = () => {
         </div>
       )}
 
+      {error && (
+        <div className="mb-6 p-4 rounded-md bg-red-100 text-red-800">
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="bg-gray-100 rounded-md p-6">
         <div className="flex flex-col md:flex-row gap-6 mb-6">
           {/* Profile Picture section with image preview */}
-          <div className="w-full md:w-1/5">
-            <label htmlFor="profile_pic" className={labelStyles}>Profile Picture:</label>
-            <div className="h-48 w-40 border-2 border-teal-300 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 overflow-hidden">
+          <div className="w-40">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Profile Picture</label>
+            <div
+              className="border border-dashed border-gray-300 h-48 w-40 bg-gray-50 rounded-md relative flex items-center justify-center text-center text-sm text-gray-500 cursor-pointer"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
+                if (file) handleImageUpload(file);
+              }}
+              onClick={() => document.getElementById('imageInput').click()}
+            >
               {profilePreview ? (
                 <div className="relative h-full w-full">
-                  <img 
-                    src={profilePreview} 
-                    alt="Profile preview" 
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={profilePreview} alt="Preview" className="w-full h-full object-cover rounded-md" />
                   <button
                     type="button"
-                    onClick={() => {
-                      setProfilePreview(null); // Reset the preview image
-                      setFormData((prev) => ({
-                        ...prev,
-                        profile_pic: '' // Clear the file from formData
-                      }));
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full px-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setProfilePreview(null);
+                      setFormData((prev) => ({ ...prev, profile_pic: '' }));
                     }}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs"
-                    title="Remove image"
-                  >
-                    ✕
-                  </button>
+                  >×</button>
                 </div>
               ) : (
                 <label htmlFor="profile_pic" className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
                   <svg className="w-8 h-8 mb-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                   </svg>
-                  <p className="mb-1 text-sm text-gray-500 text-center"><span className="font-semibold">Upload</span></p>
-                  <p className="text-xs text-gray-500">Passport size</p>
+                  <p className="mb-1 text-sm text-gray-500 text-center"><span className="font-semibold">Drag & Drop or Click to Upload</span></p>
                 </label>
               )}
-              <input 
-                type="file" 
-                id="profile_pic" 
-                name="profile_pic" 
-                className="hidden"
+              <input
+                type="file"
                 accept="image/*"
-                onChange={handleImageUpload}
+                id="imageInput"
+                onChange={(e) => handleImageUpload(e.target.files[0])}
+                className="hidden"
               />
             </div>
           </div>
+
+
           
           <div className="w-full md:w-4/5">
             <div className="mt-8">
@@ -224,9 +268,6 @@ const EmployeeForm = () => {
                 className={inputStyles}
               />
             </div>
-
-
-
           </div>
         </div>
 
@@ -352,12 +393,16 @@ const EmployeeForm = () => {
                 onChange={handleChange}
                 className={selectStyles}
                 required
+                disabled={isLoading}
               >
                 <option value="">Select Department</option>
-                <option value="67f565394f3afafa19aa8f23">Cardiology</option>
-                <option value="67f565394f3afafa19aa8f23">Neurology</option>  
-                {/* Department options would be populated from API */}
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.dept_name}
+                  </option>
+                ))}
               </select>
+              {isLoading && <p className="text-sm text-gray-500 mt-1">Loading departments...</p>}
             </div>
           </div>
 
@@ -375,35 +420,78 @@ const EmployeeForm = () => {
               />
             </div>
             <div>
-              <label htmlFor="salary" className={labelStyles}>Salary:</label>
+              <label htmlFor="address" className={labelStyles}>Address:</label>
+              <textarea
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                rows="1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500"
+              ></textarea>
+            </div>
+          </div>
+
+          {/* Salary Breakdown Section */}
+          <div className="pt-4 border-t border-gray-200">
+            <h3 className="text-lg font-medium mb-4">Salary Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label htmlFor="basic_salary" className={labelStyles}>Basic Salary:</label>
+                <input
+                  type="number"
+                  id="basic_salary"
+                  name="basic_salary"
+                  value={formData.basic_salary}
+                  onChange={handleChange}
+                  className={inputStyles}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="allowance" className={labelStyles}>Allowance:</label>
+                <input
+                  type="number"
+                  id="allowance"
+                  name="allowance"
+                  value={formData.allowance}
+                  onChange={handleChange}
+                  className={inputStyles}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="deduction" className={labelStyles}>Deduction:</label>
+                <input
+                  type="number"
+                  id="deduction"
+                  name="deduction"
+                  value={formData.deduction}
+                  onChange={handleChange}
+                  className={inputStyles}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <label htmlFor="salary" className={labelStyles}>Total Salary:</label>
               <input
                 type="number"
                 id="salary"
                 name="salary"
                 value={formData.salary}
-                onChange={handleChange}
-                className={inputStyles}
-                required
+                className={`${inputStyles} bg-gray-100`}
+                readOnly
               />
+              <p className="text-sm text-gray-500 mt-1">
+                Automatically calculated (Basic + Allowance - Deduction)
+              </p>
             </div>
           </div>
-
-<div>
-  <label htmlFor="address" className={labelStyles}>Address:</label>
-  <textarea
-    id="address"
-    name="address"
-    value={formData.address}
-    onChange={handleChange}
-    rows="2"
-    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500"
-  ></textarea>
-</div>
-
-
           
           {/* Bank Details Section */}
-          <div className="pt-4">
+          <div className="pt-4 border-t border-gray-200">
             <h3 className="text-lg font-medium mb-4">Bank Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -459,9 +547,10 @@ const EmployeeForm = () => {
           <div className="pt-6 flex justify-center">
             <button
               type="submit"
-              className="px-8 py-3 bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 uppercase"
+              disabled={isSubmitting}
+              className={`px-8 py-3 bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 uppercase ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              SUBMIT
+              {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
             </button>
           </div>
         </div>

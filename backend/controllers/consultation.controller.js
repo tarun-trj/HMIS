@@ -1,7 +1,7 @@
 import { Consultation } from '../models/consultation.js';
 import Medicine from '../models/inventory.js';
 import Patient from '../models/patient.js';
-import { Doctor } from '../models/staff.js';
+import { Doctor, Receptionist } from '../models/staff.js';
 import Employee from '../models/employee.js'; 
 
 // dummy consultation remove after integrated with db
@@ -112,7 +112,7 @@ export const bookConsultation = async (req, res) => {
       doctor_id,
       booked_date_time,
       reason,
-      created_by,
+      created_by, // This is employee._id (number)
       appointment_type
     } = req.body;
 
@@ -120,13 +120,19 @@ export const bookConsultation = async (req, res) => {
     const patient = await Patient.findById(patient_id);
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
 
+    // Find receptionist document by employee_id
+    const receptionist = await Receptionist.findOne({ employee_id: created_by });
+    if (!receptionist) {
+      return res.status(404).json({ message: 'Receptionist not found for the given employee ID' });
+    }
+
     // Create new consultation
     const newConsultation = new Consultation({
       patient_id,
       doctor_id,
       booked_date_time,
       reason,
-      created_by,
+      created_by: receptionist._id, // Use receptionist's MongoDB ObjectId
       appointment_type,
       status: 'scheduled'
     });
@@ -138,7 +144,7 @@ export const bookConsultation = async (req, res) => {
       consultation: newConsultation
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 

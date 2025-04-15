@@ -130,7 +130,7 @@ function App() {
 
 
          {/* Role-Based Common Pages */}                  
-         <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "receptionist", "admin", "patient", "pathologist"]} />}>
+         <Route element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "nurse", "admin", "pathologist","pharmacist"]} />}>
             <Route path=":role/profile" element={<Profile />} />
           </Route>
                      
@@ -148,7 +148,7 @@ function App() {
             <Route path=":role/contact-admin" element={<ContactAdmin />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "admin", "pathologist"]} />}>
+          <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "receptionist", "patient", "pathologist", "pharmacist"]} />}>
             <Route path=":role/payroll-info" element={<PayrollInfo />} />
           </Route>
 

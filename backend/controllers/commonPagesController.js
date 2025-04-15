@@ -5,12 +5,13 @@ import Patient from '../models/patient.js';
 import Medicine from '../models/inventory.js';
 import { Doctor, Nurse, Pharmacist, Receptionist, Admin, Pathologist, Driver } from '../models/staff.js';
 import Equipment from '../models/equipment.js';
+import cloudinary from "../config/cloudinary.js";
 
 // Get consultations for doctor's calendar
 export const getDoctorCalendar = async (req, res) => {
   try {
     const { doctorId, startDate, endDate } = req.query;
-    console.log(req.query);
+    // console.log(req.query);
     
     if (!doctorId) {
       return res.status(400).json({ message: "Doctor ID is required" });
@@ -35,7 +36,7 @@ export const getDoctorCalendar = async (req, res) => {
       .populate('patient_id', 'name email phone_number')
       .sort({ booked_date_time: 1 });
     
-    console.log(consultations);
+    // console.log(consultations);
     
     // Transform data for calendar view
     const calendarEvents = consultations.map(consultation => {
@@ -122,13 +123,13 @@ export const findPayrollById = async (req, res) => {
   try {
     const { employeeId } = req.query;
       console.log(req.query)
-
+      let employeePayrolls;
       if (!employeeId) {
-          return res.status(400).json({ message: "employeeId is required" });
+          employeePayrolls = await Payroll.find({});
       }
-
-      // Find all payrolls for this employee
-      const employeePayrolls = await Payroll.find({ employee_id: employeeId });
+      else {
+          employeePayrolls = await Payroll.find({ employee_id: employeeId }).populate('employee_id');
+      }
 
       //update has to be made here to fetch from finance logs
 
@@ -148,7 +149,8 @@ export const fetchProfile = async (req, res) => {
               .select('-password');
       } else if (['doctor', 'nurse', 'pathologist', 'receptionist', 'pharmacist', 'admin', 'driver'].includes(userType)) {
           user = await Employee.findById(Number(id))
-              .select('-password -bank_details.account_number');
+              .select('-password -bank_details.account_number')
+              .populate('dept_id', 'dept_id dept_name');
 
           // Get role specific details
           const RoleModel = {
@@ -162,8 +164,19 @@ export const fetchProfile = async (req, res) => {
           }[userType];
 
           if (user && RoleModel) {
-              const roleSpecificInfo = await RoleModel.findOne({ employee_id: user._id })
+              let roleSpecificInfo = await RoleModel.findOne({ employee_id: user._id })
                   .select('-_id');
+
+              // Only populate department_id for doctor and nurse
+              if (['doctor', 'nurse'].includes(userType)) {
+                  roleSpecificInfo = await roleSpecificInfo
+                      .populate(userType === 'doctor' ? 'department_id' : 'assigned_dept', 'dept_id dept_name');
+              }
+              
+              // Format rating to 2 decimal places if it exists
+              if (roleSpecificInfo && roleSpecificInfo.rating) {
+                  roleSpecificInfo.rating = Number(roleSpecificInfo.rating.toFixed(2));
+              }
               
               user = {
                   ...user.toObject(),
@@ -171,11 +184,9 @@ export const fetchProfile = async (req, res) => {
               };
           }
       }
-
       if (!user) {
           return res.status(404).json({ message: 'User not found' });
       }
-
       res.status(200).json(user);
   } catch (error) {
       res.status(500).json({ 
@@ -189,37 +200,73 @@ export const updateProfile = async (req, res) => {
   try {
       const { userType, id } = req.params;
       const updateData = req.body;
-      const requestingUser = req.user;
       let user;
 
-      // Only allow users to edit their own profile
-      if (requestingUser.id !== Number(id)) {
-          return res.status(403).json({ 
-              message: 'Unauthorized to update other user profiles' 
+      // Completely protected fields (never editable by user)
+      const protectedFields = [
+          '_id',
+          'email',
+          'aadhar_number',
+          'date_of_joining',
+          'password',
+          'role',
+          'salary',
+          'dept_id'
+      ];
+
+      // Fields that can be edited by user
+      const editableFields = [
+          'name',
+          'phone_number',
+          'emergency_contact',
+          'address',
+          'gender',
+          'bloodGrp',
+          'profile_pic',
+          'date_of_birth'
+      ];
+
+      // Bank details fields that can be edited
+      const editableBankFields = [
+          'bank_name',
+          'ifsc_code',
+          'branch_name'
+      ];
+
+      // Filter update data to only include editable fields
+      const filteredUpdateData = {};
+      editableFields.forEach(field => {
+          if (updateData[field] !== undefined) {
+              filteredUpdateData[field] = updateData[field];
+          }
+      });
+
+      // Handle bank details update separately
+      if (updateData.bank_details) {
+          filteredUpdateData.bank_details = {};
+          editableBankFields.forEach(field => {
+              if (updateData.bank_details[field] !== undefined) {
+                  filteredUpdateData.bank_details[field] = updateData.bank_details[field];
+              }
           });
       }
 
       if (userType === 'patient') {
           user = await Patient.findByIdAndUpdate(
               Number(id),
-              updateData,
+              filteredUpdateData,
               { new: true, runValidators: true }
           ).select('-password');
       } else if (['doctor', 'nurse', 'pathologist', 'receptionist', 'pharmacist', 'admin', 'driver'].includes(userType)) {
-          // Only admin can update these fields
-          delete updateData.salary;
-          delete updateData.bank_details;
-          delete updateData.role;
-          delete updateData.dept_id;
-
           // Update main employee document
           user = await Employee.findByIdAndUpdate(
               Number(id),
-              updateData,
+              filteredUpdateData,
               { new: true, runValidators: true }
-          ).select('-password -bank_details.account_number');
+          ).select('-password -bank_details.account_number -bank_details.balance')
+           .populate('dept_id', 'dept_id dept_name');
 
-          // Update role-specific details if provided
+          // Handle role-specific updates
           if (updateData.role_details) {
               const RoleModel = {
                   'doctor': Doctor,
@@ -231,12 +278,46 @@ export const updateProfile = async (req, res) => {
                   'driver': Driver
               }[userType];
 
-              if (RoleModel) {
-                  await RoleModel.findOneAndUpdate(
+              // Role-specific editable fields
+              const roleEditableFields = {
+                  'doctor': ['specialization', 'qualification', 'experience', 'room_num'],
+                  'nurse': ['location', 'assigned_room', 'assigned_bed', 'assigned_amb'],
+                  'pathologist': [],
+                  'receptionist': [],
+                  'pharmacist': [],
+                  'admin': [],
+                  'driver': []
+              }[userType] || [];
+
+              // Filter role-specific updates
+              const filteredRoleData = {};
+              roleEditableFields.forEach(field => {
+                  if (updateData.role_details[field] !== undefined) {
+                      filteredRoleData[field] = updateData.role_details[field];
+                  }
+              });
+
+              if (Object.keys(filteredRoleData).length > 0 && RoleModel) {
+                  let roleSpecificInfo = await RoleModel.findOneAndUpdate(
                       { employee_id: user._id },
-                      updateData.role_details,
+                      filteredRoleData,
                       { new: true, runValidators: true }
                   );
+
+                  // Only populate department_id for doctor and nurse
+                  if (['doctor', 'nurse'].includes(userType)) {
+                      roleSpecificInfo = await roleSpecificInfo
+                          .populate(userType === 'doctor' ? 'department_id' : 'assigned_dept', 'dept_id dept_name');
+                  }
+
+                  if (roleSpecificInfo?.rating) {
+                      roleSpecificInfo.rating = Number(roleSpecificInfo.rating.toFixed(2));
+                  }
+
+                  user = {
+                      ...user.toObject(),
+                      role_details: roleSpecificInfo
+                  };
               }
           }
       }
@@ -244,7 +325,6 @@ export const updateProfile = async (req, res) => {
       if (!user) {
           return res.status(404).json({ message: 'User not found' });
       }
-
       res.status(200).json({
           message: 'Profile updated successfully',
           user
@@ -372,4 +452,44 @@ const calculateServiceStatus = (nextServiceDate) => {
   if (daysUntil < 0) return 'Overdue';
   if (daysUntil <= 30) return 'Due Soon';
   return 'OK';
+};
+
+
+export const uploadEmployeePhoto = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    const newProfilePicUrl = req.file.path;
+
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Delete old image from Cloudinary
+    if (employee.profile_pic) {
+      const segments = employee.profile_pic.split('/');
+      const filenameWithExt = segments[segments.length - 1];
+      const publicId = `profile_pics/${filenameWithExt.split('.')[0]}`;
+      console.log("Deleting from Cloudinary:", publicId);
+      await cloudinary.uploader.destroy(publicId);
+    }
+
+    // Update new image URL
+    employee.profile_pic = newProfilePicUrl;
+    await employee.save();
+
+    return res.status(200).json({
+      message: "Profile photo uploaded successfully",
+      profile_pic: newProfilePicUrl,
+    });
+
+  } catch (err) {
+    console.error("Upload error:", err);
+    return res.status(500).json({ message: "Server error during upload" });
+  }
 };

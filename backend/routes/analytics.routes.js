@@ -4,7 +4,9 @@ import { addRatingAndReview,calculateOverallRating, calculateDepartmentRating,ge
     addPrescriptionEntry,getBedOccupancyTrends, getFacilityStatistics,getDoctorRatingDistribution,
     getAllConsultations ,getFeedbacksByRating ,getDoctorQuadrantData, getDepartmentQuadrantData,
     getAllDoctorsData, getDoctorWorkingTrends, /*getAllEmployees, addNewDoctor, addConsultation, getAllDiagnoses, printAllDoctors,*/
-    getFinanceTrends, getTopKDiseases, getDiseaseTrends} from '../controllers/analytics.controller.js';
+    getFinanceTrends, getTopKDiseases, getDiseaseTrends, getDashboardKPIs} from '../controllers/analytics.controller.js';
+
+
     
 const router = express.Router();
 
@@ -47,6 +49,8 @@ router.get('/finance-trends', getFinanceTrends);
 //illness-trends
 router.get('/illness-trends/topk', getTopKDiseases);
 router.get('/illness-trends/disease-trends', getDiseaseTrends);
+
+router.get('/dashboard/kpis', getDashboardKPIs);
 
 /*
 //FOR TESTING
