@@ -1,27 +1,41 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane, faRobot, faUser, faMicrophone, faMicrophoneSlash, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faPaperPlane, 
+  faRobot, 
+  faUser, 
+  faMicrophone, 
+  faMicrophoneSlash, 
+  faSpinner, 
+  faVolumeUp, 
+  faVolumeMute 
+} from '@fortawesome/free-solid-svg-icons';
 
 const Support = () => {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingStatus, setRecordingStatus] = useState('');
-  const [showWelcome, setShowWelcome] = useState(false);
-  const chatContainerRef = useRef(null);
-  const recognitionRef = useRef(null);
+  const [chatHistory, setCharHistory] = useState([]);
+  const [userInput, setUserInput] = useState('');
+  const [isBotTyping, setIsBotTyping] = useState(false);
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [voiceInputStatus, setVoiceInputStatus] = useState('');
+  const [displayWelcome, setDisplayWelcome] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentlySpeakingMessageId, setCurrentlySpeakingMessageId] = useState(null);
   
-  // API configuration - using environment variables
+  const chatContainerRef = useRef(null);
+  const speechRecognitionRef = useRef(null);
+  const speechSynthesisRef = useRef(null);
+  
+  // API configuration - using environment variables (keeping these as requested)
   const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   const API_URL = import.meta.env.VITE_GEMINI_API_URL;
 
   useEffect(() => {
     // Add welcome message when component mounts with animation delay
     setTimeout(() => {
-      setShowWelcome(true);
-      setMessages([
+      setDisplayWelcome(true);
+      setCharHistory([
         { 
+          id: 'welcome-msg',
           text: "Hello! I'm your Hospital Management System support assistant. How can I help you today?", 
           sender: 'bot' 
         }
@@ -34,7 +48,7 @@ const Support = () => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [chatHistory]);
   
   // Add effect to handle keeping the chat container in view
   useEffect(() => {
@@ -53,40 +67,59 @@ const Support = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+  
+  // Clean up any active speech synthesis when component unmounts
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
     
-    if (!input.trim()) return;
+    if (!userInput.trim()) return;
     
-    // Add user message
-    const userMessage = { text: input, sender: 'user' };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    // Add user message with unique ID
+    const messageId = `user-msg-${Date.now()}`;
+    const userMessage = { id: messageId, text: userInput, sender: 'user' };
+    setCharHistory(prev => [...prev, userMessage]);
+    setUserInput('');
     
     // Show typing indicator
-    setIsTyping(true);
+    setIsBotTyping(true);
     
     try {
-      const response = await callGeminiAPI(input);
-      setIsTyping(false);
+      const response = await callGeminiAPI(userInput);
+      setIsBotTyping(false);
       
       if (response) {
         // Process response text to handle markdown-style formatting
         const formattedResponse = formatBotResponse(response);
-        setMessages(prev => [...prev, { text: formattedResponse, sender: 'bot' }]);
+        const botMessageId = `bot-msg-${Date.now()}`;
+        setCharHistory(prev => [...prev, { id: botMessageId, text: formattedResponse, sender: 'bot', rawText: response }]);
       } else {
-        setMessages(prev => [
+        setCharHistory(prev => [
           ...prev, 
-          { text: "I'm sorry, I couldn't process your request. Please try again.", sender: 'bot' }
+          { 
+            id: `error-msg-${Date.now()}`,
+            text: "I'm sorry, I couldn't process your request. Please try again.", 
+            sender: 'bot',
+            rawText: "I'm sorry, I couldn't process your request. Please try again."
+          }
         ]);
       }
     } catch (error) {
       console.error('Error:', error);
-      setIsTyping(false);
-      setMessages(prev => [
+      setIsBotTyping(false);
+      setCharHistory(prev => [
         ...prev, 
-        { text: "I'm sorry, there was an error processing your request. Please try again later.", sender: 'bot' }
+        { 
+          id: `error-msg-${Date.now()}`,
+          text: "I'm sorry, there was an error processing your request. Please try again later.", 
+          sender: 'bot',
+          rawText: "I'm sorry, there was an error processing your request. Please try again later."
+        }
       ]);
     }
   };
@@ -220,82 +253,151 @@ const Support = () => {
   };
 
   // Speech recognition functions
-  const startRecording = () => {
+  const startVoiceRecording = () => {
     // Check if SpeechRecognition is available
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      setRecordingStatus('Speech recognition not supported in this browser.');
+      setVoiceInputStatus('Speech recognition not supported in this browser.');
       return;
     }
     
     // Initialize SpeechRecognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognition();
+    speechRecognitionRef.current = new SpeechRecognition();
     
-    recognitionRef.current.continuous = true; // Keep listening until manually stopped
-    recognitionRef.current.interimResults = true;
-    recognitionRef.current.lang = 'en-US';
+    speechRecognitionRef.current.continuous = true; // Keep listening until manually stopped
+    speechRecognitionRef.current.interimResults = true;
+    speechRecognitionRef.current.lang = 'en-US';
     
-    recognitionRef.current.onstart = () => {
-      setIsRecording(true);
-      setRecordingStatus('Listening...');
+    speechRecognitionRef.current.onstart = () => {
+      setIsVoiceRecording(true);
+      setVoiceInputStatus('Listening...');
     };
     
-    recognitionRef.current.onresult = (event) => {
+    speechRecognitionRef.current.onresult = (event) => {
       const transcript = Array.from(event.results)
         .map(result => result[0].transcript)
         .join('');
       
-      setInput(transcript);
+      setUserInput(transcript);
       
       // Update status with real-time indication that voice is being recognized
-      setRecordingStatus('Listening... (Voice detected)');
+      setVoiceInputStatus('Listening... (Voice detected)');
     };
     
-    recognitionRef.current.onerror = (event) => {
+    speechRecognitionRef.current.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      setRecordingStatus(`Error: ${event.error}`);
+      setVoiceInputStatus(`Error: ${event.error}`);
       // Don't stop recording automatically on error
     };
     
-    recognitionRef.current.onend = () => {
+    speechRecognitionRef.current.onend = () => {
       // Only reset status if we're not in an error state
-      if (recordingStatus === 'Listening...' || recordingStatus === 'Listening... (Voice detected)') {
-        setRecordingStatus('Voice input ready. Click send to submit.');
+      if (voiceInputStatus === 'Listening...' || voiceInputStatus === 'Listening... (Voice detected)') {
+        setVoiceInputStatus('Voice input ready. Click send to submit.');
       }
       
       // If recognition ends unexpectedly but user hasn't clicked stop, restart it
-      if (isRecording && recognitionRef.current) {
+      if (isVoiceRecording && speechRecognitionRef.current) {
         try {
-          recognitionRef.current.start();
+          speechRecognitionRef.current.start();
         } catch (error) {
           console.error('Could not restart recognition', error);
-          setIsRecording(false);
+          setIsVoiceRecording(false);
         }
       }
     };
     
     try {
-      recognitionRef.current.start();
+      speechRecognitionRef.current.start();
     } catch (error) {
       console.error('Failed to start recognition', error);
-      setRecordingStatus('Failed to start voice recognition.');
+      setVoiceInputStatus('Failed to start voice recognition.');
     }
   };
   
-  const stopRecording = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      setRecordingStatus('Voice input ready. Click send to submit.');
+  const stopVoiceRecording = () => {
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stop();
+      setIsVoiceRecording(false);
+      setVoiceInputStatus('Voice input ready. Click send to submit.');
     }
   };
   
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
+  const toggleVoiceRecording = () => {
+    if (isVoiceRecording) {
+      stopVoiceRecording();
     } else {
-      startRecording();
+      startVoiceRecording();
     }
+  };
+  
+  // Text-to-speech functions
+  const speakText = (text, messageId) => {
+    // Stop any currently playing speech
+    stopSpeech();
+    
+    // Check if SpeechSynthesis is available
+    if (!('speechSynthesis' in window)) {
+      console.error('Text-to-speech not supported in this browser');
+      return;
+    }
+    
+    // Create a new SpeechSynthesisUtterance object
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Set voice options (optional)
+    utterance.lang = 'en-US';
+    utterance.rate = 1.0; // Speed of speech
+    utterance.pitch = 1.0; // Pitch of speech
+    
+    // Save reference to utterance
+    speechSynthesisRef.current = utterance;
+    
+    // Set up event handlers
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setCurrentlySpeakingMessageId(messageId);
+    };
+    
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setCurrentlySpeakingMessageId(null);
+    };
+    
+    utterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event);
+      setIsSpeaking(false);
+      setCurrentlySpeakingMessageId(null);
+    };
+    
+    // Speak the text
+    window.speechSynthesis.speak(utterance);
+  };
+  
+  const stopSpeech = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      setCurrentlySpeakingMessageId(null);
+    }
+  };
+  
+  const toggleSpeech = (messageText, messageId) => {
+    if (isSpeaking && currentlySpeakingMessageId === messageId) {
+      stopSpeech();
+    } else {
+      // Clean text for speech (remove HTML tags)
+      const cleanText = messageText.replace(/<[^>]*>/g, '');
+      speakText(cleanText, messageId);
+    }
+  };
+
+  // Function to extract plain text from HTML for speech synthesis
+  const getPlainTextFromHTML = (html) => {
+    // Create a temporary element to parse the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || tempDiv.innerText || '';
   };
 
   return (
@@ -317,7 +419,7 @@ const Support = () => {
             className="flex-1 p-6 overflow-y-auto flex flex-col space-y-6 h-full"
             style={{ flex: '1 1 auto', backgroundImage: 'radial-gradient(circle at center, #f3f4f6 1px, transparent 1px)', backgroundSize: '20px 20px' }}
           >
-            {messages.map((msg, index) => (
+            {chatHistory.map((msg, index) => (
               <div 
                 key={index} 
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
@@ -334,26 +436,49 @@ const Support = () => {
                     <FontAwesomeIcon icon={msg.sender === 'user' ? faUser : faRobot} size="sm" />
                   </div>
                   <div 
-                    className={`p-4 rounded-2xl shadow-sm transition-all duration-300 ${
+                    className={`relative p-4 rounded-2xl shadow-sm transition-all duration-300 ${
                       msg.sender === 'user' 
                         ? 'bg-emerald-50 hover:bg-emerald-100 text-gray-800 border-emerald-200 border animate-slideInLeft' 
                         : 'bg-white hover:bg-gray-50 text-gray-800 border-teal-200 border animate-slideInRight'
                     }`}
                     style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
-                    dangerouslySetInnerHTML={
-                      msg.sender === 'bot' 
-                        ? { __html: msg.text } 
-                        : undefined
-                    }
                   >
-                    {msg.sender === 'user' ? msg.text : null}
+                    {/* Text-to-speech button for bot messages only */}
+                    {msg.sender === 'bot' && (
+                      <button 
+                        onClick={() => toggleSpeech(msg.rawText || getPlainTextFromHTML(msg.text), msg.id)}
+                        className={`absolute -top-2 -right-2 p-1 rounded-full ${
+                          isSpeaking && currentlySpeakingMessageId === msg.id
+                            ? 'bg-red-500 text-white hover:bg-red-600'
+                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                        } transition-colors`}
+                        title={isSpeaking && currentlySpeakingMessageId === msg.id ? "Stop speaking" : "Listen to message"}
+                      >
+                        <FontAwesomeIcon 
+                          icon={isSpeaking && currentlySpeakingMessageId === msg.id ? faVolumeMute : faVolumeUp} 
+                          size="xs" 
+                          className={isSpeaking && currentlySpeakingMessageId === msg.id ? 'animate-pulse' : ''}
+                        />
+                      </button>
+                    )}
+                    
+                    {/* Message content */}
+                    <div 
+                      dangerouslySetInnerHTML={
+                        msg.sender === 'bot' 
+                          ? { __html: msg.text } 
+                          : undefined
+                      }
+                    >
+                      {msg.sender === 'user' ? msg.text : null}
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
             
             {/* Typing indicator */}
-            {isTyping && (
+            {isBotTyping && (
               <div className="flex justify-start animate-fadeIn">
                 <div className="flex">
                   <div className="w-8 h-8 flex items-center justify-center rounded-full bg-teal-100 text-teal-600 mr-2">
@@ -371,13 +496,13 @@ const Support = () => {
             )}
             
             {/* Recording status */}
-            {recordingStatus && (
+            {voiceInputStatus && (
               <div className="flex justify-center animate-fadeIn">
                 <div className="bg-blue-50 p-2 px-4 rounded-full border border-blue-200 text-blue-700 text-sm flex items-center space-x-2">
-                  {isRecording && (
+                  {isVoiceRecording && (
                     <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
                   )}
-                  <span>{recordingStatus}</span>
+                  <span>{voiceInputStatus}</span>
                 </div>
               </div>
             )}
@@ -388,33 +513,35 @@ const Support = () => {
             <form onSubmit={handleSubmit} className="flex items-center gap-3">
               <input
                 type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
                 placeholder="Ask a question about the hospital system..."
-                className={`flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 hover:border-teal-400 transition-colors ${isRecording ? 'border-red-400 bg-red-50' : ''}`}
+                className={`flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 hover:border-teal-400 transition-colors ${isVoiceRecording ? 'border-red-400 bg-red-50' : ''}`}
               />
               
               {/* Microphone button */}
               <button
                 type="button"
-                onClick={toggleRecording}
+                onClick={toggleVoiceRecording}
                 className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-center shadow hover:shadow-lg transform hover:scale-105 active:scale-95 ${
-                  isRecording 
+                  isVoiceRecording 
                     ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
+                title={isVoiceRecording ? "Stop recording" : "Start voice input"}
               >
                 <FontAwesomeIcon 
-                  icon={isRecording ? faMicrophoneSlash : faMicrophone} 
-                  className={isRecording ? 'animate-pulse' : ''}
+                  icon={isVoiceRecording ? faMicrophoneSlash : faMicrophone} 
+                  className={isVoiceRecording ? 'animate-pulse' : ''}
                 />
               </button>
               
               {/* Send button */}
               <button
                 type="submit"
-                className={`bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-xl transition-all duration-300 flex items-center justify-center shadow hover:shadow-lg transform hover:scale-105 active:scale-95 ${!input.trim() ? 'opacity-50 cursor-not-allowed' : 'animate-bounce-subtle'}`}
-                disabled={!input.trim()}
+                className={`bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-xl transition-all duration-300 flex items-center justify-center shadow hover:shadow-lg transform hover:scale-105 active:scale-95 ${!userInput.trim() ? 'opacity-50 cursor-not-allowed' : 'animate-bounce-subtle'}`}
+                disabled={!userInput.trim()}
+                title="Send message"
               >
                 <FontAwesomeIcon icon={faPaperPlane} />
               </button>
