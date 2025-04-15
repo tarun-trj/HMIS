@@ -13,7 +13,7 @@ import { BiLineChart } from 'react-icons/bi';
 
 ChartJS.register(LinearScale, PointElement, LineElement, Tooltip, Legend);
 
-const BedOccupancyTrends = () => {
+const DoctorPerformanceMetrics = () => {
   // State variables
   const [activeTab, setActiveTab] = useState('doctor'); // 'doctor' or 'department'
   
@@ -916,4 +916,4 @@ const generateMockDoctorData = () => {
   ];
 };
 
-export default BedOccupancyTrends;
+export default DoctorPerformanceMetrics;
