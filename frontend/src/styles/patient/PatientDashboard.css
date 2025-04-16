@@ -53,7 +53,6 @@
 
 /* Edit Button - Increased size and squarish shape */
 .edit-button {
-  position: absolute;
   bottom: 8px;
   right: 8px;
   background-color: #4C7E75;

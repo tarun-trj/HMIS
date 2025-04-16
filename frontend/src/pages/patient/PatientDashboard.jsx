@@ -150,6 +150,7 @@ const PatientDashboard = () => {
             ...editedDetails,
           }));
           setIsEditing(false);
+          window.location.reload(); // This forces a full reload
         })
         .catch((err) => {
           console.error("Update failed", err);
@@ -251,6 +252,10 @@ const PatientDashboard = () => {
               <div className="patient-detail"><label>Room No:</label><span>{patient_info.roomNo}</span></div>
             </>
           )}
+
+          <button className="edit-button bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onClick={handleEditToggle}>
+            {isEditing ? "Save" : "Edit"}
+          </button>
         </div>
 
       </div>
@@ -259,9 +264,6 @@ const PatientDashboard = () => {
       <div className="patient-details-section">
         <div className="flex justify-between items-center">
           <h2 className="details-heading">Patient Details</h2>
-          <button className="edit-button bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onClick={handleEditToggle}>
-            {isEditing ? "Save" : "Edit"}
-          </button>
         </div>
 
         <div className="detail-cards-container">
