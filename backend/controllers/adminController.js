@@ -374,8 +374,7 @@ export const addStaff = async (req, res) => {
 
         // Save the employee to the database
         const savedEmployee = await newEmployee.save();
-        await sendPasswordEmail(email,PlainPassword,role);
-
+        await sendPasswordEmail(email,PlainPassword,role,savedEmployee._id);
         // Assign the employee to the appropriate role schema
         switch (role) {
             case 'doctor':
