@@ -9,7 +9,7 @@ import "jspdf-autotable";
 import bill from "../../../../backend/models/bill";
 
 // API base URL - adjust as needed
-const API_BASE_URL = "http://localhost:5000/api/billing";
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/billing`;
 
 const Bills = () => {
 
