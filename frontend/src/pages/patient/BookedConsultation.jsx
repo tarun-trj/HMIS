@@ -12,7 +12,7 @@ export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => 
     const res = await axiosInstance.get(`http://localhost:5000/api/patients/${patientId}/consultations`);
     const data = res.data;
 
-    if (!data.consultations) {
+    if (!data) {
       throw new Error("Failed to fetch consultations");
     }
 
