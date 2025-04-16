@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AuthProvider } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
+import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -14,6 +15,7 @@ import TrendsPage from './pages/TrendsPage';
 import AboutPage from './pages/AboutPage';
 import TermsPage from './pages/terms';
 import PrivacyPolicyPage from './pages/privacy';
+import AIHealthcarePage from './pages/AI'
 import './App.css';
 import ProtectedLayout from "./components/ProtectedLayout";
 // Common Pages
@@ -106,6 +108,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+      <ScrollToTop />
 
 
         <Routes>
@@ -121,6 +124,7 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage/>} />
           <Route path= "/terms" element={<TermsPage/>} />
+          <Route path= "/AI" element={<AIHealthcarePage/>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
 
