@@ -139,14 +139,6 @@ const BookConsultation = () => {
           filteredDoctors.map((doctor) => (
             <div key={doctor._id} className="doctor-item-container">
               <label className="doctor-item">
-                <input
-                  type="checkbox"
-                  checked={selectedDoctors.includes(doctor._id)}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    handleDoctorSelection(doctor._id);
-                  }}
-                />
                 <div
                   className="doctor-info"
                   onClick={() => handleDoctorClick(doctor._id)}
