@@ -17,11 +17,11 @@ const DoctorWorkingTrends = () => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedMonthData, setSelectedMonthData] = useState(null);
-  
+
   const handleTabChange = async (tab) => {
     setActiveTab(tab);
     setLoading(true);
-    
+
     try {
       if (tab === 'monthly') {
         // Restore the original monthly data
@@ -53,7 +53,7 @@ const DoctorWorkingTrends = () => {
     try {
       const fetchFunction = activeTab === 'monthly' ? fetchMonthlyConsultations : fetchWeeklyConsultations;
       const result = await fetchFunction(doctorName, startDate, endDate);
-      
+
       const newChartData = {
         labels: result.labels,
         datasets: [{
@@ -76,17 +76,17 @@ const DoctorWorkingTrends = () => {
 
   const handleChartClick = async (_, elements) => {
     if (!elements.length || activeTab !== 'monthly') return;
-    
+
     const clickedMonthIndex = elements[0].index;
     const monthStart = new Date(startDate);
     monthStart.setMonth(monthStart.getMonth() + clickedMonthIndex);
-    
+
     const monthEnd = new Date(monthStart);
     monthEnd.setMonth(monthEnd.getMonth() + 1);
 
     setActiveTab('weekly');
     setLoading(true);
-    
+
     try {
       const result = await fetchWeeklyConsultations(doctorName, monthStart, monthEnd);
       setChartData({
@@ -106,18 +106,18 @@ const DoctorWorkingTrends = () => {
 
   const fetchMonthlyConsultations = async (doctorName, start, end) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/analytics/doctor-working', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/analytics/doctor-working`, {
         params: {
           doctorName,
           startDate: start.toISOString(),
           endDate: end.toISOString()
         }
       });
-      
+
       // Format the data for the chart
       const labels = response.data.monthly.map(item => item.label);
       const data = response.data.monthly.map(item => item.count);
-      
+
       return { labels, data };
     } catch (error) {
       console.error('Error fetching monthly data:', error);
@@ -127,18 +127,18 @@ const DoctorWorkingTrends = () => {
 
   const fetchWeeklyConsultations = async (doctorName, start, end) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/analytics/doctor-working', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/analytics/doctor-working`, {
         params: {
           doctorName,
           startDate: start.toISOString(),
           endDate: end.toISOString()
         }
       });
-      
+
       // Format the data for the chart
       const labels = response.data.weekly.map(item => item.label);
       const data = response.data.weekly.map(item => item.count);
-      
+
       return { labels, data };
     } catch (error) {
       console.error('Error fetching weekly data:', error);
@@ -153,7 +153,7 @@ const DoctorWorkingTrends = () => {
           <FontAwesomeIcon icon={faChartBar} className="mr-3" />
           Doctor Working Trends
         </h2>
-        
+
         {/* Form section */}
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-0 md:flex md:gap-4 mb-6">
           <div className="flex-1">
@@ -169,7 +169,7 @@ const DoctorWorkingTrends = () => {
               />
             </div>
           </div>
-          
+
           <div className="flex-1">
             <div className="relative">
               <FontAwesomeIcon icon={faCalendar} className="absolute left-3 top-3 text-gray-400 z-10" />
@@ -231,7 +231,7 @@ const DoctorWorkingTrends = () => {
           </div>
         ) : chartData && (
           <div className="h-[400px]">
-            <Bar 
+            <Bar
               data={chartData}
               options={{
                 responsive: true,

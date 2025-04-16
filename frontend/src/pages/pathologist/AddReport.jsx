@@ -22,7 +22,7 @@ const AddReport = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.get(`http://localhost:5000/api/pathologists/searchById`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/pathologists/searchById`, {
         params: {
           searchById: patientId
         }
@@ -72,7 +72,7 @@ const AddReport = () => {
       formData.append('reportFile', selectedFile);
       formData.append('patientId', patientId);
 
-      let url = 'http://localhost:5000/api/pathologists/';
+      let url = `${import.meta.env.VITE_API_URL}/pathologists/`;
 
       if (isStandalone) {
         url += 'uploadStandaloneReport';

@@ -9,15 +9,15 @@ The `BedOccupancyTrends` component implements a comprehensive hospital bed occup
 The component maintains several state variables to track user preferences, data loading status, and analytical results:
 
 ```jsx
-const [startDate, setStartDate] = useState('2024-09-10');
-const [endDate, setEndDate] = useState('2025-04-15');
-const [period, setPeriod] = useState('weekly');
-const [chartType, setChartType] = useState('bar');
-const [bedType, setBedType] = useState('all');
+const [startDate, setStartDate] = useState("2024-09-10");
+const [endDate, setEndDate] = useState("2025-04-15");
+const [period, setPeriod] = useState("weekly");
+const [chartType, setChartType] = useState("bar");
+const [bedType, setBedType] = useState("all");
 const [trends, setTrends] = useState([]);
 const [loading, setLoading] = useState(false);
 const [error, setError] = useState(null);
-const [errorDetails, setErrorDetails] = useState('');
+const [errorDetails, setErrorDetails] = useState("");
 const [filterVisible, setFilterVisible] = useState(true);
 ```
 
@@ -31,7 +31,6 @@ These state variables serve distinct purposes:
 - `loading` and `error`: Manage UI feedback during data operations
 - `errorDetails`: Captures detailed error information for troubleshooting
 - `filterVisible`: Controls the visibility of filter controls in the UI
-
 
 ## Date Validation Implementation
 
@@ -79,7 +78,7 @@ const fetchData = async () =&gt; {
   setErrorDetails('');
   try {
     const response = await axios.post(
-      `http://localhost:5000/api/analytics/occupied-beds/${period}`,
+      `${import.meta.env.VITE_API_URL}/analytics/occupied-beds/${period}`,
       { startDate, endDate, bedType }
     );
     if (response.data &amp;&amp; response.data.trends) {
@@ -182,7 +181,7 @@ const getTrendColor = (value, data) =&gt; {
   const max = Math.max(...values);
   const min = Math.min(...values);
   const range = max - min;
-  
+
   // Normalize value between 0 and 1
   let ratio;
   if (range === 0) {
@@ -190,7 +189,7 @@ const getTrendColor = (value, data) =&gt; {
   } else {
     ratio = (value - min) / range;
   }
-  
+
   if (ratio &gt; 0.8) return '#EF4444'; // red-500
   if (ratio &gt; 0.6) return '#F59E0B'; // amber-500
   if (ratio &gt; 0.4) return '#10B981'; // emerald-500
@@ -205,11 +204,11 @@ This function implements a sophisticated color scaling algorithm:
 2. Determines the data range (minimum to maximum values)
 3. Normalizes the specific value within this range (0-1 scale)
 4. Assigns colors based on the normalized position:
-    - Highest values (>80%): Red - indicating critical occupancy
-    - High values (60-80%): Amber - indicating concerning occupancy
-    - Medium values (40-60%): Emerald - indicating moderate occupancy
-    - Low-medium values (20-40%): Blue - indicating stable occupancy
-    - Lowest values (<20%): Indigo - indicating low occupancy
+   - Highest values (>80%): Red - indicating critical occupancy
+   - High values (60-80%): Amber - indicating concerning occupancy
+   - Medium values (40-60%): Emerald - indicating moderate occupancy
+   - Low-medium values (20-40%): Blue - indicating stable occupancy
+   - Lowest values (<20%): Indigo - indicating low occupancy
 
 This visual encoding helps administrators quickly identify periods of concern without requiring detailed data analysis.
 
@@ -222,29 +221,29 @@ const calculateOverview = () =&gt; {
   if (!trends || trends.length === 0) return null;
   let totalOccupied = 0;
   let totalVacated = 0;
-  
+
   trends.forEach(item =&gt; {
     totalOccupied += item.occupied;
     totalVacated += item.vacated;
   });
-  
+
   const netOccupancyValues = trends.map(item =&gt; item.netOccupancy);
   const maxOccupancy = Math.max(...netOccupancyValues);
   const minOccupancy = Math.min(...netOccupancyValues);
-  
+
   // Calculate trend direction
   const firstValue = netOccupancyValues[^0];
   const lastValue = netOccupancyValues[netOccupancyValues.length - 1];
-  const trend = lastValue &gt; firstValue ? 'increasing' : 
+  const trend = lastValue &gt; firstValue ? 'increasing' :
                 lastValue &lt; firstValue ? 'decreasing' : 'stable';
-  
+
   // Calculate percentage change
-  const percentChange = firstValue !== 0 ? 
+  const percentChange = firstValue !== 0 ?
     Math.round(((lastValue - firstValue) / Math.abs(firstValue)) * 100) : 0;
-  
+
   return {
     totalOccupied,
-    totalVacated, 
+    totalVacated,
     netTotal: totalOccupied - totalVacated,
     maxOccupancy,
     minOccupancy,
@@ -309,7 +308,7 @@ The component implements dynamic chart rendering based on the selected chart typ
 ```jsx
 const renderChart = () =&gt; {
   const data = formatChartData(trends);
-  
+
   switch (chartType) {
     case 'line':
       return (
@@ -338,9 +337,9 @@ This implementation:
 1. Prepares a consistent data format for all chart types
 2. Uses a switch statement to determine the appropriate chart component
 3. Implements three visualization options:
-    - Bar chart: For clear comparison between time periods
-    - Line chart: For identifying trends over time
-    - Area chart: For visualizing cumulative effects
+   - Bar chart: For clear comparison between time periods
+   - Line chart: For identifying trends over time
+   - Area chart: For visualizing cumulative effects
 
 Each chart type maintains consistent axes, tooltip configuration, and color schemes while offering different visual representations of the same data.
 
@@ -359,7 +358,7 @@ The component implements a collapsible filter panel:
       {filterVisible ? 'Hide' : 'Show'} &lt;FaChartBar className="inline ml-1" /&gt;
     &lt;/button&gt;
   </div>
-  
+
   {filterVisible &amp;&amp; (
     <div>
       {/* Filter controls */}
@@ -451,9 +450,9 @@ This implementation:
 1. Displays the calculated percentage change
 2. Uses conditional rendering to show appropriate trend icons
 3. Applies semantic color coding:
-    - Increasing (up arrow): Red - potentially concerning
-    - Decreasing (down arrow): Green - typically positive for capacity
-    - Stable (horizontal line): Gray - neutral
+   - Increasing (up arrow): Red - potentially concerning
+   - Decreasing (down arrow): Green - typically positive for capacity
+   - Stable (horizontal line): Gray - neutral
 
 This makes the trend direction immediately visible without requiring interpretation of the numerical value.
 
@@ -466,13 +465,13 @@ The complete data processing flow consists of:
 3. Date validation before API requests
 4. Data fetching with appropriate parameters
 5. Data transformation for visualization:
-    - Period-appropriate label formatting
-    - Color calculation based on relative values
-    - Statistical summary derivation
+   - Period-appropriate label formatting
+   - Color calculation based on relative values
+   - Statistical summary derivation
 6. Rendering appropriate visualization based on:
-    - Selected chart type
-    - Data availability
-    - Loading/error status
+   - Selected chart type
+   - Data availability
+   - Loading/error status
 7. Providing interactive elements (tooltips, trend indicators)
 8. Enabling user interaction through filter controls
 
@@ -484,21 +483,21 @@ The component's rendering follows a hierarchical structure:
 
 1. Page header with title and description
 2. Filter panel (collapsible)
-    - Date range controls
-    - Period selector
-    - Chart type selector
-    - Bed type selector
-    - Refresh button
+   - Date range controls
+   - Period selector
+   - Chart type selector
+   - Bed type selector
+   - Refresh button
 3. Status messages (loading, error, empty results)
 4. When data is available:
-    - Statistical overview cards
-        - Total occupied
-        - Total vacated
-        - Net change
-        - Trend indicators
-    - Occupancy visualization
-        - Chart based on selected type
-        - Interactive tooltip
-        - Color-coded data points
+   - Statistical overview cards
+     - Total occupied
+     - Total vacated
+     - Net change
+     - Trend indicators
+   - Occupancy visualization
+     - Chart based on selected type
+     - Interactive tooltip
+     - Color-coded data points
 
 This structure provides a complete analytical dashboard for hospital administrators to monitor and analyze bed occupancy trends, making informed decisions about resource allocation and capacity planning.

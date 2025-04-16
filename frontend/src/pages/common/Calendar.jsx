@@ -7,14 +7,14 @@ import { Search } from 'lucide-react';
 
 async function fetchConsultations(doctorId = null) {
   try {
-    const response = await axios.get('http://localhost:5000/api/common/calendar/doctor', {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/common/calendar/doctor`, {
       params: {
         doctorId,
         startDate: moment().startOf('month').toISOString(),
         endDate: moment().endOf('month').toISOString()
       }
     });
-    
+
     return response.data.map(event => ({
       id: event.id,
       title: event.title, // "Consultation with [patient name]"
@@ -35,7 +35,7 @@ async function fetchConsultations(doctorId = null) {
 
 async function updateConsultation(consultationId, updateData) {
   try {
-    const response = await axios.put(`http://localhost:5000/api/consultations/update/${consultationId}`, updateData);
+    const response = await axios.put(`${import.meta.env.VITE_API_URL}/consultations/update/${consultationId}`, updateData);
     return response.data;
   } catch (error) {
     console.error("Error updating consultation:", error);
@@ -71,7 +71,7 @@ const MyCalendar = () => {
   //localStorage.getItem("user_id");
   const currentUserRole = 'receptionist'
   //localStorage.getItem("role");
-  
+
   const [events, setEvents] = useState([]);
   const [view, setView] = useState('month');
   const [date, setDate] = useState(new Date());
@@ -132,7 +132,7 @@ const MyCalendar = () => {
         appointment_type: formData.appointment_type,
         status: 'scheduled' // Default status for new appointments
       };
-      await axios.post('http://localhost:5000/api/consultations/book', consultationData);
+      await axios.post(`${import.meta.env.VITE_API_URL}/consultations/book`, consultationData);
 
       // Refresh the calendar after booking
       const doctorId = currentUserRole === 'doctor' ? userId : selectedDoctor;
@@ -168,7 +168,7 @@ const MyCalendar = () => {
         booked_date_time: moment(event.start).format('YYYY-MM-DDTHH:mm'),
         status: event.status || 'scheduled'
       });
-      
+
       setSelectedEvent(event);
       setShowUpdatePrompt(true);
       setLoading(false);
@@ -326,22 +326,22 @@ const MyCalendar = () => {
       {/* Add New Appointment Modal */}
       {showPrompt && currentUserRole === 'receptionist' && (
         <>
-          <div 
+          <div
             className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity z-40"
             onClick={() => setShowPrompt(false)}
           />
-          
+
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h3 className="text-xl font-bold mb-4">New Appointment</h3>
-              
+
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <input
                     type="number"
                     placeholder="Doctor ID"
                     value={formData.doctor_id}
-                    onChange={(e) => setFormData({...formData, doctor_id: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, doctor_id: e.target.value })}
                     className="w-1/2 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                     required
                     min="1"
@@ -350,7 +350,7 @@ const MyCalendar = () => {
                     type="number"
                     placeholder="Patient ID"
                     value={formData.patient_id}
-                    onChange={(e) => setFormData({...formData, patient_id: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, patient_id: e.target.value })}
                     className="w-1/2 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                     required
                     min="1"
@@ -359,7 +359,7 @@ const MyCalendar = () => {
 
                 <select
                   value={formData.appointment_type}
-                  onChange={(e) => setFormData({...formData, appointment_type: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, appointment_type: e.target.value })}
                   className="w-full p-2 border rounded"
                 >
                   <option value="regular">Regular</option>
@@ -371,7 +371,7 @@ const MyCalendar = () => {
                 <textarea
                   placeholder="Reason*"
                   value={formData.reason}
-                  onChange={(e) => setFormData({...formData, reason: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                   className="w-full p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                   rows="3"
                   required
@@ -380,7 +380,7 @@ const MyCalendar = () => {
                 <input
                   type="datetime-local"
                   value={formData.booked_date_time}
-                  onChange={(e) => setFormData({...formData, booked_date_time: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, booked_date_time: e.target.value })}
                   className="w-full p-2 border rounded"
                 />
 
@@ -411,25 +411,25 @@ const MyCalendar = () => {
       {/* Update Existing Appointment Modal */}
       {showUpdatePrompt && currentUserRole === 'receptionist' && selectedEvent && (
         <>
-          <div 
+          <div
             className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity z-40"
             onClick={() => setShowUpdatePrompt(false)}
           />
-          
+
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h3 className="text-xl font-bold mb-2">Update Appointment</h3>
               <p className="text-gray-500 mb-4 text-sm">
                 Appointment #{updateFormData.id}
               </p>
-              
+
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <input
                     type="number"
                     placeholder="Doctor ID"
                     value={updateFormData.doctor_id}
-                    onChange={(e) => setUpdateFormData({...updateFormData, doctor_id: e.target.value})}
+                    onChange={(e) => setUpdateFormData({ ...updateFormData, doctor_id: e.target.value })}
                     className="w-1/2 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                     required
                     min="1"
@@ -438,7 +438,7 @@ const MyCalendar = () => {
                     type="number"
                     placeholder="Patient ID"
                     value={updateFormData.patient_id}
-                    onChange={(e) => setUpdateFormData({...updateFormData, patient_id: e.target.value})}
+                    onChange={(e) => setUpdateFormData({ ...updateFormData, patient_id: e.target.value })}
                     className="w-1/2 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                     required
                     min="1"
@@ -448,7 +448,7 @@ const MyCalendar = () => {
 
                 <select
                   value={updateFormData.appointment_type}
-                  onChange={(e) => setUpdateFormData({...updateFormData, appointment_type: e.target.value})}
+                  onChange={(e) => setUpdateFormData({ ...updateFormData, appointment_type: e.target.value })}
                   className="w-full p-2 border rounded"
                 >
                   <option value="regular">Regular</option>
@@ -459,7 +459,7 @@ const MyCalendar = () => {
 
                 <select
                   value={updateFormData.status}
-                  onChange={(e) => setUpdateFormData({...updateFormData, status: e.target.value})}
+                  onChange={(e) => setUpdateFormData({ ...updateFormData, status: e.target.value })}
                   className="w-full p-2 border rounded"
                 >
                   <option value="scheduled">Scheduled</option>
@@ -471,7 +471,7 @@ const MyCalendar = () => {
                 <textarea
                   placeholder="Reason*"
                   value={updateFormData.reason}
-                  onChange={(e) => setUpdateFormData({...updateFormData, reason: e.target.value})}
+                  onChange={(e) => setUpdateFormData({ ...updateFormData, reason: e.target.value })}
                   className="w-full p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                   rows="3"
                   required
@@ -484,7 +484,7 @@ const MyCalendar = () => {
                   <input
                     type="datetime-local"
                     value={updateFormData.booked_date_time}
-                    onChange={(e) => setUpdateFormData({...updateFormData, booked_date_time: e.target.value})}
+                    onChange={(e) => setUpdateFormData({ ...updateFormData, booked_date_time: e.target.value })}
                     className="w-full p-2 border rounded"
                   />
                 </div>
@@ -501,7 +501,7 @@ const MyCalendar = () => {
                     Cancel
                   </button>
                   <div className="flex gap-2">
-                  
+
                     <button
                       onClick={handleUpdateEvent}
                       className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"

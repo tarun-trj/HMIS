@@ -9,9 +9,9 @@ import { format } from "date-fns"; // You may need to install this package
  */
 export const fetchConsultationsByPatientId = async (patientId) => {
   try {
-    const res = await fetch(`http://localhost:5000/api/patients/${patientId}/consultations`);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/patients/${patientId}/consultations`);
     const data = await res.json();
-console.log(data)
+    console.log(data)
     if (!res.ok) {
       throw new Error("Failed to fetch consultations");
     }
@@ -26,11 +26,11 @@ console.log(data)
     const now = new Date();
 
     // Filter only past consultations
-    const pastConsultations = Array.isArray(data) 
+    const pastConsultations = Array.isArray(data)
       ? data.filter((c) => {
-          const consultDate = new Date(c.booked_date_time);
-          return consultDate < now;
-        })
+        const consultDate = new Date(c.booked_date_time);
+        return consultDate < now;
+      })
       : [];
 
     return pastConsultations;
@@ -88,7 +88,7 @@ const PreviousConsultations = () => {
         details: consult.details
       };
     }
-    
+
     // Handle actual API data format
     return {
       id: consult._id,
@@ -120,61 +120,61 @@ const PreviousConsultations = () => {
   return (
     <div className="bg-white p-8 min-h-screen">
       <h2 className="text-2xl font-normal mb-8 text-center md:text-left">Previous Consultations</h2>
-      
+
       {!id ? (
         // List View
         <div className="max-w-5xl mx-auto">
-        {/* Table header row */}
-        <div className="mb-4 rounded-md bg-gray-900">
-          <div className="grid grid-cols-4 py-5 px-4 text-white">
-            <div className="text-center font-normal">Date</div>
-            <div className="text-center font-normal">Doctor</div>
-            <div className="text-center font-normal">Location</div>
-            <div className="text-center font-normal">Details</div>
+          {/* Table header row */}
+          <div className="mb-4 rounded-md bg-gray-900">
+            <div className="grid grid-cols-4 py-5 px-4 text-white">
+              <div className="text-center font-normal">Date</div>
+              <div className="text-center font-normal">Doctor</div>
+              <div className="text-center font-normal">Location</div>
+              <div className="text-center font-normal">Details</div>
+            </div>
           </div>
-        </div>
-      
-        {/* Consultation data rows */}
-        {consultations.length > 0 ? (
-          consultations.map((consult) => {
-            const formattedConsult = formatConsultationForDisplay(consult);
-            return (
-              <div
-                key={formattedConsult.id}
-                onClick={() => handleConsultationClick(formattedConsult.id)}
-                className="mb-4 rounded-md bg-gray-900 hover:bg-gray-800 cursor-pointer transition-colors duration-200"
-              >
-                <div className="grid grid-cols-4 py-5 px-4 text-white items-center">
-                  <div className="text-center">{formattedConsult.date}</div>
-      
-                  {/* Doctor Info */}
-                  <div className="flex justify-center items-center space-x-2 text-left">
-                    {consult.doctor?.profilePic && (
-                      <img
-                        src={consult.doctor.profilePic}
-                        alt={consult.doctor.name}
-                        className="w-8 h-8 rounded-full"
-                      />
-                    )}
-                    <div>
-                      <div className="font-medium">{consult.doctor?.name}</div>
-                      <div className="text-sm text-gray-300">{consult.doctor?.specialization}</div>
+
+          {/* Consultation data rows */}
+          {consultations.length > 0 ? (
+            consultations.map((consult) => {
+              const formattedConsult = formatConsultationForDisplay(consult);
+              return (
+                <div
+                  key={formattedConsult.id}
+                  onClick={() => handleConsultationClick(formattedConsult.id)}
+                  className="mb-4 rounded-md bg-gray-900 hover:bg-gray-800 cursor-pointer transition-colors duration-200"
+                >
+                  <div className="grid grid-cols-4 py-5 px-4 text-white items-center">
+                    <div className="text-center">{formattedConsult.date}</div>
+
+                    {/* Doctor Info */}
+                    <div className="flex justify-center items-center space-x-2 text-left">
+                      {consult.doctor?.profilePic && (
+                        <img
+                          src={consult.doctor.profilePic}
+                          alt={consult.doctor.name}
+                          className="w-8 h-8 rounded-full"
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium">{consult.doctor?.name}</div>
+                        <div className="text-sm text-gray-300">{consult.doctor?.specialization}</div>
+                      </div>
                     </div>
+
+                    <div className="text-center">{formattedConsult.location}</div>
+                    <div className="text-center">{formattedConsult.details}</div>
                   </div>
-      
-                  <div className="text-center">{formattedConsult.location}</div>
-                  <div className="text-center">{formattedConsult.details}</div>
                 </div>
-              </div>
-            );
-          })
-        ) : (
-          <div className="text-center py-10">
-            <p>No previous consultations found.</p>
-          </div>
-        )}
-      </div>
-      
+              );
+            })
+          ) : (
+            <div className="text-center py-10">
+              <p>No previous consultations found.</p>
+            </div>
+          )}
+        </div>
+
       ) : selectedConsultation ? (
         // Details View using the selected consultation from existing data
         <div className="consultation-details max-w-5xl mx-auto">
@@ -199,30 +199,30 @@ const PreviousConsultations = () => {
               })()}
             </div>
           </div>
-          
+
           <div className="navigation-options grid grid-cols-3 gap-4 mb-6">
-            <button 
+            <button
               onClick={() => navigateToSubpage("reports")}
               className="bg-gray-200 hover:bg-gray-300 p-4 rounded-md text-center"
             >
               Reports
             </button>
-            <button 
+            <button
               onClick={() => navigateToSubpage("prescriptions")}
               className="bg-gray-200 hover:bg-gray-300 p-4 rounded-md text-center"
             >
               Prescriptions
             </button>
-            <button 
+            <button
               onClick={() => navigateToSubpage("diagnosis")}
               className="bg-gray-200 hover:bg-gray-300 p-4 rounded-md text-center"
             >
               Summary/Diagnosis
             </button>
           </div>
-          
-          <button 
-            onClick={() => navigate("/patient/previous-consultations")} 
+
+          <button
+            onClick={() => navigate("/patient/previous-consultations")}
             className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-white"
           >
             Back to Consultations
@@ -232,8 +232,8 @@ const PreviousConsultations = () => {
         // Not Found View
         <div className="text-center py-10 max-w-5xl mx-auto">
           <p className="mb-4 text-xl">Consultation Not Found</p>
-          <button 
-            onClick={() => navigate("/patient/previous-consultations")} 
+          <button
+            onClick={() => navigate("/patient/previous-consultations")}
             className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-white"
           >
             Back to Consultations
