@@ -141,8 +141,8 @@ const BookedConsultation = () => {
     <div className="consultations-page">
       <main className="consultations-content">
         <header className="consultations-header">
-          <h2>Patient Consultations</h2>
-          <Home className="home-icon" />
+          <h2>Booked Consultations</h2>
+          <Home className="home-icon cursor-pointer" onClick={() => navigate("/patient/profile")}/>
         </header>
         <section className="consultations-list">
           {consultations.length > 0 ? (
