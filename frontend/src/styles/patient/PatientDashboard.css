@@ -11,6 +11,15 @@
   /* added a max-width to keep the content centered */
 }
 
+.patient-dashboard input, .patient-dashboard textarea{
+  background-color: white;
+  border: 1px solid grey;
+  border-radius: 5px;
+  padding-left: 5px;
+  margin: 2px;
+  width: 100%;
+}
+
 /* Profile Section */
 .profile-section {
   background-color: white;
@@ -83,7 +92,7 @@
   font-size: 1.8rem;
   font-weight: 700;
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 0px;
   color: #1e293b;
 }
 
