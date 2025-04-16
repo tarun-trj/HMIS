@@ -4,6 +4,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import testRoutes from "./routes/testRoutes.js";
 import employeeRoutes from './routes/employee.routes.js';
+import geminiRoutes from './routes/gemini.routes.js';
+
 import patientRoutes from './routes/patient.routes.js';
 import doctorRoutes from './routes/doctor.routes.js';
 import nurseRoutes from './routes/nurse.routes.js';
@@ -85,5 +87,6 @@ app.use("/api/auth", authRoutes);
 app.use('/api/public-data', publicRoutes);
 app.use('/api/common', commonPageRoutes);
 app.use('/api/insurance', insuranceRoutes);
+app.use('/api/gemini', geminiRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
