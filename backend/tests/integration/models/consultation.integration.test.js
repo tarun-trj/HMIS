@@ -11,6 +11,7 @@ import express from 'express'
 
 let app
 let server
+let port
 
 // Setup and teardown
 beforeAll(async () => {
@@ -69,7 +70,8 @@ beforeAll(async () => {
   })
   
   // Start the server
-  server = app.listen(4001)
+  server = app.listen(0)
+  port = server.address().port
 })
 
 afterAll(async () => {
