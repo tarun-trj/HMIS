@@ -16,11 +16,11 @@ const FinancialTrends = () => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedMonthData, setSelectedMonthData] = useState(null);
-  
+
   const handleTabChange = async (tab) => {
     setActiveTab(tab);
     setLoading(true);
-    
+
     try {
       if (tab === 'monthly') {
         // Restore the original monthly data
@@ -52,7 +52,7 @@ const FinancialTrends = () => {
     try {
       const fetchFunction = activeTab === 'monthly' ? fetchMonthlyPayments : fetchWeeklyPayments;
       const result = await fetchFunction(startDate, endDate);
-      
+
       const newChartData = {
         labels: result.labels,
         datasets: [{
@@ -75,17 +75,17 @@ const FinancialTrends = () => {
 
   const handleChartClick = async (_, elements) => {
     if (!elements.length || activeTab !== 'monthly') return;
-    
+
     const clickedMonthIndex = elements[0].index;
     const monthStart = new Date(startDate);
     monthStart.setMonth(monthStart.getMonth() + clickedMonthIndex);
-    
+
     const monthEnd = new Date(monthStart);
     monthEnd.setMonth(monthEnd.getMonth() + 1);
 
     setActiveTab('weekly');
     setLoading(true);
-    
+
     try {
       const result = await fetchWeeklyPayments(monthStart, monthEnd);
       setChartData({
@@ -105,11 +105,11 @@ const FinancialTrends = () => {
 
   const fetchMonthlyPayments = async (start, end) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/analytics/finance-trends', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/analytics/finance-trends`, {
         startDate: start,
         endDate: end
       });
-      
+
       // Extract and format monthly data from response
       const monthlyData = response.data.monthly;
       return {
@@ -124,11 +124,11 @@ const FinancialTrends = () => {
 
   const fetchWeeklyPayments = async (start, end) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/analytics/finance-trends', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/analytics/finance-trends`, {
         startDate: start,
         endDate: end
       });
-      
+
       // Extract and format weekly data from response
       const weeklyData = response.data.weekly;
       return {
@@ -148,7 +148,7 @@ const FinancialTrends = () => {
           <FontAwesomeIcon icon={faChartBar} className="mr-3" />
           Patient Payment Trends
         </h2>
-        
+
         {/* Form section */}
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-0 md:flex md:gap-4 mb-6">
           <div className="flex-1">
@@ -212,7 +212,7 @@ const FinancialTrends = () => {
           </div>
         ) : chartData ? (
           <div className="h-[400px]">
-            <Bar 
+            <Bar
               data={chartData}
               options={{
                 responsive: true,

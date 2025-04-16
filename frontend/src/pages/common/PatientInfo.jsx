@@ -16,10 +16,11 @@ const PatientInfo = () => {
   const [lastConsultation, setLastConsultation] = useState(null);
   const [loading, setLoading] = useState(false);
 
+
   const fetchPrescribedTests = async (patientId) => {
     return new Promise(async (resolve) => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/pathologists/searchById`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/pathologists/searchById`, {
           params: {
             searchById: patientId
           }
@@ -35,7 +36,7 @@ const PatientInfo = () => {
   const fetchPrescribedMedicines = async (patientId) => {
     return new Promise(async (resolve) => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/pharmacists/prescriptions`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/pharmacists/prescriptions`, {
           params: {
             searchById: patientId,
             dispense: false

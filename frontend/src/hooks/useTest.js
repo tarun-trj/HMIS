@@ -7,9 +7,9 @@ const useTest = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-   // const apiUrl = import.meta.env.VITE_API_URL; we'll use this when we have deployed the server ensure server url does not get exposed
+    // const apiUrl = import.meta.env.VITE_API_URL; we'll use this when we have deployed the server ensure server url does not get exposed
     axios
-      .get(`http://localhost:5000/api/tests/all`) // Fetching from your backend API
+      .get(`${import.meta.env.VITE_API_URL}/tests/all`) // Fetching from your backend API
       .then((response) => {
         setTestData(response.data);
         setLoading(false);

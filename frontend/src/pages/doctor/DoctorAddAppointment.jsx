@@ -12,25 +12,25 @@ const DoctorAddAppointment = () => {
     appointmentType: 'Regular',
     notes: '',
   });
-  
+
   // States for voice recording functionality
   const [isRecording, setIsRecording] = useState(false);
   const [recordedText, setRecordedText] = useState('');
   const [recordingStatus, setRecordingStatus] = useState('');
   const [highlightedField, setHighlightedField] = useState(null);
-  
+
   // States for AI processing
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiMessage, setAiMessage] = useState('');
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
-  
+
   // Refs for recording and transcript
   const recognitionRef = useRef(null);
   const currentTranscriptRef = useRef('');
-  
+
   // Backend API endpoint
-  const BACKEND_API_URL = 'http://localhost:5000/api/gemini';
-  
+  const BACKEND_API_URL = `${import.meta.env.VITE_API_URL}/gemini`;
+
   // Animation for filled field
   useEffect(() => {
     if (highlightedField) {
@@ -40,7 +40,7 @@ const DoctorAddAppointment = () => {
       return () => clearTimeout(timer);
     }
   }, [highlightedField]);
-  
+
   // Animation for success message
   useEffect(() => {
     if (showSuccessAnimation) {
@@ -50,7 +50,7 @@ const DoctorAddAppointment = () => {
       return () => clearTimeout(timer);
     }
   }, [showSuccessAnimation]);
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -79,7 +79,7 @@ const DoctorAddAppointment = () => {
     setRecordedText('');
     setAiMessage('');
   };
-  
+
   // Start recording
   const startRecording = () => {
     // Check if SpeechRecognition is available
@@ -87,30 +87,30 @@ const DoctorAddAppointment = () => {
       setRecordingStatus('Speech recognition not supported in this browser.');
       return;
     }
-    
+
     // Clear previous context
     setIsRecording(true);
     setRecordingStatus('Listening...');
     setRecordedText('');
     setAiMessage('');
-    
+
     // Reset transcript ref
     currentTranscriptRef.current = '';
-    
+
     // Reset field highlighting
     setHighlightedField(null);
     setShowSuccessAnimation(false);
-    
+
     // Set up speech recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognition();
     recognitionRef.current.continuous = true;
     recognitionRef.current.interimResults = true;
-    
+
     recognitionRef.current.onstart = () => {
       setRecordingStatus('Listening...');
     };
-    
+
     recognitionRef.current.onresult = (event) => {
       let transcript = '';
       for (let i = 0; i < event.results.length; i++) {
@@ -120,12 +120,12 @@ const DoctorAddAppointment = () => {
       setRecordedText(transcript);
       currentTranscriptRef.current = transcript;
     };
-    
+
     recognitionRef.current.onerror = (event) => {
       setRecordingStatus(`Error: ${event.error}`);
       stopRecording();
     };
-    
+
     recognitionRef.current.onend = () => {
       setRecordingStatus('Processing your voice input...');
       // Process using the ref value which has the latest transcript
@@ -135,10 +135,10 @@ const DoctorAddAppointment = () => {
         setRecordingStatus('No speech detected. Try again.');
       }
     };
-    
+
     recognitionRef.current.start();
   };
-  
+
   // Stop recording
   const stopRecording = () => {
     if (recognitionRef.current) {
@@ -146,17 +146,17 @@ const DoctorAddAppointment = () => {
       setIsRecording(false);
     }
   };
-  
+
   // Function to call the backend API with voice transcript
   const processVoiceWithAI = async (transcript) => {
     if (!transcript.trim()) {
       setRecordingStatus('No text to process. Please try again.');
       return;
     }
-    
+
     setIsProcessing(true);
     setAiMessage('Extracting appointment details...');
-    
+
     try {
       // Create a special prompt for the appointment form
       const appointmentPrompt = `
@@ -196,22 +196,22 @@ const DoctorAddAppointment = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         const aiText = data.data;
-        
+
         // Try to extract JSON from the response
         try {
           const jsonMatch = aiText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const jsonStr = jsonMatch[0];
             const parsedData = JSON.parse(jsonStr);
-            
+
             // Update form with the extracted data
             setFormData(prevData => {
               const newData = { ...prevData };
               const updatedFields = [];
-              
+
               // Only update fields that are provided by the AI
               Object.keys(parsedData).forEach(key => {
                 if (parsedData[key] && parsedData[key] !== '') {
@@ -219,7 +219,7 @@ const DoctorAddAppointment = () => {
                   updatedFields.push(key);
                 }
               });
-              
+
               // Set fields to highlight with animation
               if (updatedFields.length > 0) {
                 for (const field of updatedFields) {
@@ -228,10 +228,10 @@ const DoctorAddAppointment = () => {
                   }, 300);
                 }
               }
-              
+
               return newData;
             });
-            
+
             setShowSuccessAnimation(true);
             setAiMessage('Form filled with the details from your voice input.');
           } else {
@@ -248,7 +248,7 @@ const DoctorAddAppointment = () => {
       console.error('API error:', error);
       setAiMessage(`Error: ${error.message}`);
     }
-    
+
     setIsProcessing(false);
     setRecordingStatus('');
   };
@@ -258,7 +258,7 @@ const DoctorAddAppointment = () => {
       <h2 className="text-2xl font-semibold mb-6 animate-fadeIn">
         Appointment Booking
       </h2>
-      
+
       {/* Voice Assistant Section */}
       <div className="mb-6 bg-white p-6 rounded-md shadow-sm relative overflow-hidden animate-scaleIn">
         <h3 className="text-lg font-medium mb-3">Voice Assistant</h3>
@@ -267,16 +267,15 @@ const DoctorAddAppointment = () => {
           <br />
           Example: "Schedule a follow-up appointment for patient John Smith ID P12345 with Dr. Jane Wilson ID D789 on May 15th at 2:30 PM in room 302."
         </p>
-        
+
         <div className="flex items-center space-x-4">
           <button
             type="button"
             onClick={isRecording ? stopRecording : startRecording}
-            className={`relative flex items-center justify-center px-4 py-3 rounded-full shadow-md focus:outline-none transition-all transform active:scale-95 ${
-              isRecording 
-                ? 'bg-red-600 text-white animate-pulse' 
+            className={`relative flex items-center justify-center px-4 py-3 rounded-full shadow-md focus:outline-none transition-all transform active:scale-95 ${isRecording
+                ? 'bg-red-600 text-white animate-pulse'
                 : 'bg-teal-600 text-white hover:bg-teal-700'
-            }`}
+              }`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
@@ -286,7 +285,7 @@ const DoctorAddAppointment = () => {
               <div className="absolute -inset-1 rounded-full border-2 border-red-400 opacity-75 animate-ping"></div>
             )}
           </button>
-          
+
           {isProcessing && (
             <div className="flex items-center">
               <div className="ml-2">
@@ -300,23 +299,22 @@ const DoctorAddAppointment = () => {
             </div>
           )}
         </div>
-        
+
         {showSuccessAnimation && (
           <div className="absolute top-0 right-0 left-0 h-1 bg-green-500 animate-progressBar"></div>
         )}
-        
+
         {/* Status Message */}
         {(recordingStatus || aiMessage) && (
-          <div 
-            className={`mt-4 p-3 text-sm rounded animate-fadeIn ${
-              recordingStatus.includes('Error') || aiMessage.includes('Error')
+          <div
+            className={`mt-4 p-3 text-sm rounded animate-fadeIn ${recordingStatus.includes('Error') || aiMessage.includes('Error')
                 ? 'bg-red-100 text-red-700'
                 : isRecording
                   ? 'bg-red-50 text-red-600 border border-red-200'
                   : aiMessage.includes('filled')
                     ? 'bg-green-50 text-green-700 border border-green-200'
                     : 'bg-blue-50 text-blue-700 border border-blue-200'
-            }`}
+              }`}
           >
             {recordingStatus || aiMessage}
             {recordedText && (
@@ -327,9 +325,9 @@ const DoctorAddAppointment = () => {
           </div>
         )}
       </div>
-      
+
       <form
-        onSubmit={handleSubmit} 
+        onSubmit={handleSubmit}
         className="bg-white p-6 rounded-md shadow-sm animate-slideUp"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -344,15 +342,14 @@ const DoctorAddAppointment = () => {
                 name="patientId"
                 value={formData.patientId}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
-                  highlightedField === 'patientId' 
-                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${highlightedField === 'patientId'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                     : 'border-gray-300'
-                }`}
+                  }`}
                 required
               />
             </div>
-            
+
             <div className={`mb-4 ${highlightedField === 'patientName' ? 'animate-highlight' : ''}`}>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Patient Name:
@@ -362,15 +359,14 @@ const DoctorAddAppointment = () => {
                 name="patientName"
                 value={formData.patientName}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
-                  highlightedField === 'patientName' 
-                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${highlightedField === 'patientName'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                     : 'border-gray-300'
-                }`}
+                  }`}
                 required
               />
             </div>
-            
+
             <div className={`mb-4 ${highlightedField === 'date' ? 'animate-highlight' : ''}`}>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Date:
@@ -380,15 +376,14 @@ const DoctorAddAppointment = () => {
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
-                  highlightedField === 'date' 
-                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${highlightedField === 'date'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                     : 'border-gray-300'
-                }`}
+                  }`}
                 required
               />
             </div>
-            
+
             <div className={`mb-4 ${highlightedField === 'time' ? 'animate-highlight' : ''}`}>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Time:
@@ -398,16 +393,15 @@ const DoctorAddAppointment = () => {
                 name="time"
                 value={formData.time}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
-                  highlightedField === 'time' 
-                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${highlightedField === 'time'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                     : 'border-gray-300'
-                }`}
+                  }`}
                 required
               />
             </div>
           </div>
-          
+
           {/* Right Column */}
           <div>
             <div className={`mb-4 ${highlightedField === 'doctorId' ? 'animate-highlight' : ''}`}>
@@ -419,15 +413,14 @@ const DoctorAddAppointment = () => {
                 name="doctorId"
                 value={formData.doctorId}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
-                  highlightedField === 'doctorId' 
-                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${highlightedField === 'doctorId'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                     : 'border-gray-300'
-                }`}
+                  }`}
                 required
               />
             </div>
-            
+
             <div className={`mb-4 ${highlightedField === 'doctorName' ? 'animate-highlight' : ''}`}>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Doctor Name:
@@ -437,15 +430,14 @@ const DoctorAddAppointment = () => {
                 name="doctorName"
                 value={formData.doctorName}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
-                  highlightedField === 'doctorName' 
-                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${highlightedField === 'doctorName'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                     : 'border-gray-300'
-                }`}
+                  }`}
                 required
               />
             </div>
-            
+
             <div className={`mb-4 ${highlightedField === 'roomNo' ? 'animate-highlight' : ''}`}>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Room No:
@@ -455,15 +447,14 @@ const DoctorAddAppointment = () => {
                 name="roomNo"
                 value={formData.roomNo}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
-                  highlightedField === 'roomNo' 
-                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${highlightedField === 'roomNo'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                     : 'border-gray-300'
-                }`}
+                  }`}
                 required
               />
             </div>
-            
+
             <div className={`mb-4 ${highlightedField === 'appointmentType' ? 'animate-highlight' : ''}`}>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Appointment Type:
@@ -472,11 +463,10 @@ const DoctorAddAppointment = () => {
                 name="appointmentType"
                 value={formData.appointmentType}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
-                  highlightedField === 'appointmentType' 
-                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${highlightedField === 'appointmentType'
+                    ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                     : 'border-gray-300'
-                }`}
+                  }`}
                 required
               >
                 <option value="Regular">Regular</option>
@@ -487,7 +477,7 @@ const DoctorAddAppointment = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Notes Section */}
         <div className={`mt-6 ${highlightedField === 'notes' ? 'animate-highlight' : ''}`}>
           <label className="block text-gray-700 text-sm font-medium mb-2">
@@ -497,16 +487,15 @@ const DoctorAddAppointment = () => {
             name="notes"
             value={formData.notes}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${
-              highlightedField === 'notes' 
-                ? 'border-green-500 bg-green-50 ring-1 ring-green-500' 
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all ${highlightedField === 'notes'
+                ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
                 : 'border-gray-300'
-            }`}
+              }`}
             rows="4"
             placeholder="Add appointment notes here..."
           ></textarea>
         </div>
-        
+
         {/* Submit Button */}
         <div className="mt-6 flex justify-center">
           <button
@@ -517,7 +506,7 @@ const DoctorAddAppointment = () => {
           </button>
         </div>
       </form>
-      
+
       {/* CSS for animations */}
       <style jsx>{`
         @keyframes fadeIn {

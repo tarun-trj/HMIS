@@ -12,10 +12,10 @@ const ProfileDashboard = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(null);
   const [error, setError] = useState(null);
-  
+
   // List of authorized roles
-  const authorizedRoles = ["doctor", "receptionist", "nurse", "admin", "pathologist","pharmacist"];
-  
+  const authorizedRoles = ["doctor", "receptionist", "nurse", "admin", "pathologist", "pharmacist"];
+
   // Get current user role from localStorage
   const userId = localStorage.getItem("user_id");
   const currentUserRole = localStorage.getItem("role");
@@ -23,14 +23,14 @@ const ProfileDashboard = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        setLoading(true);        
-        const response = await axios.get(`http://localhost:5000/api/common/profile/${currentUserRole}/${userId}`);
+        setLoading(true);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/common/profile/${currentUserRole}/${userId}`);
         const userData = response.data;
-        
+
         // Transform date strings to readable format
         userData.date_of_birth = new Date(userData.date_of_birth).toLocaleDateString();
         userData.date_of_joining = new Date(userData.date_of_joining).toLocaleDateString();
-        
+
         setUserData(userData);
       } catch (error) {
         console.error("Error fetching profile data:", error);
@@ -53,7 +53,7 @@ const ProfileDashboard = () => {
     formData.append("profile_pic", file);
     try {
       const response = await axios.post(
-        `http://localhost:5000/api/common/upload-photo/${userData._id}`, 
+        `${import.meta.env.VITE_API_URL}/common/upload-photo/${userData._id}`,
         formData,
         {
           headers: {
@@ -61,12 +61,12 @@ const ProfileDashboard = () => {
           },
         }
       );
-  
+
       const { profile_pic } = response.data;
-  
+
       // Set the uploaded image from Cloudinary
       setUserData((prevData) => ({ ...prevData, profile_pic }));
-  
+
     } catch (error) {
       console.error("Error uploading profile picture:", error);
     }
@@ -119,13 +119,13 @@ const ProfileDashboard = () => {
     try {
       console.log(editData);
       const response = await axios.put(
-        `http://localhost:5000/api/common/profile/${currentUserRole}/${userId}`,
+        `${import.meta.env.VITE_API_URL}/common/profile/${currentUserRole}/${userId}`,
         editData
       );
 
       // Transform the returned user data
       const updatedUser = response.data.user;
-      
+
       // Format dates
       if (updatedUser.date_of_birth) {
         updatedUser.date_of_birth = new Date(updatedUser.date_of_birth).toLocaleDateString();
@@ -154,14 +154,14 @@ const ProfileDashboard = () => {
   ];
 
   const getEmploymentDetails = (data) => [
-    { 
-      key: "Department", 
-      value: data?.dept_id?.dept_name ? 
-        `${data.dept_id.dept_name} (${data.dept_id.dept_id})` : 
-        data?.role_details?.department_id?.dept_name ? 
-        `${data.role_details.department_id.dept_name} (${data.role_details.department_id.dept_id})` : 
-        "Not Assigned",
-      icon: <Building size={20} /> 
+    {
+      key: "Department",
+      value: data?.dept_id?.dept_name ?
+        `${data.dept_id.dept_name} (${data.dept_id.dept_id})` :
+        data?.role_details?.department_id?.dept_name ?
+          `${data.role_details.department_id.dept_name} (${data.role_details.department_id.dept_id})` :
+          "Not Assigned",
+      icon: <Building size={20} />
     },
     { key: "Join Date", value: data.date_of_joining, icon: <Calendar size={20} /> },
     { key: "Role", value: data.role?.charAt(0).toUpperCase() + data.role?.slice(1), icon: <Briefcase size={20} /> }
@@ -169,32 +169,33 @@ const ProfileDashboard = () => {
 
   const getRoleSpecificDetails = (data) => {
     if (!data?.role_details) return [];
-    
+
     switch (data.role) {
       case 'doctor':
         return [
-          { 
-            key: "Department", 
-            value: data?.role_details?.department_id?.dept_name ? 
-              `${data.role_details.department_id.dept_name} (${data.role_details.department_id.dept_id})` : 
-              "Not Assigned" 
+          {
+            key: "Department",
+            value: data?.role_details?.department_id?.dept_name ?
+              `${data.role_details.department_id.dept_name} (${data.role_details.department_id.dept_id})` :
+              "Not Assigned"
           },
           { key: "Specialization", value: data.role_details.specialization },
           { key: "Qualification", value: data.role_details.qualification },
           { key: "Experience", value: `${data.role_details.experience} years` },
           { key: "Room Number", value: data.role_details.room_num },
-          { key: "Rating", value: data.role_details.rating ? 
-            `${data.role_details.rating}/5 (${data.role_details.num_ratings || 0} reviews)` : 
-            "No ratings yet" 
+          {
+            key: "Rating", value: data.role_details.rating ?
+              `${data.role_details.rating}/5 (${data.role_details.num_ratings || 0} reviews)` :
+              "No ratings yet"
           }
         ];
       case 'nurse':
         return [
-          { 
-            key: "Assigned Department", 
-            value: data?.role_details?.assigned_dept?.dept_name ? 
-              `${data.role_details.assigned_dept.dept_name} (${data.role_details.assigned_dept.dept_id})` : 
-              "Not Assigned" 
+          {
+            key: "Assigned Department",
+            value: data?.role_details?.assigned_dept?.dept_name ?
+              `${data.role_details.assigned_dept.dept_name} (${data.role_details.assigned_dept.dept_id})` :
+              "Not Assigned"
           },
           { key: "Location", value: data.role_details.location },
           { key: "Assigned Room", value: data.role_details.assigned_room || "Not Assigned" }
@@ -208,7 +209,7 @@ const ProfileDashboard = () => {
   // Role-specific editable fields
   const getRoleEditableFields = (data) => {
     if (!data?.role_details) return [];
-    
+
     switch (data.role) {
       case 'doctor':
         return [
@@ -218,8 +219,10 @@ const ProfileDashboard = () => {
         ];
       case 'nurse':
         return [
-          { key: "location", label: "Location", type: "select", 
-            options: ["ward", "icu", "ot", "emergency"] }
+          {
+            key: "location", label: "Location", type: "select",
+            options: ["ward", "icu", "ot", "emergency"]
+          }
         ];
       // Add other roles as needed
       default:
@@ -234,8 +237,10 @@ const ProfileDashboard = () => {
       { key: "emergency_contact", label: "Emergency Contact", type: "text" },
       { key: "address", label: "Address", type: "textarea" },
       { key: "gender", label: "Gender", type: "select", options: ["male", "female"] },
-      { key: "bloodGrp", label: "Blood Group", type: "select", 
-        options: ["A+", "B+", "AB+", "O+", "A-", "B-", "AB-", "O-"] },
+      {
+        key: "bloodGrp", label: "Blood Group", type: "select",
+        options: ["A+", "B+", "AB+", "O+", "A-", "B-", "AB-", "O-"]
+      },
       { key: "date_of_birth", label: "Date of Birth", type: "date" }
     ];
 
@@ -250,7 +255,7 @@ const ProfileDashboard = () => {
 
   const renderRoleFields = () => {
     if (!getRoleEditableFields(editData).length) return null;
-  
+
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-semibold mb-4">Role Information</h3>
@@ -361,38 +366,38 @@ const ProfileDashboard = () => {
           <div className="space-y-8">
             {/* Profile Header */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-32 relative">
-              <div className="absolute -bottom-12 left-8">
-                <div className="relative">
-                  <div 
-                    className="w-24 h-24 rounded-full bg-white p-1 shadow-lg transition-transform duration-300 ease-in-out hover:scale-105"
-                  >
-                    <div 
-                      className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
-                      onClick={handleEditClick}
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-32 relative">
+                <div className="absolute -bottom-12 left-8">
+                  <div className="relative">
+                    <div
+                      className="w-24 h-24 rounded-full bg-white p-1 shadow-lg transition-transform duration-300 ease-in-out hover:scale-105"
                     >
-                      {previewImage || userData.profile_pic ? (
-                        <img 
-                          src={previewImage || userData.profile_pic} 
-                          alt="Profile" 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <User size={40} className="text-gray-400" />
-                      )}
+                      <div
+                        className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
+                        onClick={handleEditClick}
+                      >
+                        {previewImage || userData.profile_pic ? (
+                          <img
+                            src={previewImage || userData.profile_pic}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User size={40} className="text-gray-400" />
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleProfilePicChange}
+                      />
                     </div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleProfilePicChange}
-                    />
                   </div>
                 </div>
               </div>
-            </div>
-              
+
               <div className="pt-16 pb-6 px-8 flex justify-between items-center">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">{userData.name}</h1>

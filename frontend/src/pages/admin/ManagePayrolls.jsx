@@ -13,7 +13,7 @@ const ManagePayrolls = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/search-employees', {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/search-employees`, {
           params: {
             searchQuery,
           },
@@ -25,9 +25,9 @@ const ManagePayrolls = () => {
         }));
 
 
-        const payrollData = await axios.get('http://localhost:5000/api/common/findPayroll', {
+        const payrollData = await axios.get(`${import.meta.env.VITE_API_URL}/common/findPayroll`, {
         });
-       
+
         const payrolls = payrollData.data.payrolls;
         console.log('Fetched Payrolls:', payrolls);
         const employeesWithPayroll = employeesWithSelection.map(emp => {
@@ -35,7 +35,7 @@ const ManagePayrolls = () => {
           return {
             ...emp,
             lastDate: payroll ? new Date(payroll.month_year).toLocaleDateString() : 'N/A', // Format date
-            salary: payroll ? payroll.net_salary : (emp.salary ? emp.salary:"N/A"), // Default to 'N/A' if no payroll found
+            salary: payroll ? payroll.net_salary : (emp.salary ? emp.salary : "N/A"), // Default to 'N/A' if no payroll found
           };
         });
 
@@ -88,11 +88,11 @@ const ManagePayrolls = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/admin/process-payroll', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/admin/process-payroll`, {
         employee_ids: selectedEmployees,
       });
 
-      console.log('Process Payroll Response:', response);  
+      console.log('Process Payroll Response:', response);
 
       if (response.status === 200) {
         alert('Payroll processed successfully for selected employees.');
@@ -127,7 +127,7 @@ const ManagePayrolls = () => {
   });
 
   useEffect(() => {
-  },[popupData.net_salary]);
+  }, [popupData.net_salary]);
 
   const handleUpdateSalary = (employee_id) => {
     setPopupData({
@@ -144,13 +144,13 @@ const ManagePayrolls = () => {
     const basic_salary = parseFloat(popupData.basic_salary) || 0;
     const allowance = parseFloat(popupData.allowance) || 0;
     const deduction = parseFloat(popupData.deduction) || 0;
-    if(name === 'basic_salary') {
+    if (name === 'basic_salary') {
       return parseFloat(value) + allowance - deduction;
     }
-    if(name === 'allowance') {
+    if (name === 'allowance') {
       return basic_salary + parseFloat(value) - deduction;
     }
-    if(name === 'deduction') {
+    if (name === 'deduction') {
       return basic_salary + allowance - parseFloat(value);
     }
     return basic_salary + allowance - deduction;
@@ -158,11 +158,11 @@ const ManagePayrolls = () => {
 
   const handlePopupChange = (e) => {
     const { name, value } = e.target;
-    if(name === 'basic_salary' || name === 'allowance' || name === 'deduction') {
+    if (name === 'basic_salary' || name === 'allowance' || name === 'deduction') {
       setPopupData((prevData) => ({
         ...prevData,
         [name]: value,
-        net_salary: calculateNetSalary(name,value),
+        net_salary: calculateNetSalary(name, value),
       }));
     }
   };
@@ -171,7 +171,7 @@ const ManagePayrolls = () => {
     e.preventDefault();
     console.log('Updated Salary Data:', popupData);
     // Here you would typically send the updated salary data to the server
-    axios.post('http://localhost:5000/api/admin/update-salary', {
+    axios.post(`${import.meta.env.VITE_API_URL}/admin/update-salary`, {
       employee_id: popupData.employee_id,
       basic_salary: popupData.basic_salary,
       allowance: popupData.allowance,

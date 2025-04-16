@@ -1,4 +1,5 @@
 # Detailed Documentation of Feedbacks Component
+
 ## Component Overview
 
 The `Feedbacks` component implements a statistical visualization system for analyzing the distribution of doctor ratings across the hospital. Rather than displaying raw rating scores in a tabular format, it offers an intuitive pie chart that segments the rating spectrum into five equal ranges, providing administrators with a clear visual representation of how doctors are distributed across different performance levels. This approach enables quick identification of performance patterns and supports data-driven decision-making for quality improvement initiatives.
@@ -37,11 +38,11 @@ The component implements data retrieval through the `fetchRatingDistribution` fu
 const fetchRatingDistribution = async () =&gt; {
   setLoading(true);
   try {
-    const response = await axios.get('http://localhost:5000/api/analytics/feedback-rating-metrics');
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/analytics/feedback-rating-metrics`);
     const distribution = response.data.ratingDistribution;
-    
+
     // Data processing logic follows...
-    
+
   } catch (error) {
     console.error('Error fetching doctor rating distribution:', error);
   } finally {
@@ -141,21 +142,21 @@ setChartData({
   labels: ranges,
   datasets: [
     {
-      label: 'Number of Doctors',
+      label: "Number of Doctors",
       data: data,
       backgroundColor: [
-        'rgba(255, 99, 132, 0.6)',
-        'rgba(54, 162, 235, 0.6)',
-        'rgba(255, 206, 86, 0.6)',
-        'rgba(75, 192, 192, 0.6)',
-        'rgba(153, 102, 255, 0.6)',
+        "rgba(255, 99, 132, 0.6)",
+        "rgba(54, 162, 235, 0.6)",
+        "rgba(255, 206, 86, 0.6)",
+        "rgba(75, 192, 192, 0.6)",
+        "rgba(153, 102, 255, 0.6)",
       ],
       borderColor: [
-        'rgba(255, 99, 132, 1)',
-        'rgba(54, 162, 235, 1)',
-        'rgba(255, 206, 86, 1)',
-        'rgba(75, 192, 192, 1)',
-        'rgba(153, 102, 255, 1)',
+        "rgba(255, 99, 132, 1)",
+        "rgba(54, 162, 235, 1)",
+        "rgba(255, 206, 86, 1)",
+        "rgba(75, 192, 192, 1)",
+        "rgba(153, 102, 255, 1)",
       ],
       borderWidth: 1,
     },
@@ -177,7 +178,6 @@ The component also updates the rating statistics state for potential use in othe
 ```jsx
 setRatingStats({ min: minRating, max: maxRating });
 ```
-
 
 ## Chart Visualization Setup
 
@@ -224,7 +224,7 @@ return (
         &lt;FontAwesomeIcon icon={faSync} /&gt;
       &lt;/button&gt;
     </div>
-    
+
     {loading ? (
       <div>
         &lt;FontAwesomeIcon icon={faSync} spin className="text-blue-500 text-2xl" /&gt;
@@ -237,7 +237,7 @@ return (
         <div>
           {/* Explanatory text */}
         </div>
-      
+
     )}
   </div>
 );
@@ -247,11 +247,11 @@ This implementation:
 
 1. Creates a white card with padding and shadow for the component container
 2. Renders a header section with:
-    - A title with a pie chart icon for visual context
-    - A refresh button with hover effect and sync icon
+   - A title with a pie chart icon for visual context
+   - A refresh button with hover effect and sync icon
 3. Conditionally renders either:
-    - A centered loading spinner during data fetching
-    - The pie chart and explanatory text when data is available
+   - A centered loading spinner during data fetching
+   - The pie chart and explanatory text when data is available
 4. Sets a fixed height for the chart area to ensure consistent layout
 5. Provides explanatory text that describes how to interpret the visualization
 
@@ -268,7 +268,10 @@ The component includes contextual information to guide users:
     </span>
   </div>
   <p>
-    This pie chart divides doctor ratings into 5 equal ranges between the minimum and maximum rating values. Each slice represents the number and percentage of doctors who fall within that rating range. Hover over each slice to see detailed information.
+    This pie chart divides doctor ratings into 5 equal ranges between the
+    minimum and maximum rating values. Each slice represents the number and
+    percentage of doctors who fall within that rating range. Hover over each
+    slice to see detailed information.
   </p>
 </div>
 ```
@@ -289,9 +292,9 @@ The complete data flow within the component consists of:
 2. Initial data fetching triggered by the useEffect hook
 3. API request to retrieve rating distribution data
 4. Multi-stage data processing:
-    - Calculation of rating boundaries
-    - Generation of range labels
-    - Aggregation of doctor counts into ranges
+   - Calculation of rating boundaries
+   - Generation of range labels
+   - Aggregation of doctor counts into ranges
 5. Preparation of chart data structure with styling
 6. Rendering of either loading indicator or chart based on state
 7. Optional user-triggered refresh through button click

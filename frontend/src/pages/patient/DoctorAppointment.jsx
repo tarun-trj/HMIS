@@ -22,7 +22,7 @@ const DoctorAppointment = () => {
     const fetchDoctorDetails = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/patients/doctors/${doctorId}`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/patients/doctors/${doctorId}`);
         setDoctor(response.data);
         setLoading(false);
       } catch (err) {
@@ -45,12 +45,12 @@ const DoctorAppointment = () => {
       const times = [];
       const startHour = 9;
       const endHour = 17;
-      
+
       for (let hour = startHour; hour < endHour; hour++) {
         times.push(`${hour}:00`);
         times.push(`${hour}:30`);
       }
-      
+
       setAvailableTimes(times);
     }
   }, [selectedDate]);
@@ -59,13 +59,13 @@ const DoctorAppointment = () => {
   const getDateOptions = () => {
     const dates = [];
     const today = new Date();
-    
+
     for (let i = 0; i < 14; i++) {
       const date = new Date();
       date.setDate(today.getDate() + i);
       dates.push(date);
     }
-    
+
     return dates;
   };
 
@@ -90,7 +90,7 @@ const DoctorAppointment = () => {
       const appointmentDateTime = new Date(selectedDate);
       const [hours, minutes] = selectedTime.split(':');
       appointmentDateTime.setHours(parseInt(hours), parseInt(minutes));
-      
+
       // Get patient ID from local storage or context
       const patientId = localStorage.getItem("user_id");
 
@@ -101,12 +101,12 @@ const DoctorAppointment = () => {
         booked_date_time: appointmentDateTime,
         reason: reason,
         appointment_type: appointmentType,
+        created_by: 10126, // Assuming 10126 is the ID of a bot account for users self creating appointments
         // created_by can be null if created by patient or add user id if needed
       };
-      
       // Make the API call to your backend endpoint
-      const response = await axios.post('http://localhost:5000/api/consultations/book', consultationData);
-      
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/consultations/book`, consultationData);
+
       alert("Appointment booked successfully!");
       navigate("/patient/consultations"); // Navigate to appointments list
     } catch (err) {
@@ -125,7 +125,7 @@ const DoctorAppointment = () => {
         <ArrowLeft size={16} />
         Back to Doctors
       </button>
-      
+
       <div className="doctor-profile">
         <div className="doctor-header">
           <div className="doctor-avatar">
@@ -137,7 +137,7 @@ const DoctorAppointment = () => {
               </div>
             )}
           </div>
-          
+
           <div className="doctor-header-info">
             <h2 className="doctor-name">{doctor.employee_id?.name || 'Unknown Doctor'}</h2>
             <p className="doctor-specialty">{doctor.specialization}</p>
@@ -148,7 +148,7 @@ const DoctorAppointment = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="doctor-details">
           <div className="detail-section">
             <h3 className="section-title">About</h3>
@@ -158,7 +158,7 @@ const DoctorAppointment = () => {
             </p>
             <p className="detail-item">
               <MapPin size={16} className="detail-icon" />
-              <span>Room {doctor.room_num} • {doctor.department_id?.name || 'Unknown Department'}</span>
+              <span>Room {doctor.room_num} • {doctor.department_id?.dept_name || 'Unknown Department'}</span>
             </p>
             {doctor.employee_id?.phone_number && (
               <p className="detail-item">
@@ -169,17 +169,17 @@ const DoctorAppointment = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="appointment-section">
         <h3 className="section-title">Book Appointment</h3>
-        
+
         <div className="appointment-selectors">
           <div className="date-selector">
             <button className="selector-button" onClick={() => setShowCalendar(!showCalendar)}>
               <Calendar size={16} className="selector-icon" />
               {selectedDate ? new Date(selectedDate).toLocaleDateString() : 'Select Date'}
             </button>
-            
+
             {showCalendar && (
               <div className="calendar-dropdown">
                 <div className="date-options">
@@ -198,14 +198,14 @@ const DoctorAppointment = () => {
               </div>
             )}
           </div>
-          
+
           {selectedDate && (
             <div className="time-selector">
               <div className="time-header">
                 <Clock size={16} className="selector-icon" />
                 <span>Available Times</span>
               </div>
-              
+
               <div className="time-options">
                 {availableTimes.map((time, index) => (
                   <button
@@ -219,10 +219,10 @@ const DoctorAppointment = () => {
               </div>
             </div>
           )}
-          
+
           <div className="appointment-type-selector">
             <label htmlFor="appointment-type">Appointment Type:</label>
-            <select 
+            <select
               id="appointment-type"
               value={appointmentType}
               onChange={(e) => setAppointmentType(e.target.value)}
@@ -234,7 +234,7 @@ const DoctorAppointment = () => {
               <option value="emergency">Emergency</option>
             </select>
           </div>
-          
+
           <div className="reason-input">
             <label htmlFor="reason">Reason for Visit (Symptoms):</label>
             <textarea
@@ -247,8 +247,8 @@ const DoctorAppointment = () => {
             />
           </div>
         </div>
-        
-        <button 
+
+        <button
           className={`book-button ${!selectedDate || !selectedTime ? 'disabled' : ''}`}
           onClick={handleBookAppointment}
           disabled={!selectedDate || !selectedTime}

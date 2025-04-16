@@ -4,10 +4,10 @@ import { useNavigate, useParams } from "react-router-dom";
 // Fetch full consultation (but only use diagnosis in UI)
 export const fetchConsultationById = async (consultationId) => {
   try {
-    const response = await fetch(`http://localhost:5000/api/consultations/${consultationId}/view`);
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/consultations/${consultationId}/view`);
     if (!response.ok) throw new Error("Failed to fetch consultation");
     const data = await response.json();
-console.log(data)
+    console.log(data)
     return data.consultation || [];
   } catch (error) {
     console.error("Fetch error:", error);
@@ -24,7 +24,7 @@ const ConsultationDetails = () => {
   useEffect(() => {
     const loadConsultation = async () => {
       try {
-        console.log("id:",id)
+        console.log("id:", id)
         const data = await fetchConsultationById(id);
         setConsultation(data);
       } catch (error) {
@@ -55,51 +55,51 @@ const ConsultationDetails = () => {
         <div className="font-medium">Details</div>
       </div>
 
-     {/* Table Data Row - Now visible */}
-<div className="grid grid-cols-4 p-4 bg-white border border-t-0 rounded-b-lg">
-  <div>{consultation.date}</div>
-  <div className="flex items-center space-x-2">
-    {consultation.doctor?.profilePic && (
-      <img
-        src={consultation.doctor.profilePic}
-        alt={consultation.doctor.name}
-        className="w-8 h-8 rounded-full"
-      />
-    )}
-    <div>
-      <div className="font-medium">{consultation.doctor?.name}</div>
-      <div className="text-sm text-gray-500">{consultation.doctor?.specialization}</div>
-    </div>
-  </div>
-  <div>{consultation.location}</div>
-  <div>{consultation.details}</div>
-</div>
+      {/* Table Data Row - Now visible */}
+      <div className="grid grid-cols-4 p-4 bg-white border border-t-0 rounded-b-lg">
+        <div>{consultation.date}</div>
+        <div className="flex items-center space-x-2">
+          {consultation.doctor?.profilePic && (
+            <img
+              src={consultation.doctor.profilePic}
+              alt={consultation.doctor.name}
+              className="w-8 h-8 rounded-full"
+            />
+          )}
+          <div>
+            <div className="font-medium">{consultation.doctor?.name}</div>
+            <div className="text-sm text-gray-500">{consultation.doctor?.specialization}</div>
+          </div>
+        </div>
+        <div>{consultation.location}</div>
+        <div>{consultation.details}</div>
+      </div>
 
 
       {/* Options */}
       <div className="mt-6 space-y-4">
-        <div 
+        <div
           onClick={() => handleNavigate("reports")}
           className="bg-gray-200 p-4 text-center rounded cursor-pointer hover:bg-gray-300"
         >
           <h3 className="text-base font-medium">Reports</h3>
         </div>
 
-        <div 
+        <div
           onClick={() => handleNavigate("prescriptions")}
           className="bg-gray-200 p-4 text-center rounded cursor-pointer hover:bg-gray-300"
         >
           <h3 className="text-base font-medium">Prescriptions</h3>
         </div>
 
-        <div 
+        <div
           onClick={() => handleNavigate("bills")}
           className="bg-gray-200 p-4 text-center rounded cursor-pointer hover:bg-gray-300"
         >
           <h3 className="text-base font-medium">Bills</h3>
         </div>
 
-        <div 
+        <div
           onClick={() => handleNavigate("diagnosis")}
           className="bg-gray-200 p-4 text-center rounded cursor-pointer hover:bg-gray-300"
         >
@@ -109,7 +109,7 @@ const ConsultationDetails = () => {
 
       {/* Back Button */}
       <div className="flex justify-end">
-        <button 
+        <button
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 mt-6"
           onClick={() => navigate(`/patient/previous-consultations/`)}
         >
