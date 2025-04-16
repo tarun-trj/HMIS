@@ -14,7 +14,7 @@ const Navbar = ({ toggleSidebar,isSidebarOpen }) => {
       setRole(null);
       setUser(null);
       localStorage.clear();
-      navigate("/login");
+      navigate("/");
     } catch (err) {
       console.error("Logout failed", err);
     }
