@@ -101,9 +101,9 @@ const DoctorAppointment = () => {
         booked_date_time: appointmentDateTime,
         reason: reason,
         appointment_type: appointmentType,
+        created_by: 10126, // Assuming 10126 is the ID of a bot account for users self creating appointments
         // created_by can be null if created by patient or add user id if needed
       };
-      
       // Make the API call to your backend endpoint
       const response = await axios.post('http://localhost:5000/api/consultations/book', consultationData);
       
@@ -158,7 +158,7 @@ const DoctorAppointment = () => {
             </p>
             <p className="detail-item">
               <MapPin size={16} className="detail-icon" />
-              <span>Room {doctor.room_num} • {doctor.department_id?.name || 'Unknown Department'}</span>
+              <span>Room {doctor.room_num} • {doctor.department_id?.dept_name || 'Unknown Department'}</span>
             </p>
             {doctor.employee_id?.phone_number && (
               <p className="detail-item">

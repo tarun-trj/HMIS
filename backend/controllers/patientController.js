@@ -161,7 +161,7 @@ const getAllDoctors = async (req, res) => {
     })
     .populate({
       path: 'department_id',
-      select: 'name'
+      select: 'dept_name'
     });
   
   // Filter out any that failed to populate properly
