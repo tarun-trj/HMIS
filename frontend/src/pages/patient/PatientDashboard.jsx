@@ -35,7 +35,7 @@ const PatientDashboard = () => {
     emergency_contact: "",
     gender: ""
   });
-  
+
 
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -50,7 +50,7 @@ const PatientDashboard = () => {
     formData.append("profile_pic", file);
     try {
       const res = await axios.post(
-        `http://localhost:5000/api/patients/upload-photo/${patientId}`,
+        `${import.meta.env.VITE_API_URL}/patients/upload-photo/${patientId}`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -67,7 +67,7 @@ const PatientDashboard = () => {
   useEffect(() => {
     const fetchPatientData = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/patients/profile/${patientId}`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`);
         setPatientData(response.data);
         setProfilePhoto(response.data.profile_pic);
         if (response.data) {
@@ -87,7 +87,7 @@ const PatientDashboard = () => {
 
     const fetchPatientInsurances = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/insurance/${patientId}/insurances`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/insurance/${patientId}/insurances`);
         setInsurances(response.data);
       } catch (error) {
         console.error('Failed to fetch patient insurances:', error);
@@ -101,7 +101,7 @@ const PatientDashboard = () => {
   useEffect(() => {
     const fetchAvailableInsurances = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/insurance/insurance-providers`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/insurance/insurance-providers`);
         const patientInsuranceProviders = insurances.map(ins => ins.insurance_provider);
         const filtered = response.data.filter(ins => !patientInsuranceProviders.includes(ins.insurance_provider));
         setAvailableInsurances(filtered);
@@ -120,7 +120,7 @@ const PatientDashboard = () => {
     setVerificationMessage("");
 
     try {
-      const response = await axios.post(`http://localhost:5000/api/insurance/${patientId}/verify-insurance`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/insurance/${patientId}/verify-insurance`, {
         insurance_provider: selectedInsurance,
         policy_number: policyNumber,
         policy_end_date: policyEndDate
@@ -143,7 +143,7 @@ const PatientDashboard = () => {
 
   const handleEditToggle = () => {
     if (isEditing) {
-      axios.put(`http://localhost:5000/api/patients/profile/${patientId}`, editedDetails)
+      axios.put(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`, editedDetails)
         .then(() => {
           setPatientData((prev) => ({
             ...prev,
@@ -313,49 +313,49 @@ const PatientDashboard = () => {
           <div className="detail-card">
             <h3 className="detail-card-title">Personal Information</h3>
             <div className="detail-card-content">
-            {isEditing ? (
-            <>
-              <div className="input-group">
-                <input
-                  type="text"
-                  value={(editedDetails.gender || '').toLowerCase()}
-                  onChange={(e) =>
-                    setEditedDetails({ ...editedDetails, gender: e.target.value.toLowerCase() })
-                  }
-                  placeholder="Gender"
-                  className="input-field"
-                />
-              </div>
-              <div className="input-group">
-                <input
-                  type="date"
-                  value={editedDetails.date_of_birth || ''}
-                  onChange={(e) =>
-                    setEditedDetails({ ...editedDetails, date_of_birth: e.target.value })
-                  }
-                  placeholder="Date of Birth"
-                  className="input-field"
-                />
-              </div>
-              <div className="input-group">
-                <input
-                  type="text"
-                  value={editedDetails.aadhar_number || ''}
-                  onChange={(e) =>
-                    setEditedDetails({ ...editedDetails, aadhar_number: e.target.value })
-                  }
-                  placeholder="Aadhar Number"
-                  className="input-field"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <p>Gender: {patientData.gender.charAt(0).toUpperCase() + patientData.gender.slice(1)}</p>
-              <p>Date of Birth: {new Date(patientData.date_of_birth).toLocaleDateString()}</p>
-              <p>Aadhar: {patientData.aadhar_number}</p>
-            </>
-          )}
+              {isEditing ? (
+                <>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      value={(editedDetails.gender || '').toLowerCase()}
+                      onChange={(e) =>
+                        setEditedDetails({ ...editedDetails, gender: e.target.value.toLowerCase() })
+                      }
+                      placeholder="Gender"
+                      className="input-field"
+                    />
+                  </div>
+                  <div className="input-group">
+                    <input
+                      type="date"
+                      value={editedDetails.date_of_birth || ''}
+                      onChange={(e) =>
+                        setEditedDetails({ ...editedDetails, date_of_birth: e.target.value })
+                      }
+                      placeholder="Date of Birth"
+                      className="input-field"
+                    />
+                  </div>
+                  <div className="input-group">
+                    <input
+                      type="text"
+                      value={editedDetails.aadhar_number || ''}
+                      onChange={(e) =>
+                        setEditedDetails({ ...editedDetails, aadhar_number: e.target.value })
+                      }
+                      placeholder="Aadhar Number"
+                      className="input-field"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>Gender: {patientData.gender.charAt(0).toUpperCase() + patientData.gender.slice(1)}</p>
+                  <p>Date of Birth: {new Date(patientData.date_of_birth).toLocaleDateString()}</p>
+                  <p>Aadhar: {patientData.aadhar_number}</p>
+                </>
+              )}
             </div>
           </div>
 

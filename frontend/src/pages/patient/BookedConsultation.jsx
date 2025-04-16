@@ -7,9 +7,9 @@ import { useAuth } from "../../context/AuthContext";
 
 import axios from "axios";
 
-export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => {
+export const fetchConsultationsByPatientId = async (patientId, axiosInstance) => {
   try {
-    const res = await axiosInstance.get(`http://localhost:5000/api/patients/${patientId}/consultations`);
+    const res = await axiosInstance.get(`${import.meta.env.VITE_API_URL}/patients/${patientId}/consultations`);
     const data = res.data;
 
     if (!data) {
@@ -19,11 +19,11 @@ export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => 
     const now = new Date();
 
     // Filter only past consultations
-    const pastConsultations = Array.isArray(data) 
+    const pastConsultations = Array.isArray(data)
       ? data.filter((c) => {
-          const consultDate = new Date(c.booked_date_time);
-          return consultDate > now;
-        })
+        const consultDate = new Date(c.booked_date_time);
+        return consultDate > now;
+      })
       : [];
 
     // Transform the data to match the component's expected format
@@ -37,7 +37,7 @@ export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => 
       reason: consult.reason,
       // Add any other properties your component needs
     }));
-      
+
     console.log(formattedConsultations);
     return formattedConsultations;
   } catch (err) {
@@ -49,11 +49,11 @@ export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => 
 
 export const deleteConsultationById = async (consultationId) => {
   try {
-    const res = await fetch(`http://localhost:5000/api/patients/${consultationId}/cancel`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/patients/${consultationId}/cancel`, {
       method: "DELETE",
     });
 
-    
+
     const data = await res.json();
     console.log(data)
 
@@ -72,10 +72,10 @@ export const deleteConsultationById = async (consultationId) => {
 const BookedConsultation = () => {
   const [consultations, setConsultations] = useState([]);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
-  const[Loading,setLoading]=useState(true);
-  const{axiosInstance}=useAuth();
+  const [Loading, setLoading] = useState(true);
+  const { axiosInstance } = useAuth();
 
-  
+
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelConsultationId, setCancelConsultationId] = useState(null);
 
@@ -86,7 +86,7 @@ const BookedConsultation = () => {
   const patientId = localStorage.getItem("user_id");
 
   useEffect(() => {
-    const loadConsultations = async () => {      
+    const loadConsultations = async () => {
       const data = await fetchConsultationsByPatientId(patientId, axiosInstance);
       if (window._authFailed) return; // Skip updating state if auth failed
       setConsultations(data);
@@ -104,12 +104,12 @@ const BookedConsultation = () => {
   const confirmReschedule = () => {
     if (selectedConsultation) {
       console.log(selectedConsultation)
-      navigate('/patient/reschedule-consultation/'+selectedConsultation.id)
+      navigate('/patient/reschedule-consultation/' + selectedConsultation.id)
       // Clear selection after navigation
       setSelectedConsultation(null);
     }
   };
-  
+
   const handleReschedule = (consult) => {
     setSelectedConsultation(consult);
   };
@@ -118,7 +118,7 @@ const BookedConsultation = () => {
     if (cancelConsultationId) {
       try {
         const result = await deleteConsultationById(cancelConsultationId);
-  
+
         if (result.success) {
           setConsultations((prev) => prev.filter((c) => c.id !== cancelConsultationId));
           setShowCancelModal(false);
@@ -135,7 +135,7 @@ const BookedConsultation = () => {
       }
     }
   };
-  if(Loading) return <div className="loading">Loading...</div>;
+  if (Loading) return <div className="loading">Loading...</div>;
 
 
   return (
@@ -153,27 +153,27 @@ const BookedConsultation = () => {
                 <span className="consult-doctor">{consult.doctor}</span>
                 <span className="consult-location">{consult.location}</span>
                 <button
-  onClick={() => handleCancel(consult.id)}
-  disabled={consult.status === "cancelled"}
-  className={`px-4 py-2 rounded-md font-medium transition 
-    ${consult.status === "cancelled" 
-      ? "bg-gray-400 text-gray-700 cursor-not-allowed" 
-      : "bg-red-600 text-white hover:bg-red-700"}`}
-  title={consult.status === "cancelled" ? "Already cancelled" : "Cancel consultation"}
->
-  Cancel
-</button>
-<button
-  onClick={() => handleReschedule(consult)}
-  disabled={consult.status === "completed"}
-  className={`px-4 py-2 rounded-md font-medium transition
+                  onClick={() => handleCancel(consult.id)}
+                  disabled={consult.status === "cancelled"}
+                  className={`px-4 py-2 rounded-md font-medium transition 
+    ${consult.status === "cancelled"
+                      ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                      : "bg-red-600 text-white hover:bg-red-700"}`}
+                  title={consult.status === "cancelled" ? "Already cancelled" : "Cancel consultation"}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleReschedule(consult)}
+                  disabled={consult.status === "completed"}
+                  className={`px-4 py-2 rounded-md font-medium transition
     ${consult.status === "completed"
-      ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-      : "bg-green-600 text-white hover:bg-green-700"}`}
-  title={consult.status === "completed" ? "Completed consultations cannot be rescheduled" : "Reschedule consultation"}
->
-  Reschedule
-</button>
+                      ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                      : "bg-green-600 text-white hover:bg-green-700"}`}
+                  title={consult.status === "completed" ? "Completed consultations cannot be rescheduled" : "Reschedule consultation"}
+                >
+                  Reschedule
+                </button>
 
               </div>
             ))
@@ -204,7 +204,7 @@ const BookedConsultation = () => {
           </div>
         </div>
       )}
-      
+
       {/* Cancel Confirmation Modal */}
       {showCancelModal && (
         <div className="modal-overlay">

@@ -6,7 +6,7 @@ import "../../styles/patient/RescheduleConsultation.css";
 
 export const rescheduleConsultation = async (consultationId, newDateTime) => {
   try {
-    const res = await fetch(`http://localhost:5000/api/patients/${consultationId}/reschedule`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/patients/${consultationId}/reschedule`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -66,20 +66,20 @@ const RescheduleConsultation = () => {
       setShowErrorModal(true);
       return;
     }
-  
+
     // Extract start time from selected slot
     const [startTime] = selectedSlot.split(" - ");
     const [time, meridiem] = startTime.split(" ");
     let [hours, minutes] = time.split(":").map(Number);
-  
+
     if (meridiem === "PM" && hours < 12) hours += 12;
     if (meridiem === "AM" && hours === 12) hours = 0;
-  
+
     const newDateTime = new Date(selectedDate);
     newDateTime.setHours(hours, minutes, 0, 0);
-  
+
     const result = await rescheduleConsultation(consultationId, newDateTime);
-  
+
     if (result.success) {
       alert("Consultation successfully rescheduled!");
       navigate("/patient/booked-consultation");
@@ -87,7 +87,7 @@ const RescheduleConsultation = () => {
       setErrorMessage(result.error); // 🆕 Set backend error message
       setShowErrorModal(true);
     }
-  };  
+  };
 
   const confirmReschedule = () => {
     setShowConfirmModal(false);

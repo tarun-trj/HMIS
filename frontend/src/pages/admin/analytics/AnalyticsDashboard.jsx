@@ -1,30 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { 
-  FaVirus, 
-  FaPills, 
-  FaChartLine, 
-  FaBed, 
-  FaUserMd, 
-  FaComment, 
+import {
+  FaVirus,
+  FaPills,
+  FaChartLine,
+  FaBed,
+  FaUserMd,
+  FaComment,
   FaStar,
   FaArrowRight
 } from "react-icons/fa";
 import axios from 'axios';
 
 const AnalyticsDashboard = () => {
-const [dashboardData, setDashboardData] = useState({
-  totalPatients: 0,
-  patientsTrend: 0,
-  patientsTrendDirection: 'up',
-  totalRevenue: 0,
-  revenueTrend: 0, 
-  revenueTrendDirection: 'up',
-  averageRating: 0,
-  ratingChange: 0,
-  ratingTrendDirection: 'up',
-  isLoading: true
-});
+  const [dashboardData, setDashboardData] = useState({
+    totalPatients: 0,
+    patientsTrend: 0,
+    patientsTrendDirection: 'up',
+    totalRevenue: 0,
+    revenueTrend: 0,
+    revenueTrendDirection: 'up',
+    averageRating: 0,
+    ratingChange: 0,
+    ratingTrendDirection: 'up',
+    isLoading: true
+  });
 
   // Fetch dashboard data on component mount
   useEffect(() => {
@@ -34,14 +34,14 @@ const [dashboardData, setDashboardData] = useState({
         // const patientsRes = await axios.get('/api/analytics/total-patients');
         // const revenueRes = await axios.get('/api/analytics/total-revenue');
         // const ratingRes = await axios.get('/api/analytics/average-satisfaction');
-        const dashboardKPIs = await axios.get('http://localhost:5000/api/analytics/dashboard/kpis');
-        
+        const dashboardKPIs = await axios.get(`${import.meta.env.VITE_API_URL}/analytics/dashboard/kpis`);
+
         // Simulated response for demonstration
         setDashboardData({
           totalPatients: dashboardKPIs.data.totalPatients.value,
           patientsTrend: parseFloat(dashboardKPIs.data.totalPatients.change),
           patientsTrendDirection: dashboardKPIs.data.totalPatients.trend,
-          totalRevenue: dashboardKPIs.data.revenue.value, 
+          totalRevenue: dashboardKPIs.data.revenue.value,
           revenueTrend: parseFloat(dashboardKPIs.data.revenue.change),
           revenueTrendDirection: dashboardKPIs.data.revenue.trend,
           averageRating: dashboardKPIs.data.satisfaction.value,
@@ -51,7 +51,7 @@ const [dashboardData, setDashboardData] = useState({
         });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
-        setDashboardData(prev => ({...prev, isLoading: false, error: "Failed to load dashboard data"}));
+        setDashboardData(prev => ({ ...prev, isLoading: false, error: "Failed to load dashboard data" }));
       }
     };
 
@@ -69,29 +69,29 @@ const [dashboardData, setDashboardData] = useState({
   // Function to get current date and time
   const getCurrentDate = () => {
     const now = new Date();
-    
+
     // Get day name
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const day = dayNames[now.getDay()];
-    
+
     // Get month name
     const monthNames = ["January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
     ];
     const month = monthNames[now.getMonth()];
-    
+
     // Get date and year
     const date = now.getDate();
     const year = now.getFullYear();
-    
+
     // Get hours and minutes for time
     const hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
-    
+
     // AM or PM
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const formattedHours = hours % 12 || 12; // Convert to 12-hour format
-    
+
     return `${day}, ${month} ${date}, ${year}, ${formattedHours}:${minutes} ${ampm} IST`;
   };
 
@@ -173,10 +173,10 @@ const [dashboardData, setDashboardData] = useState({
       </div>
 
       {dashboardData.error && (
-  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-    {dashboardData.error}
-  </div>
-)}
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {dashboardData.error}
+        </div>
+      )}
       {/* Top Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
@@ -189,9 +189,9 @@ const [dashboardData, setDashboardData] = useState({
                 <p className="text-2xl font-bold text-gray-800">{dashboardData.totalPatients.toLocaleString()}</p>
               )}
               <span className={`text-sm font-medium ${dashboardData.patientsTrendDirection === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                  {dashboardData.patientsTrendDirection === 'up' ? '↑' : '↓'} {dashboardData.patientsTrend}%
-                </span>
-                <span className="text-gray-400 text-sm">from last month</span>
+                {dashboardData.patientsTrendDirection === 'up' ? '↑' : '↓'} {dashboardData.patientsTrend}%
+              </span>
+              <span className="text-gray-400 text-sm">from last month</span>
             </div>
             <div className="bg-blue-100 p-3 rounded-full">
               <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -233,8 +233,8 @@ const [dashboardData, setDashboardData] = useState({
                 <p className="text-2xl font-bold text-gray-800">{dashboardData.averageRating}</p>
               )}
               <span className={`text-sm font-medium ${dashboardData.ratingTrendDirection === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-              {dashboardData.ratingTrendDirection === 'up' ? '↑' : '↓'} {Math.abs(dashboardData.ratingChange)}%
-            </span>
+                {dashboardData.ratingTrendDirection === 'up' ? '↑' : '↓'} {Math.abs(dashboardData.ratingChange)}%
+              </span>
               <span className="text-gray-400 text-sm"> from last month</span>
             </div>
             <div className="bg-purple-100 p-3 rounded-full">
@@ -249,8 +249,8 @@ const [dashboardData, setDashboardData] = useState({
       {/* Analytics Module Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {analyticsModules.map((module, index) => (
-          <Link 
-            key={index} 
+          <Link
+            key={index}
             to={module.path}
             className={`relative ${module.color} p-6 rounded-lg shadow-sm border ${module.borderColor} transition-all duration-300 hover:shadow-md hover:translate-y-[-2px]`}
           >

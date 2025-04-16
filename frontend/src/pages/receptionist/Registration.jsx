@@ -22,7 +22,7 @@ const Registration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const navigate = useNavigate();
-  
+
   // const [passwordError, setPasswordError] = useState('');
 
   const handleChange = (e) => {
@@ -35,7 +35,7 @@ const Registration = () => {
 
 
 
-  const handleSubmit = async(e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Mobile number validation
     const mobileRegex = /^\d{10}$/;
@@ -50,19 +50,19 @@ const Registration = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/reception/register-patient', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/reception/register-patient`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
         setMessage({ type: 'success', text: data.message || 'Patient registered successfully!' });
-  
+
         setFormData({
           patientName: '',
           aadharId: '',
@@ -94,13 +94,13 @@ const Registration = () => {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-semibold mb-6">New User Registration</h2>
-      
+
       {message && (
         <div className={`mb-6 p-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
           {message.text}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 max-w-4xl mx-auto">
           {/* Left Column */}
@@ -118,7 +118,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 DOB:
@@ -132,7 +132,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Blood Group:
@@ -155,7 +155,7 @@ const Registration = () => {
                 <option value="O-">O-</option>
               </select>
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Height (cm):
@@ -169,7 +169,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Mobile:
@@ -183,10 +183,10 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
 
           </div>
-          
+
           {/* Right Column */}
           <div>
             <div className="mb-4">
@@ -202,7 +202,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Gender:
@@ -220,7 +220,7 @@ const Registration = () => {
                 <option value="Other">Other</option>
               </select>
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Email:
@@ -234,7 +234,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Weight (kg):
@@ -248,7 +248,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Emergency Number:
@@ -261,10 +261,10 @@ const Registration = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
               />
-            </div> 
+            </div>
           </div>
         </div>
-        
+
         {/* Address Field (Full Width) */}
         <div className="mt-6 max-w-4xl mx-auto">
           <div className="mb-4">
@@ -281,7 +281,7 @@ const Registration = () => {
             ></textarea>
           </div>
         </div>
-        
+
         {/* Submit Button */}
         <div className="mt-8 flex justify-center">
           <button

@@ -31,7 +31,7 @@ const Inventory = () => {
     supplier: ''
   });
   const [viewMode, setViewMode] = useState('inventory'); // 'inventory' or 'pending'
-  
+
   const [equipmentForm, setEquipmentForm] = useState({
     equipment_name: '',
     quantity: '',
@@ -55,8 +55,8 @@ const Inventory = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await axios.get('http://localhost:5000/api/inventory/search', {
+
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/inventory/search`, {
         params: {
           searchQuery: searchTerm.trim(),
           page: pagination.page,
@@ -150,7 +150,7 @@ const Inventory = () => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-        
+
       const payload = {
         ...updateForm,
         ...(modalMode === 'update' && { medicineId: selectedMedicine.id }),
@@ -158,7 +158,7 @@ const Inventory = () => {
         order_status: role === 'pharmacist' ? 'requested' : 'ordered'
       };
 
-      const response = await axios.post(`http://localhost:5000/api/admin/update-inventory`, payload);
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/admin/update-inventory`, payload);
 
       if (response.status === 200 || response.status === 201) {
         fetchInventory();
@@ -188,7 +188,7 @@ const Inventory = () => {
   const handleEquipmentSubmit = async () => {
     try {
       setLoading(true);
-      
+
       const payload = {
         inventoryType: 'equipment',
         equipment_name: equipmentForm.equipment_name,
@@ -204,7 +204,7 @@ const Inventory = () => {
       }
 
       const response = await axios.post(
-        'http://localhost:5000/api/admin/update-inventory', 
+        `${import.meta.env.VITE_API_URL}/admin/update-inventory`,
         payload
       );
 
@@ -231,7 +231,7 @@ const Inventory = () => {
   const handleOrderStatusUpdate = async (status) => {
     try {
       setLoading(true);
-      
+
       const payload = {
         inventoryType,
         itemId: inventoryType === 'medicine' ? selectedMedicine.id : selectedEquipment.id,
@@ -239,7 +239,7 @@ const Inventory = () => {
       };
 
       const response = await axios.post(
-        'http://localhost:5000/api/admin/update-order-status',
+        `${import.meta.env.VITE_API_URL}/admin/update-order-status`,
         payload
       );
 
@@ -289,7 +289,7 @@ const Inventory = () => {
           <th className="p-3 text-left">Available Quantity</th>
           <th className="p-3 text-left">Status</th>
         </>
-      ):(<th className="p-3 text-left">Quantity Requested</th>)}
+      ) : (<th className="p-3 text-left">Quantity Requested</th>)}
       {role === 'admin' && <th className="p-3 text-left">Actions</th>}
     </tr>
   );
@@ -302,9 +302,8 @@ const Inventory = () => {
       <td className="p-3">{item.quantity}</td>
       {viewMode === 'inventory' && (
         <>
-          <td className={`p-3 ${
-            !item.available ? 'text-red-300' : 'text-green-300'
-          } ${role !== 'admin' ? 'rounded-r-md' : ''}`}>
+          <td className={`p-3 ${!item.available ? 'text-red-300' : 'text-green-300'
+            } ${role !== 'admin' ? 'rounded-r-md' : ''}`}>
             {item.available ? 'Available' : `Expected: ${item.next_availability}`}
           </td>
         </>
@@ -336,11 +335,10 @@ const Inventory = () => {
         <>
           <td className="p-3">{formatDate(item.last_service_date)}</td>
           <td className="p-3">{formatDate(item.next_service_date)}</td>
-          <td className={`p-3 ${
-            item.service_status === 'Overdue' ? 'text-red-300' :
-            item.service_status === 'Due Soon' ? 'text-yellow-300' :
-            'text-green-300'
-          } ${role !== 'admin' ? 'rounded-r-md' : ''}`}>
+          <td className={`p-3 ${item.service_status === 'Overdue' ? 'text-red-300' :
+              item.service_status === 'Due Soon' ? 'text-yellow-300' :
+                'text-green-300'
+            } ${role !== 'admin' ? 'rounded-r-md' : ''}`}>
             {item.service_status}
           </td>
         </>
@@ -368,13 +366,13 @@ const Inventory = () => {
           <X size={20} />
         </button>
         <h2 className="text-2xl font-semibold mb-6">
-          {modalMode === 'update' 
-            ? 'Update Medicine' 
-            : role === 'pharmacist' 
+          {modalMode === 'update'
+            ? 'Update Medicine'
+            : role === 'pharmacist'
               ? 'Order Medicine'
               : 'Add New Medicine'}
         </h2>
-        {(viewMode === 'pending' && modalMode==='update') ? (
+        {(viewMode === 'pending' && modalMode === 'update') ? (
           <div className="space-y-6">
             <h3 className="text-lg font-medium">Review Order Request</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -452,7 +450,7 @@ const Inventory = () => {
                 </div>
               </div>
             )}
-            
+
             {/* Inventory fields in grid */}
             <div className="grid grid-cols-2 gap-6">
               <div>
@@ -541,13 +539,13 @@ const Inventory = () => {
           <X size={20} />
         </button>
         <h2 className="text-2xl font-semibold mb-6">
-          {modalMode === 'update' 
+          {modalMode === 'update'
             ? 'Update Equipment'
             : role === 'pathologist'
               ? 'Order Equipment'
               : 'Add New Equipment'}
         </h2>
-        {(viewMode === 'pending' && modalMode==='update') ? (
+        {(viewMode === 'pending' && modalMode === 'update') ? (
           <div className="space-y-6">
             <h3 className="text-lg font-medium">Review Equipment Request</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -579,9 +577,8 @@ const Inventory = () => {
                   type="text"
                   value={equipmentForm.equipment_name}
                   onChange={(e) => setEquipmentForm(prev => ({ ...prev, equipment_name: e.target.value }))}
-                  className={`p-2 w-full border rounded focus:ring-2 focus:ring-blue-500 ${
-                    modalMode === 'update' ? 'bg-gray-100' : ''
-                  }`}
+                  className={`p-2 w-full border rounded focus:ring-2 focus:ring-blue-500 ${modalMode === 'update' ? 'bg-gray-100' : ''
+                    }`}
                   required
                   readOnly={modalMode === 'update'}
                 />
@@ -650,21 +647,19 @@ const Inventory = () => {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setViewMode('inventory')}
-            className={`${
-              viewMode === 'inventory'
+            className={`${viewMode === 'inventory'
                 ? 'border-blue-500 text-blue-600 border-b-2'
                 : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-            } whitespace-nowrap py-4 px-1 font-medium`}
+              } whitespace-nowrap py-4 px-1 font-medium`}
           >
             Inventory
           </button>
           <button
             onClick={() => setViewMode('pending')}
-            className={`${
-              viewMode === 'pending'
+            className={`${viewMode === 'pending'
                 ? 'border-blue-500 text-blue-600 border-b-2'
                 : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-            } whitespace-nowrap py-4 px-1 font-medium`}
+              } whitespace-nowrap py-4 px-1 font-medium`}
           >
             Pending Requests
           </button>
@@ -679,7 +674,7 @@ const Inventory = () => {
         <h1 className="text-2xl font-bold">
           {inventoryType === 'medicine' ? 'Medicine Inventory' : 'Equipment Inventory'}
         </h1>
-  
+
         {/* Right-side buttons */}
         <div className="flex items-center space-x-4">
           {/* Toggle Button - Only shown for doctor, admin, nurse */}
@@ -691,7 +686,7 @@ const Inventory = () => {
               Switch to {inventoryType === 'medicine' ? 'Equipment' : 'Medicine'} Inventory
             </button>
           )}
-  
+
           {/* Pharmacist: Order Medicines */}
           {role === 'pharmacist' && inventoryType === 'medicine' && (
             <button
@@ -711,7 +706,7 @@ const Inventory = () => {
               Order Equipment
             </button>
           )}
-  
+
           {/* Admin: Add Medicine/Equipment */}
           {role === 'admin' && (
             <button
@@ -724,9 +719,9 @@ const Inventory = () => {
           )}
         </div>
       </div>
-  
+
       {role === 'admin' && renderTabs()}
-  
+
       {/* Search Bar */}
       <div className="mb-6 relative mx-auto">
         <input
@@ -738,7 +733,7 @@ const Inventory = () => {
         />
         <Search className="absolute right-3 top-3 h-5 w-5 text-gray-400" />
       </div>
-  
+
       {/* Loading and Error States */}
       {loading && (
         <div className="text-center py-4">
@@ -758,8 +753,8 @@ const Inventory = () => {
           {inventory.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p className="text-lg">
-                {viewMode === 'pending' 
-                  ? 'No pending requests found' 
+                {viewMode === 'pending'
+                  ? 'No pending requests found'
                   : `No ${inventoryType} items found`}
               </p>
             </div>

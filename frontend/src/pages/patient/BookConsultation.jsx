@@ -20,16 +20,16 @@ const BookConsultation = () => {
     const fetchDoctors = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/patients/doctors');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/patients/doctors`);
         setDoctors(response.data);
         setFilteredDoctors(response.data);
         // console.log(response.data); // Log the response data for debugging
         // Extract unique departments
-        const uniqueDepartments = [...new Set(response.data.map(doctor => 
+        const uniqueDepartments = [...new Set(response.data.map(doctor =>
           doctor.department_id?.dept_name || 'Unknown Department'))];
         console.log(uniqueDepartments);
         setDepartments(uniqueDepartments);
-        
+
         setLoading(false);
       } catch (err) {
         console.error('Error fetching doctors:', err);
@@ -45,10 +45,10 @@ const BookConsultation = () => {
   useEffect(() => {
     if (doctors.length > 0) {
       let filtered = [...doctors];
-      
+
       // Filter by location/department if selected
       if (location) {
-        filtered = filtered.filter(doctor => 
+        filtered = filtered.filter(doctor =>
           doctor.department_id?.dept_name === location
         );
       }
@@ -61,7 +61,7 @@ const BookConsultation = () => {
           doctor.specialization?.toLowerCase().includes(query)
         );
       }
-      
+
       setFilteredDoctors(filtered);
     }
   }, [doctors, location, searchQuery]);
@@ -84,7 +84,7 @@ const BookConsultation = () => {
   // Group doctors by specialization
   const getSpecialtyDoctors = () => {
     const specialties = {};
-    
+
     doctors.forEach(doctor => {
       if (doctor.specialization) {
         if (!specialties[doctor.specialization]) {
@@ -93,7 +93,7 @@ const BookConsultation = () => {
         specialties[doctor.specialization].push(doctor);
       }
     });
-    
+
     return Object.entries(specialties);
   };
 
@@ -139,16 +139,16 @@ const BookConsultation = () => {
           filteredDoctors.map((doctor) => (
             <div key={doctor._id} className="doctor-item-container">
               <label className="doctor-item">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={selectedDoctors.includes(doctor._id)}
                   onChange={(e) => {
                     e.stopPropagation();
                     handleDoctorSelection(doctor._id);
                   }}
-                /> 
-                <div 
-                  className="doctor-info" 
+                />
+                <div
+                  className="doctor-info"
                   onClick={() => handleDoctorClick(doctor._id)}
                 >
                   <span className="doctor-name">
@@ -165,7 +165,7 @@ const BookConsultation = () => {
                   </div>
                 </div>
               </label>
-              <button 
+              <button
                 className="book-now-button"
                 onClick={() => handleDoctorClick(doctor._id)}
               >

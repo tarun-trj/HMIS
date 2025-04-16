@@ -42,7 +42,7 @@ const EmployeeForm = () => {
     const fetchDepartments = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/get-departments');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/get-departments`);
         setDepartments(response.data.departments);
       } catch (err) {
         console.error('Error fetching departments:', err);
@@ -60,9 +60,9 @@ const EmployeeForm = () => {
     const basic = parseFloat(formData.basic_salary) || 0;
     const allowance = parseFloat(formData.allowance) || 0;
     const deduction = parseFloat(formData.deduction) || 0;
-    
+
     const totalSalary = basic + allowance - deduction;
-    
+
     if (totalSalary >= 0) {
       setFormData(prev => ({
         ...prev,
@@ -73,7 +73,7 @@ const EmployeeForm = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData({
@@ -97,7 +97,7 @@ const EmployeeForm = () => {
         ...prev,
         profile_pic: file
       }));
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfilePreview(reader.result);
@@ -105,11 +105,11 @@ const EmployeeForm = () => {
       reader.readAsDataURL(file);
     }
   };
-  
-  const handleSubmit = async(e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData();
-    
+
     // Append simple fields
     Object.entries(formData).forEach(([key, value]) => {
       if (key === 'bank_details') {
@@ -121,18 +121,18 @@ const EmployeeForm = () => {
       } else {
         data.append(key, value);
       }
-    });   
-    
-    setIsSubmitting(true); 
+    });
+
+    setIsSubmitting(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/admin/add-staff', data, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/admin/add-staff`, data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-    
+
       const data1 = response.data;
-    
+
       setMessage({ type: 'success', text: data1.message || 'Staff registered successfully!' });
-    
+
       // Reset form
       setFormData({
         name: '',
@@ -160,16 +160,16 @@ const EmployeeForm = () => {
         }
       });
       setProfilePreview(null);
-    
+
     } catch (error) {
       console.error('Registration error:', error);
-    
+
       if (error.response && error.response.data && error.response.data.message) {
         setMessage({ type: 'error', text: error.response.data.message });
       } else {
         setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
       }
-    
+
     } finally {
       setIsSubmitting(false);
       setTimeout(() => setMessage(null), 5000);
@@ -242,7 +242,7 @@ const EmployeeForm = () => {
           </div>
 
 
-          
+
           <div className="w-full md:w-4/5">
             <div className="mt-8">
               <label htmlFor="name" className={labelStyles}>Name:</label>
@@ -256,7 +256,7 @@ const EmployeeForm = () => {
                 required
               />
             </div>
-            
+
             <div className="mt-6">
               <label htmlFor="aadhar_id" className={labelStyles}>Aadhar ID:</label>
               <input
@@ -473,7 +473,7 @@ const EmployeeForm = () => {
                 />
               </div>
             </div>
-            
+
             <div className="mt-4">
               <label htmlFor="salary" className={labelStyles}>Total Salary:</label>
               <input
@@ -489,7 +489,7 @@ const EmployeeForm = () => {
               </p>
             </div>
           </div>
-          
+
           {/* Bank Details Section */}
           <div className="pt-4 border-t border-gray-200">
             <h3 className="text-lg font-medium mb-4">Bank Details</h3>

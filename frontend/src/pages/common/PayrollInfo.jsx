@@ -15,13 +15,13 @@ const PayrollInfo = () => {
     const fetchPayrollData = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/common/findPayroll', {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/common/findPayroll`, {
           params: { employeeId }
         });
-        
+
         if (response.data.payrolls) {
           // Sort payrolls by date in descending order
-          const sortedPayrolls = response.data.payrolls.sort((a, b) => 
+          const sortedPayrolls = response.data.payrolls.sort((a, b) =>
             new Date(b.month_year) - new Date(a.month_year)
           );
           setPayrollHistory(sortedPayrolls);
@@ -160,10 +160,9 @@ const PayrollInfo = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {record.payment_status === 'paid' ? (
-                          <button 
-                            className={`text-teal-600 hover:text-teal-900 flex items-center gap-1 ${
-                              downloadingId === record._id ? 'opacity-50 cursor-wait' : ''
-                            }`}
+                          <button
+                            className={`text-teal-600 hover:text-teal-900 flex items-center gap-1 ${downloadingId === record._id ? 'opacity-50 cursor-wait' : ''
+                              }`}
                             onClick={() => handleDownload(record)}
                             disabled={downloadingId === record._id}
                           >

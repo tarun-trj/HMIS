@@ -12,7 +12,7 @@ const ForgotPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/forgot-password", { email,userType });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/forgot-password`, { email,userType });
       setMessage(res.data.message);
     } catch (err) {
       setMessage(err.response.data.message);

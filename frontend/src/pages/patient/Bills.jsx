@@ -4,7 +4,7 @@ import { Home, X } from "lucide-react";
 import axios from "axios";
 
 // API base URL - adjust as needed
-const API_BASE_URL = "http://localhost:5000/api/billing";
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/billing`;
 
 const Bills = () => {
   const [bills, setBills] = useState([]);
@@ -21,7 +21,7 @@ const Bills = () => {
     transaction_id: "",
     status: "success"
   });
-  
+
   const navigate = useNavigate();
   const patientId = "10013"; // This should come from authentication/context in a real app
 
@@ -53,13 +53,13 @@ const Bills = () => {
       if (selectedBill) {
         try {
           setLoading(true);
-          
+
           // Fetch bill details
           const detailsResponse = await axios.get(`${API_BASE_URL}/${selectedBill}`);
-          
+
           // Fetch payments
           const paymentsResponse = await axios.get(`${API_BASE_URL}/${selectedBill}/payments`);
-          
+
           if (detailsResponse.data.success && paymentsResponse.data.success) {
             setBillDetails(detailsResponse.data.data);
             setPayments(paymentsResponse.data.data);
@@ -74,7 +74,7 @@ const Bills = () => {
         }
       }
     };
-    
+
     fetchBillDetails();
   }, [selectedBill]);
 
@@ -97,11 +97,11 @@ const Bills = () => {
 
   const calculateSummary = () => {
     if (!billDetails || !payments) return { billed: 0, paid: 0, net: 0 };
-    
+
     // Calculate total from bill items
-    const billed = billDetails.bill_items?.reduce((sum, item) => 
+    const billed = billDetails.bill_items?.reduce((sum, item) =>
       sum + (item.item_amount * (item.quantity || 1)), 0) || 0;
-    
+
     // Calculate total payments
     const paid = payments.reduce((sum, payment) => {
       if (payment?.status?.enum === "success") {
@@ -109,7 +109,7 @@ const Bills = () => {
       }
       return sum;
     }, 0);
-  
+
     // Net amount is billed minus paid
     const net = billed - paid;
 
@@ -141,12 +141,12 @@ const Bills = () => {
     try {
       setLoading(true);
       const response = await axios.post(`${API_BASE_URL}/${selectedBill}/payments`, newPayment);
-      
+
       if (response.data.success) {
         // Refresh payments and bill details
         const updatedPaymentsResponse = await axios.get(`${API_BASE_URL}/${selectedBill}/payments`);
         const updatedDetailsResponse = await axios.get(`${API_BASE_URL}/${selectedBill}`);
-        
+
         setPayments(updatedPaymentsResponse.data.data);
         setBillDetails(updatedDetailsResponse.data.data);
         setShowPaymentModal(false);
@@ -194,20 +194,20 @@ const Bills = () => {
             {error}
           </div>
         )}
-        
+
         {selectedBill ? (
           // Bill details page
           <div className="bg-white rounded shadow">
             <div className="py-4 px-6 bg-gray-100 rounded-t flex justify-between items-center">
               <h2 className="text-xl font-semibold">Bill Details</h2>
-              <button 
+              <button
                 onClick={handleBack}
                 className="flex items-center text-blue-600 hover:text-blue-800"
               >
                 <Home className="h-4 w-4 mr-1" /> Back to Bills
               </button>
             </div>
-            
+
             {loading ? (
               <p className="text-center py-8">Loading bill details...</p>
             ) : (
@@ -216,19 +216,19 @@ const Bills = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="font-medium">Seen/Referred By</span>
-                    <input 
-                      type="text" 
-                      placeholder="Scroller for Doc..." 
+                    <input
+                      type="text"
+                      placeholder="Scroller for Doc..."
                       className="ml-2 border rounded px-2 py-1 text-sm"
                       value={billDetails?.referredBy || ""}
-                      onChange={(e) => setBillDetails({...billDetails, referredBy: e.target.value})}
+                      onChange={(e) => setBillDetails({ ...billDetails, referredBy: e.target.value })}
                     />
                   </div>
                   <div>
                     <span className="font-medium">Timestamp-Bill Date</span>
-                    <input 
-                      type="text" 
-                      placeholder="Date / Time" 
+                    <input
+                      type="text"
+                      placeholder="Date / Time"
                       className="ml-2 border rounded px-2 py-1 text-sm"
                       value={billDetails?.generation_date || ""}
                       readOnly
@@ -239,7 +239,7 @@ const Bills = () => {
                 {/* Billing Items section */}
                 <div>
                   <h3 className="font-medium mb-2">Billing items</h3>
-                  
+
                   {/* Billing items table */}
                   <div className="overflow-hidden rounded">
                     <div className="flex bg-[#1b2432] text-white py-2 rounded-t">
@@ -269,14 +269,14 @@ const Bills = () => {
                 <div>
                   <div className="flex items-center mb-2">
                     <h3 className="font-medium">Payments</h3>
-                    <button 
+                    <button
                       className="ml-4 bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
                       onClick={handleOpenPaymentModal}
                     >
                       + Add Payment
                     </button>
                   </div>
-                  
+
                   {/* Payments table */}
                   <div className="overflow-hidden rounded mb-4">
                     {/* Table header */}
@@ -325,8 +325,8 @@ const Bills = () => {
 
                 {/* Action buttons */}
                 <div className="flex space-x-2 justify-start">
-              
-                  <button 
+
+                  <button
                     className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
                     onClick={handlePrintReceipt}
                   >
@@ -342,11 +342,11 @@ const Bills = () => {
             <div className="mb-6 flex justify-between items-center">
               <h2 className="text-2xl font-semibold">Patient Bills</h2>
             </div>
-            
+
             {bills.length > 0 ? (
               bills.map((bill) => (
-                <div 
-                  key={bill.bill_id} 
+                <div
+                  key={bill.bill_id}
                   className="flex items-center justify-between bg-gray-900 text-white rounded mb-4 p-4"
                 >
                   <div className="w-1/5 px-2 font-bold text-center text-white/80">
@@ -363,16 +363,15 @@ const Bills = () => {
                   </div>
                   <div className="w-1/5 px-2 font-bold text-center text-white/80">
                     <p className="text-sm">Status</p>
-                    <p className={`mt-1 ${
-                      bill.payment_status === 'paid' ? 'text-green-400' : 
-                      bill.payment_status === 'partially_paid' ? 'text-yellow-400' : 'text-red-400'
-                    }`}>
-                      {bill.payment_status === 'paid' ? 'Paid' : 
-                       bill.payment_status === 'partially_paid' ? 'Partially Paid' : 'Pending'}
+                    <p className={`mt-1 ${bill.payment_status === 'paid' ? 'text-green-400' :
+                        bill.payment_status === 'partially_paid' ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                      {bill.payment_status === 'paid' ? 'Paid' :
+                        bill.payment_status === 'partially_paid' ? 'Partially Paid' : 'Pending'}
                     </p>
                   </div>
                   <div className="w-1/5 flex justify-end px-2">
-                    <button 
+                    <button
                       onClick={() => handleView(bill.bill_id)}
                       className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
                     >
@@ -401,7 +400,7 @@ const Bills = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <form onSubmit={(e) => { e.preventDefault(); handleAddPayment(); }}>
               <div className="mb-4">
                 <label className="block text-gray-700 font-medium mb-2">Amount</label>
@@ -416,7 +415,7 @@ const Bills = () => {
                   required
                 />
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 font-medium mb-2">Payment Method</label>
                 <select
@@ -431,7 +430,7 @@ const Bills = () => {
                   <option value="bank_transfer">Bank Transfer</option>
                 </select>
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 font-medium mb-2">Payment Date</label>
                 <input
@@ -443,7 +442,7 @@ const Bills = () => {
                   required
                 />
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-700 font-medium mb-2">Transaction ID</label>
                 <input
@@ -456,7 +455,7 @@ const Bills = () => {
                 />
                 <p className="text-xs text-gray-500 mt-1">Auto-generated transaction ID</p>
               </div>
-              
+
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"

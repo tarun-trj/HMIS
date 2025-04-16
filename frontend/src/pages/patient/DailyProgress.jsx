@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-const PatientVitals = ({ patientId ="10013"}) => {
+const PatientVitals = ({ patientId = "10013" }) => {
   const [latestVital, setLatestVital] = useState(null);
   const [allVitals, setAllVitals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,14 +10,14 @@ const PatientVitals = ({ patientId ="10013"}) => {
     const fetchPatientVitals = async () => {
       try {
         // Fetch the latest vital
-        const latestVitalResponse = await axios.get(`http://localhost:5000/api/patients/${patientId}/vitals/latest`);
+        const latestVitalResponse = await axios.get(`${import.meta.env.VITE_API_URL}/patients/${patientId}/vitals/latest`);
         const latestVitalData = latestVitalResponse.data;
-        
-        
-        const allVitalsResponse = await axios.get(`http://localhost:5000/api/patients/${patientId}/vitals`);
+
+
+        const allVitalsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/patients/${patientId}/vitals`);
         const allVitalsData = allVitalsResponse.data;
-        
-        
+
+
         setLatestVital(latestVitalData.data);
         setAllVitals(allVitalsData.data || []);
       } catch (error) {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer, AreaChart, Area 
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
-import { 
-  FaBed, FaCalendarAlt, FaChartBar, FaChartLine, 
+import {
+  FaBed, FaCalendarAlt, FaChartBar, FaChartLine,
   FaArrowUp, FaArrowDown, FaMinus, FaStar,
   FaExclamationCircle, FaSyncAlt, FaChartArea
 } from 'react-icons/fa';
@@ -33,12 +33,12 @@ const BedOccupancyTrends = () => {
     try {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      
+
       if (end < start) {
         setError('End date must be after start date');
         return false;
       }
-      
+
       setError(null);
       return true;
     } catch (err) {
@@ -57,14 +57,14 @@ const BedOccupancyTrends = () => {
 
     try {
       const response = await axios.post(
-        `http://localhost:5000/api/analytics/occupied-beds/${period}`,
+        `${import.meta.env.VITE_API_URL}/analytics/occupied-beds/${period}`,
         {
           startDate,
           endDate,
           bedType
         }
       );
-      
+
       if (response.data && response.data.trends) {
         setTrends(response.data.trends);
       } else {
@@ -88,12 +88,12 @@ const BedOccupancyTrends = () => {
   // Format data for visualization
   const formatChartData = (data) => {
     if (!data || !data.length) return [];
-    
+
     return data.map(item => {
-      const label = period === 'weekly' 
-        ? formatWeekLabel(item.week) 
+      const label = period === 'weekly'
+        ? formatWeekLabel(item.week)
         : formatMonthLabel(item.month);
-      
+
       return {
         name: label,
         occupied: item.occupied,
@@ -122,12 +122,12 @@ const BedOccupancyTrends = () => {
   // Determine color based on occupancy value
   const getTrendColor = (value, data) => {
     if (!data || data.length === 0) return '#3B82F6';
-    
+
     const values = data.map(item => item.netOccupancy);
     const max = Math.max(...values);
     const min = Math.min(...values);
     const range = max - min;
-    
+
     // Normalize value between 0 and 1
     let ratio;
     if (range === 0) {
@@ -135,7 +135,7 @@ const BedOccupancyTrends = () => {
     } else {
       ratio = (value - min) / range;
     }
-    
+
     if (ratio > 0.8) return '#EF4444'; // red-500
     if (ratio > 0.6) return '#F59E0B'; // amber-500
     if (ratio > 0.4) return '#10B981'; // emerald-500
@@ -146,29 +146,29 @@ const BedOccupancyTrends = () => {
   // Calculate overview statistics
   const calculateOverview = () => {
     if (!trends || trends.length === 0) return null;
-    
+
     let totalOccupied = 0;
     let totalVacated = 0;
-    
+
     trends.forEach(item => {
       totalOccupied += item.occupied;
       totalVacated += item.vacated;
     });
-    
+
     const netOccupancyValues = trends.map(item => item.netOccupancy);
     const maxOccupancy = Math.max(...netOccupancyValues);
     const minOccupancy = Math.min(...netOccupancyValues);
-    
+
     // Calculate trend direction
     const firstValue = netOccupancyValues[0];
     const lastValue = netOccupancyValues[netOccupancyValues.length - 1];
     const trend = lastValue > firstValue ? 'increasing' : lastValue < firstValue ? 'decreasing' : 'stable';
-    
+
     // Calculate percentage change
-    const percentChange = firstValue !== 0 
-      ? Math.round(((lastValue - firstValue) / Math.abs(firstValue)) * 100) 
+    const percentChange = firstValue !== 0
+      ? Math.round(((lastValue - firstValue) / Math.abs(firstValue)) * 100)
       : 0;
-    
+
     return {
       totalOccupied,
       totalVacated,
@@ -212,7 +212,7 @@ const BedOccupancyTrends = () => {
   // Render appropriate chart based on selected type
   const renderChart = () => {
     if (!chartData || chartData.length === 0) return null;
-    
+
     switch (chartType) {
       case 'bar':
         return (
@@ -235,26 +235,26 @@ const BedOccupancyTrends = () => {
             <YAxis tick={{ fill: '#4B5563' }} />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
-            <Line 
-              type="monotone" 
-              dataKey="occupied" 
-              stroke="#10B981" 
+            <Line
+              type="monotone"
+              dataKey="occupied"
+              stroke="#10B981"
               strokeWidth={2}
               dot={{ r: 3, fill: '#10B981' }}
               name="New Occupied"
             />
-            <Line 
-              type="monotone" 
-              dataKey="vacated" 
-              stroke="#EF4444" 
+            <Line
+              type="monotone"
+              dataKey="vacated"
+              stroke="#EF4444"
               strokeWidth={2}
               dot={{ r: 3, fill: '#EF4444' }}
               name="Vacated"
             />
-            <Line 
-              type="monotone" 
-              dataKey="netOccupancy" 
-              stroke="#3B82F6" 
+            <Line
+              type="monotone"
+              dataKey="netOccupancy"
+              stroke="#3B82F6"
               strokeWidth={3}
               dot={{ r: 4, fill: '#3B82F6' }}
               activeDot={{ r: 8 }}
@@ -267,16 +267,16 @@ const BedOccupancyTrends = () => {
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorOccupied" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#10B981" stopOpacity={0.1}/>
+                <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#10B981" stopOpacity={0.1} />
               </linearGradient>
               <linearGradient id="colorVacated" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#EF4444" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#EF4444" stopOpacity={0.1}/>
+                <stop offset="5%" stopColor="#EF4444" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#EF4444" stopOpacity={0.1} />
               </linearGradient>
               <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
@@ -284,25 +284,25 @@ const BedOccupancyTrends = () => {
             <YAxis tick={{ fill: '#4B5563' }} />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
-            <Area 
-              type="monotone" 
-              dataKey="occupied" 
+            <Area
+              type="monotone"
+              dataKey="occupied"
               stroke="#10B981"
               fillOpacity={1}
               fill="url(#colorOccupied)"
               name="New Occupied"
             />
-            <Area 
-              type="monotone" 
-              dataKey="vacated" 
+            <Area
+              type="monotone"
+              dataKey="vacated"
               stroke="#EF4444"
               fillOpacity={1}
               fill="url(#colorVacated)"
               name="Vacated"
             />
-            <Area 
-              type="monotone" 
-              dataKey="netOccupancy" 
+            <Area
+              type="monotone"
+              dataKey="netOccupancy"
               stroke="#3B82F6"
               fillOpacity={1}
               fill="url(#colorNet)"
@@ -318,15 +318,15 @@ const BedOccupancyTrends = () => {
   // Sparkline component for stat cards
   const SparkLine = ({ data, color }) => {
     if (!data || data.length === 0) return null;
-    
+
     // Normalize data to fit in a small space
     const values = [...data];
     const min = Math.min(...values);
     const max = Math.max(...values);
     const range = max - min;
-    
+
     const normalized = values.map(v => range === 0 ? 0.5 : (v - min) / range);
-    
+
     return (
       <svg width="60" height="24" viewBox="0 0 60 24">
         <path
@@ -348,14 +348,14 @@ const BedOccupancyTrends = () => {
             <FaBed className="h-6 w-6 text-blue-500 mr-2" />
             <h1 className="text-2xl font-semibold text-gray-800">Bed Occupancy Trends</h1>
           </div>
-          <button 
+          <button
             onClick={() => setFilterVisible(!filterVisible)}
             className="text-gray-500 hover:bg-gray-100 p-2 rounded-md transition-colors"
           >
             {filterVisible ? 'Hide Filters' : 'Show Filters'}
           </button>
         </div>
-        
+
         {/* Filter Controls */}
         {filterVisible && (
           <div className="bg-white rounded-lg border border-gray-100 shadow-sm mb-6 overflow-hidden transition-all duration-300">
@@ -385,7 +385,7 @@ const BedOccupancyTrends = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Period selector */}
                 <div className="col-span-12 md:col-span-2">
                   <label className="text-xs font-medium text-gray-500 mb-1 block">View By</label>
@@ -393,28 +393,26 @@ const BedOccupancyTrends = () => {
                     <button
                       type="button"
                       onClick={() => setPeriod('weekly')}
-                      className={`rounded-full px-3 py-1 text-xs font-medium flex-1 transition-all ${
-                        period === 'weekly' 
-                          ? 'bg-blue-500 text-white' 
+                      className={`rounded-full px-3 py-1 text-xs font-medium flex-1 transition-all ${period === 'weekly'
+                          ? 'bg-blue-500 text-white'
                           : 'text-gray-500 hover:bg-gray-100'
-                      }`}
+                        }`}
                     >
                       Weekly
                     </button>
                     <button
                       type="button"
                       onClick={() => setPeriod('monthly')}
-                      className={`rounded-full px-3 py-1 text-xs font-medium flex-1 transition-all ${
-                        period === 'monthly' 
-                          ? 'bg-blue-500 text-white' 
+                      className={`rounded-full px-3 py-1 text-xs font-medium flex-1 transition-all ${period === 'monthly'
+                          ? 'bg-blue-500 text-white'
                           : 'text-gray-500 hover:bg-gray-100'
-                      }`}
+                        }`}
                     >
                       Monthly
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Bed Type */}
                 <div className="col-span-12 md:col-span-3">
                   <label className="text-xs font-medium text-gray-500 mb-1 block">Bed Type</label>
@@ -429,7 +427,7 @@ const BedOccupancyTrends = () => {
                     <option value="general">General</option>
                   </select>
                 </div>
-                
+
                 {/* Chart Type */}
                 <div className="col-span-12 md:col-span-2">
                   <label className="text-xs font-medium text-gray-500 mb-1 block">Chart Type</label>
@@ -437,33 +435,30 @@ const BedOccupancyTrends = () => {
                     <button
                       type="button"
                       onClick={() => setChartType('bar')}
-                      className={`p-2 rounded-md transition-all flex-1 ${
-                        chartType === 'bar' 
-                          ? 'bg-blue-50 text-blue-500' 
+                      className={`p-2 rounded-md transition-all flex-1 ${chartType === 'bar'
+                          ? 'bg-blue-50 text-blue-500'
                           : 'text-gray-400 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       <FaChartBar className="mx-auto" size={16} />
                     </button>
                     <button
                       type="button"
                       onClick={() => setChartType('line')}
-                      className={`p-2 rounded-md transition-all flex-1 ${
-                        chartType === 'line' 
-                          ? 'bg-blue-50 text-blue-500' 
+                      className={`p-2 rounded-md transition-all flex-1 ${chartType === 'line'
+                          ? 'bg-blue-50 text-blue-500'
                           : 'text-gray-400 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       <FaChartLine className="mx-auto" size={16} />
                     </button>
                     <button
                       type="button"
                       onClick={() => setChartType('area')}
-                      className={`p-2 rounded-md transition-all flex-1 ${
-                        chartType === 'area' 
-                          ? 'bg-blue-50 text-blue-500' 
+                      className={`p-2 rounded-md transition-all flex-1 ${chartType === 'area'
+                          ? 'bg-blue-50 text-blue-500'
                           : 'text-gray-400 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       <FaChartArea className="mx-auto" size={16} />
                     </button>
@@ -482,7 +477,7 @@ const BedOccupancyTrends = () => {
                   )}
                 </div>
               )}
-              
+
               <button
                 onClick={fetchData}
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md shadow-sm hover:shadow transition-all duration-200 flex justify-center items-center text-sm"
@@ -493,7 +488,7 @@ const BedOccupancyTrends = () => {
             </div>
           </div>
         )}
-        
+
         {/* Stats Overview */}
         {overview && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -501,7 +496,7 @@ const BedOccupancyTrends = () => {
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-gray-500">New Occupied</span>
                 <span className="text-xs font-medium text-green-500 flex items-center">
-                  <FaArrowUp className="h-3 w-3 mr-1" /> 
+                  <FaArrowUp className="h-3 w-3 mr-1" />
                   {overview.trend === 'increasing' && overview.percentChange > 0 ? `${overview.percentChange}%` : ''}
                 </span>
               </div>
@@ -512,7 +507,7 @@ const BedOccupancyTrends = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-4 hover:shadow-md transition-shadow duration-200">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-gray-500">Vacated</span>
@@ -528,7 +523,7 @@ const BedOccupancyTrends = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-4 hover:shadow-md transition-shadow duration-200">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-gray-500">Net Occupancy</span>
@@ -543,7 +538,7 @@ const BedOccupancyTrends = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="bg-white rounded-lg border border-gray-100 shadow-sm p-4 hover:shadow-md transition-shadow duration-200">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-gray-500">Trend</span>
@@ -557,17 +552,16 @@ const BedOccupancyTrends = () => {
               </div>
               <div className="flex items-center">
                 <span className="text-2xl font-semibold text-gray-800 capitalize">{overview.trend}</span>
-                <span className={`ml-2 text-sm font-medium ${
-                  overview.trend === 'increasing' ? 'text-green-500' :
-                  overview.trend === 'decreasing' ? 'text-red-500' : 'text-yellow-500'
-                }`}>
+                <span className={`ml-2 text-sm font-medium ${overview.trend === 'increasing' ? 'text-green-500' :
+                    overview.trend === 'decreasing' ? 'text-red-500' : 'text-yellow-500'
+                  }`}>
                   {overview.percentChange > 0 ? '+' : ''}{overview.percentChange}%
                 </span>
               </div>
             </div>
           </div>
         )}
-        
+
         {/* Chart Area */}
         <div className="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden">
           {loading ? (

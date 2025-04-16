@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faPaperPlane, 
-  faRobot, 
-  faUser, 
-  faMicrophone, 
-  faMicrophoneSlash, 
-  faSpinner, 
-  faVolumeUp, 
-  faVolumeMute 
+import {
+  faPaperPlane,
+  faRobot,
+  faUser,
+  faMicrophone,
+  faMicrophoneSlash,
+  faSpinner,
+  faVolumeUp,
+  faVolumeMute
 } from '@fortawesome/free-solid-svg-icons';
 
 const Support = () => {
@@ -20,23 +20,23 @@ const Support = () => {
   const [displayWelcome, setDisplayWelcome] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentlySpeakingMessageId, setCurrentlySpeakingMessageId] = useState(null);
-  
+
   const chatContainerRef = useRef(null);
   const speechRecognitionRef = useRef(null);
   const speechSynthesisRef = useRef(null);
-  
+
   // Backend API endpoint
-  const BACKEND_API_URL = 'http://localhost:5000/api/gemini';
+  const BACKEND_API_URL = `${import.meta.env.VITE_API_URL}/gemini`;
 
   useEffect(() => {
     // Add welcome message when component mounts with animation delay
     setTimeout(() => {
       setDisplayWelcome(true);
       setCharHistory([
-        { 
+        {
           id: 'welcome-msg',
-          text: "Hello! I'm your Hospital Management System support assistant. How can I help you today?", 
-          sender: 'bot' 
+          text: "Hello! I'm your Hospital Management System support assistant. How can I help you today?",
+          sender: 'bot'
         }
       ]);
     }, 500);
@@ -48,7 +48,7 @@ const Support = () => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatHistory]);
-  
+
   // Add effect to handle keeping the chat container in view
   useEffect(() => {
     const handleScroll = () => {
@@ -56,17 +56,17 @@ const Support = () => {
       const scrollPosition = window.scrollY;
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
-      
+
       // If we're near the bottom of the page, scroll to the bottom
       if (documentHeight - (scrollPosition + windowHeight) < 100) {
         window.scrollTo(0, documentHeight);
       }
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
+
   // Clean up any active speech synthesis when component unmounts
   useEffect(() => {
     return () => {
@@ -76,22 +76,22 @@ const Support = () => {
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    
+
     if (!userInput.trim()) return;
-    
+
     // Add user message with unique ID
     const messageId = `user-msg-${Date.now()}`;
     const userMessage = { id: messageId, text: userInput, sender: 'user' };
     setCharHistory(prev => [...prev, userMessage]);
     setUserInput('');
-    
+
     // Show typing indicator
     setIsBotTyping(true);
-    
+
     try {
       const response = await callGeminiAPI(userInput);
       setIsBotTyping(false);
-      
+
       if (response) {
         // Process response text to handle markdown-style formatting
         const formattedResponse = formatBotResponse(response);
@@ -99,10 +99,10 @@ const Support = () => {
         setCharHistory(prev => [...prev, { id: botMessageId, text: formattedResponse, sender: 'bot', rawText: response }]);
       } else {
         setCharHistory(prev => [
-          ...prev, 
-          { 
+          ...prev,
+          {
             id: `error-msg-${Date.now()}`,
-            text: "I'm sorry, I couldn't process your request. Please try again.", 
+            text: "I'm sorry, I couldn't process your request. Please try again.",
             sender: 'bot',
             rawText: "I'm sorry, I couldn't process your request. Please try again."
           }
@@ -111,19 +111,19 @@ const Support = () => {
     } catch (error) {
       console.error('Error:', error);
       setIsBotTyping(false);
-      
+
       // More specific error message based on the type of error
       let errorMessage = "I'm sorry, there was an error processing your request. Please try again later.";
-      
+
       if (error.message && error.message.includes('Failed to fetch')) {
         errorMessage = "I'm unable to connect to the server. Please check your internet connection or try again later.";
       }
-      
+
       setCharHistory(prev => [
-        ...prev, 
-        { 
+        ...prev,
+        {
           id: `error-msg-${Date.now()}`,
-          text: errorMessage, 
+          text: errorMessage,
           sender: 'bot',
           rawText: errorMessage
         }
@@ -135,13 +135,13 @@ const Support = () => {
   const formatBotResponse = (text) => {
     // Parse and convert **text** to <strong>text</strong>
     let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
+
     // Parse and convert *text* to <em>text</em> (but only if not already part of **)
     formattedText = formattedText.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-    
+
     // Handle line breaks
     formattedText = formattedText.replace(/\n/g, '<br />');
-    
+
     return formattedText;
   };
 
@@ -164,7 +164,7 @@ const Support = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         return data.data;  // Return the AI-generated text from the response
       } else {
@@ -184,43 +184,43 @@ const Support = () => {
       setVoiceInputStatus('Speech recognition not supported in this browser.');
       return;
     }
-    
+
     // Initialize SpeechRecognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     speechRecognitionRef.current = new SpeechRecognition();
-    
+
     speechRecognitionRef.current.continuous = true; // Keep listening until manually stopped
     speechRecognitionRef.current.interimResults = true;
     speechRecognitionRef.current.lang = 'en-US';
-    
+
     speechRecognitionRef.current.onstart = () => {
       setIsVoiceRecording(true);
       setVoiceInputStatus('Listening...');
     };
-    
+
     speechRecognitionRef.current.onresult = (event) => {
       const transcript = Array.from(event.results)
         .map(result => result[0].transcript)
         .join('');
-      
+
       setUserInput(transcript);
-      
+
       // Update status with real-time indication that voice is being recognized
       setVoiceInputStatus('Listening... (Voice detected)');
     };
-    
+
     speechRecognitionRef.current.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
       setVoiceInputStatus(`Error: ${event.error}`);
       // Don't stop recording automatically on error
     };
-    
+
     speechRecognitionRef.current.onend = () => {
       // Only reset status if we're not in an error state
       if (voiceInputStatus === 'Listening...' || voiceInputStatus === 'Listening... (Voice detected)') {
         setVoiceInputStatus('Voice input ready. Click send to submit.');
       }
-      
+
       // If recognition ends unexpectedly but user hasn't clicked stop, restart it
       if (isVoiceRecording && speechRecognitionRef.current) {
         try {
@@ -231,7 +231,7 @@ const Support = () => {
         }
       }
     };
-    
+
     try {
       speechRecognitionRef.current.start();
     } catch (error) {
@@ -239,7 +239,7 @@ const Support = () => {
       setVoiceInputStatus('Failed to start voice recognition.');
     }
   };
-  
+
   const stopVoiceRecording = () => {
     if (speechRecognitionRef.current) {
       speechRecognitionRef.current.stop();
@@ -247,7 +247,7 @@ const Support = () => {
       setVoiceInputStatus('Voice input ready. Click send to submit.');
     }
   };
-  
+
   const toggleVoiceRecording = () => {
     if (isVoiceRecording) {
       stopVoiceRecording();
@@ -255,50 +255,50 @@ const Support = () => {
       startVoiceRecording();
     }
   };
-  
+
   // Text-to-speech functions
   const speakText = (text, messageId) => {
     // Stop any currently playing speech
     stopSpeech();
-    
+
     // Check if SpeechSynthesis is available
     if (!('speechSynthesis' in window)) {
       console.error('Text-to-speech not supported in this browser');
       return;
     }
-    
+
     // Create a new SpeechSynthesisUtterance object
     const utterance = new SpeechSynthesisUtterance(text);
-    
+
     // Set voice options (optional)
     utterance.lang = 'en-US';
     utterance.rate = 1.0; // Speed of speech
     utterance.pitch = 1.0; // Pitch of speech
-    
+
     // Save reference to utterance
     speechSynthesisRef.current = utterance;
-    
+
     // Set up event handlers
     utterance.onstart = () => {
       setIsSpeaking(true);
       setCurrentlySpeakingMessageId(messageId);
     };
-    
+
     utterance.onend = () => {
       setIsSpeaking(false);
       setCurrentlySpeakingMessageId(null);
     };
-    
+
     utterance.onerror = (event) => {
       console.error('Speech synthesis error:', event);
       setIsSpeaking(false);
       setCurrentlySpeakingMessageId(null);
     };
-    
+
     // Speak the text
     window.speechSynthesis.speak(utterance);
   };
-  
+
   const stopSpeech = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -306,7 +306,7 @@ const Support = () => {
       setCurrentlySpeakingMessageId(null);
     }
   };
-  
+
   const toggleSpeech = (messageText, messageId) => {
     if (isSpeaking && currentlySpeakingMessageId === messageId) {
       stopSpeech();
@@ -337,61 +337,58 @@ const Support = () => {
               Support Assistant
             </h1>
           </div>
-          
+
           {/* Chat messages container */}
-          <div 
+          <div
             ref={chatContainerRef}
             className="flex-1 p-6 overflow-y-auto flex flex-col space-y-6 h-full"
             style={{ flex: '1 1 auto', backgroundImage: 'radial-gradient(circle at center, #f3f4f6 1px, transparent 1px)', backgroundSize: '20px 20px' }}
           >
             {chatHistory.map((msg, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className={`flex max-w-md ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <div className={`w-8 h-8 flex items-center justify-center rounded-full ${
-                    msg.sender === 'user' 
-                      ? 'bg-emerald-100 text-emerald-600 ml-2 animate-bounceIn' 
+                  <div className={`w-8 h-8 flex items-center justify-center rounded-full ${msg.sender === 'user'
+                      ? 'bg-emerald-100 text-emerald-600 ml-2 animate-bounceIn'
                       : 'bg-teal-100 text-teal-600 mr-2 animate-bounceIn'
-                  }`}
-                  style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
+                    }`}
+                    style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
                   >
                     <FontAwesomeIcon icon={msg.sender === 'user' ? faUser : faRobot} size="sm" />
                   </div>
-                  <div 
-                    className={`relative p-4 rounded-2xl shadow-sm transition-all duration-300 ${
-                      msg.sender === 'user' 
-                        ? 'bg-emerald-50 hover:bg-emerald-100 text-gray-800 border-emerald-200 border animate-slideInLeft' 
+                  <div
+                    className={`relative p-4 rounded-2xl shadow-sm transition-all duration-300 ${msg.sender === 'user'
+                        ? 'bg-emerald-50 hover:bg-emerald-100 text-gray-800 border-emerald-200 border animate-slideInLeft'
                         : 'bg-white hover:bg-gray-50 text-gray-800 border-teal-200 border animate-slideInRight'
-                    }`}
+                      }`}
                     style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
                   >
                     {/* Text-to-speech button for bot messages only */}
                     {msg.sender === 'bot' && (
-                      <button 
+                      <button
                         onClick={() => toggleSpeech(msg.rawText || getPlainTextFromHTML(msg.text), msg.id)}
-                        className={`absolute -top-2 -right-2 p-1 rounded-full ${
-                          isSpeaking && currentlySpeakingMessageId === msg.id
+                        className={`absolute -top-2 -right-2 p-1 rounded-full ${isSpeaking && currentlySpeakingMessageId === msg.id
                             ? 'bg-red-500 text-white hover:bg-red-600'
                             : 'bg-blue-500 text-white hover:bg-blue-600'
-                        } transition-colors`}
+                          } transition-colors`}
                         title={isSpeaking && currentlySpeakingMessageId === msg.id ? "Stop speaking" : "Listen to message"}
                       >
-                        <FontAwesomeIcon 
-                          icon={isSpeaking && currentlySpeakingMessageId === msg.id ? faVolumeMute : faVolumeUp} 
-                          size="xs" 
+                        <FontAwesomeIcon
+                          icon={isSpeaking && currentlySpeakingMessageId === msg.id ? faVolumeMute : faVolumeUp}
+                          size="xs"
                           className={isSpeaking && currentlySpeakingMessageId === msg.id ? 'animate-pulse' : ''}
                         />
                       </button>
                     )}
-                    
+
                     {/* Message content */}
-                    <div 
+                    <div
                       dangerouslySetInnerHTML={
-                        msg.sender === 'bot' 
-                          ? { __html: msg.text } 
+                        msg.sender === 'bot'
+                          ? { __html: msg.text }
                           : undefined
                       }
                     >
@@ -401,7 +398,7 @@ const Support = () => {
                 </div>
               </div>
             ))}
-            
+
             {/* Typing indicator */}
             {isBotTyping && (
               <div className="flex justify-start animate-fadeIn">
@@ -419,7 +416,7 @@ const Support = () => {
                 </div>
               </div>
             )}
-            
+
             {/* Recording status */}
             {voiceInputStatus && (
               <div className="flex justify-center animate-fadeIn">
@@ -432,7 +429,7 @@ const Support = () => {
               </div>
             )}
           </div>
-          
+
           {/* Input area - fixed to bottom with animations */}
           <div className="border-t p-4 bg-white sticky bottom-0 left-0 right-0 w-full animate-slideUp">
             <form onSubmit={handleSubmit} className="flex items-center gap-3">
@@ -443,24 +440,23 @@ const Support = () => {
                 placeholder="Ask a question about the hospital system..."
                 className={`flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 hover:border-teal-400 transition-colors ${isVoiceRecording ? 'border-red-400 bg-red-50' : ''}`}
               />
-              
+
               {/* Microphone button */}
               <button
                 type="button"
                 onClick={toggleVoiceRecording}
-                className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-center shadow hover:shadow-lg transform hover:scale-105 active:scale-95 ${
-                  isVoiceRecording 
-                    ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
+                className={`p-3 rounded-xl transition-all duration-300 flex items-center justify-center shadow hover:shadow-lg transform hover:scale-105 active:scale-95 ${isVoiceRecording
+                    ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
+                  }`}
                 title={isVoiceRecording ? "Stop recording" : "Start voice input"}
               >
-                <FontAwesomeIcon 
-                  icon={isVoiceRecording ? faMicrophoneSlash : faMicrophone} 
+                <FontAwesomeIcon
+                  icon={isVoiceRecording ? faMicrophoneSlash : faMicrophone}
                   className={isVoiceRecording ? 'animate-pulse' : ''}
                 />
               </button>
-              
+
               {/* Send button */}
               <button
                 type="submit"
@@ -474,7 +470,7 @@ const Support = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Add global CSS for animations */}
       <style jsx global>{`
         @keyframes fadeIn {

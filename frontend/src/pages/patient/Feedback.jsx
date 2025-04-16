@@ -3,7 +3,7 @@ import axios from 'axios';
 
 export const fetchConsultationsByPatientId = async (patientId) => {
   try {
-    const res = await fetch(`http://localhost:5000/api/patients/${patientId}/consultations`);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/patients/${patientId}/consultations`);
     const data = await res.json();
 
     if (!res.ok) {
@@ -18,8 +18,8 @@ export const fetchConsultationsByPatientId = async (patientId) => {
     // Handle actual data
     // Get current date to compare
 
-  
-    
+
+
     console.log(data);
     return data;
   } catch (err) {
@@ -56,11 +56,11 @@ const PatientFeedbackForm = () => {
       try {
         setLoading(true);
         const allConsultations = await fetchConsultationsByPatientId(patientId);
-        
+
         // Separate consultations with and without feedback
         const withFeedback = [];
         const withoutFeedback = [];
-        
+
         allConsultations.forEach(consultation => {
           if (consultation.feedback) {
             withFeedback.push({
@@ -99,26 +99,26 @@ const PatientFeedbackForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!selectedConsultation) {
       alert("Please select a consultation first.");
       return;
     }
-    
+
     // In a real app, you would submit feedback to an API
     const feedbackData = {
-   
-     
+
+
       rating: rating,
       comments: feedback.comments,
     };
-    
+
     console.log("Submitting feedback:", feedbackData);
-        const response = await axios.post('http://localhost:5000/api/patients/'+patientId+'/consultations/'+selectedConsultation._id+'/feedback', feedbackData);
-    
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/patients/` + patientId + '/consultations/' + selectedConsultation._id + '/feedback', feedbackData);
+
     // Here you would make an API call to save the feedback
     // After successful submission, you would refetch the consultations
-    
+
     // Reset form after submission
     setRating(3);
     setSelectedConsultation(null);
@@ -126,21 +126,21 @@ const PatientFeedbackForm = () => {
       comments: '',
     });
     alert("Thank you for your feedback!");
-    
+
     // Ideally, refetch the consultations to update the lists
     // This is a placeholder for that logic
     const updatedConsultation = { ...selectedConsultation, feedback: feedbackData };
     setConsultationsWithFeedback(prev => [...prev, updatedConsultation]);
-    setConsultationsWithoutFeedback(prev => 
+    setConsultationsWithoutFeedback(prev =>
       prev.filter(c => c._id !== selectedConsultation._id)
     );
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -238,7 +238,7 @@ const PatientFeedbackForm = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-4xl">
@@ -246,7 +246,7 @@ const PatientFeedbackForm = () => {
           {/* Feedback Form */}
           <div className="bg-white p-6 rounded-md shadow-md">
             <h2 className="text-center text-2xl font-bold mb-6">Submit Feedback</h2>
-            
+
             <form onSubmit={handleSubmit}>
               <div className="mb-6">
                 <label className="block text-gray-700 mb-2 font-medium">Select Consultation</label>
@@ -277,11 +277,11 @@ const PatientFeedbackForm = () => {
                       />
                     </svg>
                   </button>
-                  
+
                   {showConsultationList && getConsultationDropdown()}
                 </div>
               </div>
-              
+
               <div className="mb-6">
                 <p className="block text-gray-700 mb-2 font-medium">Overall Rating</p>
                 <div className="flex justify-center space-x-2">
@@ -310,7 +310,7 @@ const PatientFeedbackForm = () => {
                   ))}
                 </div>
               </div>
-              
+
               <div className="mb-6">
                 <p className="block text-gray-700 mb-2 font-medium">Additional Comments</p>
                 <textarea
@@ -318,10 +318,10 @@ const PatientFeedbackForm = () => {
                   rows="4"
                   placeholder="Tell us about your experience..."
                   value={feedback.comments}
-                  onChange={(e) => setFeedback({...feedback, comments: e.target.value})}
+                  onChange={(e) => setFeedback({ ...feedback, comments: e.target.value })}
                 ></textarea>
               </div>
-                  
+
               <button
                 type="submit"
                 className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3 px-4 rounded-md transition-colors duration-200 font-medium"
@@ -330,7 +330,7 @@ const PatientFeedbackForm = () => {
                 Submit Feedback
               </button>
             </form>
-            
+
             <div className="mt-6 pt-4 border-t border-gray-200 flex flex-col items-center text-gray-400 text-sm">
               <div className="flex items-center mb-1">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 mr-2">
@@ -347,7 +347,7 @@ const PatientFeedbackForm = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Previous Feedback Section */}
           <div className="bg-white p-6 rounded-md shadow-md">
             <h2 className="text-center text-2xl font-bold mb-6">Previous Feedback</h2>

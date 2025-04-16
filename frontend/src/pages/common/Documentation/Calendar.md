@@ -18,12 +18,12 @@ The `MyCalendar` component is a React functional component that provides a compr
 ### Imports
 
 ```jsx
-import React, { useState, useEffect } from 'react';
-import { Calendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import axios from 'axios';
-import { Search } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Calendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import axios from "axios";
+import { Search } from "lucide-react";
 ```
 
 ### Helper Functions
@@ -97,9 +97,9 @@ This component assumes the user's role and ID are available from localStorage. F
 
 ## API Integration
 
-- `GET http://localhost:5000/api/common/calendar/doctor`: Retrieves appointments
-- `POST http://localhost:5000/api/consultations/book`: Creates new appointments
-- `PUT http://localhost:5000/api/consultations/update/:id`: Updates existing appointments
+- `GET ${import.meta.env.VITE_API_URL}/common/calendar/doctor`: Retrieves appointments
+- `POST ${import.meta.env.VITE_API_URL}/consultations/book`: Creates new appointments
+- `PUT ${import.meta.env.VITE_API_URL}/consultations/update/:id`: Updates existing appointments
 
 ## Custom Styling
 
