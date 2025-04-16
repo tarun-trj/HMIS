@@ -7,6 +7,7 @@ import express from 'express'
 
 let app
 let server
+let port
 
 // Setup express app for integration testing
 beforeAll(async () => {
@@ -52,7 +53,8 @@ beforeAll(async () => {
   })
   
   // Start the server
-  server = app.listen(4000)
+  server = app.listen()
+  port = server.address().port
 })
 
 afterAll(async () => {

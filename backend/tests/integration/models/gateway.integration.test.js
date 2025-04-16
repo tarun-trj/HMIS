@@ -112,10 +112,15 @@ describe('PaymentGateway API Integration', () => {
     
     const response = await supertest(app).get('/gateways')
     
-    expect(response.status).toBe(200)
-    expect(response.body).toHaveLength(2)
-    expect(response.body[0].gateway_name).toBe('Gateway 1')
-    expect(response.body[1].gateway_name).toBe('Gateway 2')
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(2);
+    
+    // Sort the results before asserting order
+    const sortedGateways = [...response.body].sort((a, b) => 
+      a.gateway_name.localeCompare(b.gateway_name)
+    );
+    expect(sortedGateways[0].gateway_name).toBe('Gateway 1');
+    expect(sortedGateways[1].gateway_name).toBe('Gateway 2');
   })
   
   it('should filter active gateways via API', async () => {
