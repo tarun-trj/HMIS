@@ -23,10 +23,11 @@ const BookConsultation = () => {
         const response = await axios.get('http://localhost:5000/api/patients/doctors');
         setDoctors(response.data);
         setFilteredDoctors(response.data);
-        
+        // console.log(response.data); // Log the response data for debugging
         // Extract unique departments
         const uniqueDepartments = [...new Set(response.data.map(doctor => 
-          doctor.department_id?.name || 'Unknown Department'))];
+          doctor.department_id?.dept_name || 'Unknown Department'))];
+        console.log(uniqueDepartments);
         setDepartments(uniqueDepartments);
         
         setLoading(false);
@@ -48,10 +49,10 @@ const BookConsultation = () => {
       // Filter by location/department if selected
       if (location) {
         filtered = filtered.filter(doctor => 
-          doctor.department_id?.name === location
+          doctor.department_id?.dept_name === location
         );
       }
-      
+
       // Filter by search query
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -154,7 +155,7 @@ const BookConsultation = () => {
                     {doctor.employee_id?.name || 'Unknown Doctor'}
                   </span>
                   <span className="doctor-specialty">
-                    {doctor.specialization} | {doctor.department_id?.name || 'Unknown Department'}
+                    {doctor.specialization} | {doctor.department_id?.dept_name || 'Unknown Department'}
                   </span>
                   <span className="doctor-qualification">
                     {doctor.qualification} • {doctor.experience} years experience
