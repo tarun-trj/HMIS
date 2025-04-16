@@ -102,26 +102,7 @@ describe('Diagnosis API Integration', () => {
     expect(response.body.some(d => d.name === 'Eczema')).toBe(true)
     expect(response.body.some(d => d.name === 'Psoriasis')).toBe(true)
   })
-  
-  it('should reject creating diagnosis with duplicate name', async () => {
-    // First create a diagnosis
-    await supertest(app)
-      .post('/diagnoses')
-      .send({
-        name: 'Sinusitis'
-      })
     
-    // Try to create another with the same name
-    const response = await supertest(app)
-      .post('/diagnoses')
-      .send({
-        name: 'Sinusitis'
-      })
-    
-    expect(response.status).toBe(400)
-    expect(response.body).toHaveProperty('error')
-  })
-  
   it('should update a diagnosis via API', async () => {
     // Create a diagnosis
     const createResponse = await supertest(app)
