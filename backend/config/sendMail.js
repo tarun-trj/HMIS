@@ -84,5 +84,26 @@ export const sendDischargeEmail = async ({ toEmail, name, bedNo, roomNumber, rol
   await transporter.sendMail(mailOptions);
 };
 
+export const sendMessage = async (sub='',message='',fromEmail,toEmail) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.USER,
+      pass: process.env.PASS,
+    },
+  });
 
+  const mailOptions = {
+    from: fromEmail,
+    to: toEmail,
+    subject: sub,
+    html: `
+    <h3>Message from: ${fromEmail}</h3>
+    <p>${message}</p>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+
+};
 
