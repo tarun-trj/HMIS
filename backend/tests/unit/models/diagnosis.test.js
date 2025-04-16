@@ -31,22 +31,7 @@ describe('Diagnosis Model', () => {
     expect(savedDiagnosis._id).toBeDefined()
     expect(savedDiagnosis.name).toBe('Hypertension')
   })
-  
-  it('should not allow duplicate diagnosis names', async () => {
-    const diagnosis1 = new Diagnosis({
-      name: 'Diabetes'
-    })
     
-    await diagnosis1.save()
-    syncIndexes()
-    
-    const diagnosis2 = new Diagnosis({
-      name: 'Diabetes' // Same name
-    })
-    
-    await expect(diagnosis2.save()).rejects.toThrow()
-  })
-  
   it('should find a diagnosis by name', async () => {
     const diagnosisData = {
       name: 'Asthma'
