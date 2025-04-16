@@ -878,6 +878,7 @@ export const getDoctorQuadrantData = async(req, res) => {
             consultationCount: { $sum: 1 } 
           } 
         },
+
         // Look up doctor information
         { $lookup: {
             from: "doctors",
@@ -911,6 +912,7 @@ export const getDoctorQuadrantData = async(req, res) => {
           }
         }
       ]);
+      
       
       // Categorize into quadrants - do this in memory since we already have all the data
       const quadrants = {
