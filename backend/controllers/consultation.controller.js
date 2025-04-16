@@ -1,6 +1,8 @@
 import { Consultation } from '../models/consultation.js';
 import Medicine from '../models/inventory.js';
+import { Prescription } from '../models/consultation.js';
 import Patient from '../models/patient.js';
+import Bill from '../models/bill.js';
 
 // dummy consultation remove after integrated with db
 const dummy = {
@@ -173,24 +175,58 @@ export const rescheduleConsultation = async (req, res) => {
  */
 export const fetchConsultationById = async (req, res) => {
   try {
-    const { id } = req.params;
-    console.log("Received request for consultation" + id);
+    const id = req.query.id; 
+    console.log("Received request request for consultation" + id);
     const consultation = await Consultation.findById(id)
-      .populate("doctor_id", "name")
+      .populate({
+        path: 'doctor_id',
+        populate: {
+          path: 'employee_id',
+          select: 'name' // this gets the name from Employee
+        },
+        select: 'specialization employee_id' // select doctor fields (include employee_id so nested populate works)
+      })
       .populate("diagnosis")
-      .populate("prescription")
-      .populate("reports");
+      .populate({
+        path: 'prescription',
+        populate: {
+          path: 'entries.medicine_id',
+          model: 'Medicine',
+          select: 'med_name' // fetch only medicine name
+        }
+      })
+      .populate({
+        path : 'reports',
+        model : 'Report',
+        select : 'status reportText title description createdBy createdAt updatedAt',
+      })
+      console.log(JSON.stringify(consultation.prescription, null, 2));
+
+
+      // Populate entries.medicine_id manually for each prescription
+      if (consultation && consultation.prescription) {
+        await Promise.all(
+          consultation.prescription.map(async (prescription) => {
+            await Prescription.populate(prescription, {
+              path: 'entries.medicine_id',
+              model: 'Medicine',
+              select: 'med_name'
+            });
+          })
+        );
+      }
+
 
     // If consultation not found, return dummy data
     if (!consultation) {
       return res.status(200).json({ consultation: dummy, dummy: true });
     }
-
+    // return res.status(200).json({ consultation });
     // Format for frontend
     const formatted = {
       id: consultation._id,
       date: consultation.booked_date_time?.toISOString().split("T")[0],
-      doctor: consultation.doctor_id?.name || "Unknown",
+      doctor: consultation.doctor_id?.employee_id?.name || "Unknown",
       location: "Room 101", // Placeholder
       details: consultation.reason,
       reason: consultation.reason,
@@ -246,6 +282,7 @@ export const fetchBillByConsultationId = async (req, res) => {
       id: sourceBill._id || consultationId,
       totalAmount: sourceBill.total_amount,
       paymentStatus: sourceBill.payment_status,
+      generation_date: sourceBill.generation_date,
       breakdown
     };
     // ==========================================================
@@ -265,11 +302,12 @@ export const fetchBillByConsultationId = async (req, res) => {
 export const fetchPrescriptionByConsultationId = async (req, res) => {
   try {
     console.log("Received request for prescription.");
-    const { consultationId: id } = req.params;
+    const { id } = req.params;
+    console.log("Received request for consultation" + id);
 
     const consultation = await Consultation.findById(id)
       .populate({
-        path: 'prescription',
+        path: 'prescription', 
         populate: {
           path: 'entries.medicine_id',
           model: 'Medicine',
@@ -329,8 +367,10 @@ export const fetchPrescriptionByConsultationId = async (req, res) => {
  */
 export const fetchDiagnosisByConsultationId = async (req, res) => {
   try {
-    const { id } = req.params;
-    console.log("Received request for consultation" + id);
+    const { consultationId } = req.params;
+    const id = consultationId ; 
+    console.log("Received request for consultation2" + id);
+
     const consultation = await Consultation.findById(id)
       .populate("doctor_id", "name")
       .populate("diagnosis");

@@ -50,7 +50,9 @@ const ConsultationSchema = new Schema({
   additional_info: String, // to keep speech to text data (transcript)
   diagnosis: [{ type: Schema.Types.ObjectId, ref: 'Diagnosis' }], // Array of diagnosis IDs
   prescription: [{ type: Number, ref: 'Prescription' }],
-  reports: [ReportSchema], // Array of embedded documents
+  // reports: [ReportSchema], // Array of embedded documents
+  reports: [{ type: Schema.Types.ObjectId, ref: 'Report' }],
+
   bill_id: { type: Schema.Types.ObjectId, ref: 'Bill' },
   recordedAt: Date
 }, { timestamps: true });
@@ -71,4 +73,5 @@ PrescriptionSchema.plugin(AutoIncrement, { inc_field: '_id',id: 'prescription_id
 const Prescription = mongoose.model('Prescription', PrescriptionSchema);
 const Consultation = mongoose.model('Consultation', ConsultationSchema);
 const Feedback = mongoose.model('Feedback', FeedbackSchema);
-export {Consultation, Prescription,Feedback};
+const Report = mongoose.model('Report', ReportSchema);
+export {Consultation, Prescription,Feedback, Report};

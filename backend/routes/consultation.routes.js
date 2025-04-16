@@ -15,7 +15,7 @@ const router = express.Router();
 router.post('/book', bookConsultation);
 
 // PUT: Reschedule a consultation
-router.put('/reschedule/:consultationId', rescheduleConsultation);
+router.put('/reschedule/:consultationId ', rescheduleConsultation);
 
 // GET:
 router.get('/:consultationId/diagnosis', fetchDiagnosisByConsultationId);
