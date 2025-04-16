@@ -70,8 +70,10 @@ const PatientDashboard = () => {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`);
         setPatientData(response.data);
         setProfilePhoto(response.data.profile_pic);
+        console.log(response.data);
         if (response.data) {
           setEditedDetails({
+            name: response.data.name || '',
             phone_number: response.data.phone_number || '',
             email: response.data.email || '',
             emergency_contact: response.data.emergency_contact || '',
@@ -150,6 +152,7 @@ const PatientDashboard = () => {
             ...editedDetails,
           }));
           setIsEditing(false);
+          window.location.reload(); // This forces a full reload
         })
         .catch((err) => {
           console.error("Update failed", err);
@@ -242,7 +245,7 @@ const PatientDashboard = () => {
             </>
           ) : (
             <>
-              <h1>{patient_info.name}</h1>
+              <h1 className="mb-0 pb-0">{patientData.name}</h1>
               <div className="patient-detail"><label>Age:</label><span>{calculateAge(patientData.date_of_birth)}</span></div>
               <div className="patient-detail"><label>Blood Group:</label><span>{patient_info.bloodGrp}</span></div>
               <div className="patient-detail"><label>Height:</label><span>{patient_info.height} cm</span></div>
@@ -251,6 +254,10 @@ const PatientDashboard = () => {
               <div className="patient-detail"><label>Room No:</label><span>{patient_info.roomNo}</span></div>
             </>
           )}
+
+          <button className="edit-button bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onClick={handleEditToggle}>
+            {isEditing ? "Save" : "Edit"}
+          </button>
         </div>
 
       </div>
@@ -259,9 +266,6 @@ const PatientDashboard = () => {
       <div className="patient-details-section">
         <div className="flex justify-between items-center">
           <h2 className="details-heading">Patient Details</h2>
-          <button className="edit-button bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onClick={handleEditToggle}>
-            {isEditing ? "Save" : "Edit"}
-          </button>
         </div>
 
         <div className="detail-cards-container">
@@ -272,6 +276,7 @@ const PatientDashboard = () => {
               {isEditing ? (
                 <>
                   <div className="input-group">
+                    <label>Phone Number:</label>
                     <input
                       type="text"
                       value={editedDetails.phone_number}
@@ -281,6 +286,7 @@ const PatientDashboard = () => {
                     />
                   </div>
                   <div className="input-group">
+                    <label>Email:</label>
                     <input
                       type="email"
                       value={editedDetails.email}
@@ -290,6 +296,7 @@ const PatientDashboard = () => {
                     />
                   </div>
                   <div className="input-group">
+                    <label>Emergency Contact:</label>
                     <input
                       type="text"
                       value={editedDetails.emergency_contact}
