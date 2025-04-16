@@ -7,6 +7,11 @@ import { Search } from 'lucide-react';
 
 async function fetchConsultations(doctorId = null) {
   try {
+    // Skip fetch if doctorId is invalid
+    if (!doctorId || parseInt(doctorId) < 10000) {
+      return [];
+    }
+
     const response = await axios.get(`${import.meta.env.VITE_API_URL}/common/calendar/doctor`, {
       params: {
         doctorId,
@@ -67,10 +72,8 @@ const statusColors = {
 
 const MyCalendar = () => {
   // Replace useAuth with localStorage
-  const userId = '10090'
-  //localStorage.getItem("user_id");
-  const currentUserRole = 'receptionist'
-  //localStorage.getItem("role");
+  const userId = localStorage.getItem("user_id");
+  const currentUserRole = localStorage.getItem("role");
 
   const [events, setEvents] = useState([]);
   const [view, setView] = useState('month');
@@ -105,9 +108,8 @@ const MyCalendar = () => {
     const loadEvents = async () => {
       setLoading(true);
       const doctorId = currentUserRole === 'doctor' ? userId : selectedDoctor;
-      if (doctorId) {
+      if (doctorId && parseInt(doctorId) >= 10000) {
         const events = await fetchConsultations(doctorId);
-        console.log(events)
         setEvents(events);
       } else {
         setEvents([]);

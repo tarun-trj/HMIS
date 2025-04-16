@@ -117,6 +117,18 @@ export const bookConsultation = async (req, res) => {
       appointment_type
     } = req.body;
 
+    // Validate booking date is not in the past
+    const bookingDate = new Date(booked_date_time);
+    const now = new Date();
+    
+    if (bookingDate <= now) {
+      return res.status(400).json({
+        message: 'Cannot book consultation in the past',
+        currentTime: now,
+        attemptedBookingTime: bookingDate
+      });
+    }
+
     // Check if patient exists
     const patient = await Patient.findById(patient_id);
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
@@ -171,12 +183,24 @@ export const rescheduleConsultation = async (req, res) => {
     const { consultationId } = req.params;
     const { new_booked_date_time } = req.body;
 
+    // Validate new booking date is not in the past
+    const newBookingDate = new Date(new_booked_date_time);
+    const now = new Date();
+    
+    if (newBookingDate <= now) {
+      return res.status(400).json({
+        message: 'Cannot reschedule consultation to a past date/time',
+        currentTime: now,
+        attemptedRescheduleTime: newBookingDate
+      });
+    }
+
     const consultation = await Consultation.findById(consultationId);
     if (!consultation) {
       return res.status(404).json({ message: 'Consultation not found' });
     }
 
-    consultation.booked_date_time = new Date(new_booked_date_time);
+    consultation.booked_date_time = newBookingDate;
     consultation.status = 'scheduled';
 
     await consultation.save();
@@ -439,6 +463,21 @@ export const updateConsultation = async (req, res) => {
       updated_by,
       status
     } = req.body;
+
+    // Validate new booking date is not in the past if provided
+    if (booked_date_time) {
+      const newBookingDate = new Date(booked_date_time);
+      const now = new Date();
+      
+      if (newBookingDate <= now) {
+        return res.status(400).json({
+          message: 'Cannot update consultation to a past date/time',
+          currentTime: now,
+          attemptedUpdateTime: newBookingDate
+        });
+      }
+    }
+
     const consultation = await Consultation.findById(consultationId);
     if (!consultation) {
       return res.status(404).json({ message: 'Consultation not found' });
