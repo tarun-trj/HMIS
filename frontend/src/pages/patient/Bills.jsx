@@ -29,7 +29,7 @@ const Bills = () => {
   });
 
   const navigate = useNavigate();
-  const patientId = "10013"; // This should come from authentication/context in a real app
+  const patientId = localStorage.getItem("user_id");
 
   const formatINR = (amount) => {
     return amount.toFixed(2).toString();
