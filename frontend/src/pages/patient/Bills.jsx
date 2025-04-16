@@ -486,9 +486,10 @@ const Bills = () => {
         ) : (
           // Bills listing
           <>
-            <div className="mb-6 flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">Patient Bills</h2>
-            </div>
+            <header className="consultations-header">
+              <h2>Patient Bills</h2>
+              <Home className="home-icon cursor-pointer" onClick={() => navigate("/patient/profile")}/>
+            </header>
 
             {bills.length > 0 ? (
               bills.map((bill) => (
