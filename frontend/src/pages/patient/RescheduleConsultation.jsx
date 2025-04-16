@@ -52,7 +52,7 @@ const RescheduleConsultation = () => {
   ];
 
   const handleApply = () => {
-    setSelectedDate(tempDate);
+    navigate("/patient/booked-consultation");
   };
 
   const handleClear = () => {
@@ -108,8 +108,8 @@ const RescheduleConsultation = () => {
           calendarClassName="custom-calendar"
         />
         <div className="calendar-buttons" style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
-          <button className="apply-button" onClick={handleApply}>Apply</button>
-          <button className="clear-button" onClick={handleClear}>Clear</button>
+          <button className="apply-button" onClick={handleClear}>Clear</button>
+          <button className="clear-button" onClick={handleApply}>Cancel</button>
         </div>
       </div>
 

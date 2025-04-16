@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-const PatientVitals = ({ patientId = "10013" }) => {
+const PatientVitals = () => {
   const [latestVital, setLatestVital] = useState(null);
   const [allVitals, setAllVitals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const patientId = localStorage.getItem("user_id"); // 👈 Fetch from localStorage
+
 
   useEffect(() => {
     const fetchPatientVitals = async () => {
+      
+      if (!patientId) {
+        setError("No patient ID found in local storage.");
+        setLoading(false);
+        return;
+      }
+
       try {
         // Fetch the latest vital
         const latestVitalResponse = await axios.get(`${import.meta.env.VITE_API_URL}/patients/${patientId}/vitals/latest`);

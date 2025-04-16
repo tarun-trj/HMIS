@@ -1,5 +1,6 @@
 import express from 'express';
 import Employee from '../models/employee.js';
+import { sendAdmin } from '../controllers/employeeController.js';
 
 const router = express.Router();
 
@@ -14,5 +15,7 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+router.post('/send', sendAdmin);
 
 export default router;
