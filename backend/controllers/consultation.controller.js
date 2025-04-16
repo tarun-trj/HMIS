@@ -3,6 +3,7 @@ import Medicine from '../models/inventory.js';
 import Patient from '../models/patient.js';
 import { Doctor, Receptionist } from '../models/staff.js';
 import Employee from '../models/employee.js'; 
+import{appointmentEmail,updateAppointmentEmail} from "../config/sendMail.js";
 
 // dummy consultation remove after integrated with db
 const dummy = {
@@ -120,6 +121,11 @@ export const bookConsultation = async (req, res) => {
     const patient = await Patient.findById(patient_id);
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
 
+    const doctor = await Doctor.findOne({ employee_id: doctor_id });
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found for the given employee ID' });
+    }
+
     // Find receptionist document by employee_id
     const receptionist = await Receptionist.findOne({ employee_id: created_by });
     if (!receptionist) {
@@ -137,7 +143,18 @@ export const bookConsultation = async (req, res) => {
       status: 'scheduled'
     });
 
+    await appointmentEmail({
+            toEmail: patient.email,
+            patient_name: patient.name,
+            patient_id,
+            doctor_id,
+            reason,
+            appointment_type,
+            booked_date_time
+    });
     await newConsultation.save();
+    
+
 
     res.status(201).json({
       message: 'Consultation booked successfully',
@@ -434,10 +451,23 @@ export const updateConsultation = async (req, res) => {
     if (appointment_type) consultation.appointment_type = appointment_type;
     if (updated_by) consultation.updated_by = updated_by;
     if (status)consultation.status=status
-    // Ensure status is always updated when date changes
-   
-
     await consultation.save();
+    // Ensure status is always updated when date changes
+     // Fetch patient details
+     const patient = await Patient.findById(consultation.patient_id);
+     if (!patient) {
+       return res.status(404).json({ message: 'Patient not found' });
+     }
+    await updateAppointmentEmail({
+      toEmail: patient.email,
+      name: patient.name,
+      patient_id: consultation.patient_id,
+      doctor_id: consultation.doctor_id,
+      reason: consultation.reason,
+      appointment_type: consultation.appointment_type,
+      booked_date_time: consultation.booked_date_time
+    });
+
 
     res.json({
       message: 'Consultation updated successfully',

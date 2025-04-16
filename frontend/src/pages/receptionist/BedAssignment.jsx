@@ -265,10 +265,10 @@ useEffect(() => {
 
                     <button 
                       onClick={handleAssignBed} 
+                      disabled={actionLoading}
                       className={`px-4 py-2 text-white rounded-md ${
                         actionLoading ? 'bg-teal-400 cursor-not-allowed' : 'bg-teal-600'
                       }`}
-                      disabled={actionLoading}
                     >
                       {actionLoading ? (
                         <div className="flex items-center">
