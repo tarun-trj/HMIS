@@ -130,15 +130,15 @@ const CommunityPage = () => {
             <h3>GET IN TOUCH</h3>
             <p className="contact-item">
               <MdEmail className="contact-icon" />
-              contact@hmis.com
+              hmis.iitg@gmail.com
             </p>
             <p className="contact-item">
               <BsTelephone className="contact-icon" />
-              Call +1 (555) 123-4567
+              Call +91 985734581
             </p>
             <p className="contact-item">
               <IoLocationOutline className="contact-icon" />
-              123 Main Street, City, Country
+              IIT Guwahati, Assam, India
             </p>
             <div className="social-icons">
               <a href="https://facebook.com/hmis" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
