@@ -44,7 +44,7 @@ const Navbar = ({ toggleSidebar,isSidebarOpen }) => {
         {user ? (
           <>
             <span className="text-sm sm:text-base">
-              Welcome, <span className="font-semibold">{user.name}</span> ({user.role})
+              Welcome, <span className="font-semibold">{user.name}</span> {user.role}
             </span>
             <button 
               onClick={handleLogout} 
