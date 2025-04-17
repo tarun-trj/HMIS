@@ -18,7 +18,6 @@ router.post('/book', bookConsultation);
 // PUT: Reschedule a consultation
 router.put('/reschedule/:consultationId', rescheduleConsultation);
 router.put('/update/:consultationId', updateConsultation);
-router.put('/update/:consultationId', updateConsultation);
 
 // GET:
 router.get('/:consultationId/diagnosis', fetchConsultationById);
