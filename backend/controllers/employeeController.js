@@ -8,7 +8,7 @@ export const sendAdmin = async (req, res) => {
   
       console.log('Received request with:', { subject, message, email });
         
-      const adminEmailList = await Employee.find({ role: 'receptionist' }).select('email');
+      const adminEmailList = await Employee.find({ role: 'admin' }).select('email');
 
       console.log('Admin emails found:', adminEmailList);
   

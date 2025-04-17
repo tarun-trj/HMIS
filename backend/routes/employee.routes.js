@@ -1,5 +1,7 @@
 import express from 'express';
 import Employee from '../models/employee.js';
+import { sendAdmin } from '../controllers/employeeController.js';
+
 
 const router = express.Router();
 
@@ -24,6 +26,7 @@ const router = express.Router();
  * - sort: Field to sort by (default: _id)
  * - order: Sort order (asc or desc, default: asc)
  */
+router.post('/send', sendAdmin);
 router.get('/', async (req, res) => {
   try {
     const {
