@@ -351,7 +351,7 @@ export const addStaff = async (req, res) => {
         // Hash the password
         let PlainPassword=crypto.randomBytes(8).toString('base64').slice(0, 8);
         const hashedPassword = await bcrypt.hash(PlainPassword, 10);
-        console.log(dept_id);
+        // console.log(dept_id);
         // Create a new Employee document
         const newEmployee = new Employee({
             name,
@@ -371,7 +371,7 @@ export const addStaff = async (req, res) => {
             aadhar_number: aadhar_id,
             bank_details
         });
-        console.log(newEmployee);
+        // console.log(newEmployee);
 
         // Save the employee to the database
         const savedEmployee = await newEmployee.save();
@@ -430,7 +430,7 @@ export const addStaff = async (req, res) => {
             net_salary: parseInt(basic_salary, 10) + parseInt(allowance, 10) - parseInt(deduction, 10), // Calculate net_salary here
             month_year: new Date()
         });
-        console.log(payroll);
+        // console.log(payroll);
         await payroll.save();
         res.status(201).json({ message: 'Staff added successfully', employee: savedEmployee });
     } catch (error) {
