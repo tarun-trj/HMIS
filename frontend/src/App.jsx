@@ -239,7 +239,7 @@ function App() {
          {/* Admin & Analytics Routes */}
          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/add-staff" element={<AddStaff />} />
+            <Route path="/admin/staff" element={<AddStaff />} />
             <Route path="/admin/manage-payrolls" element={<ManagePayrolls />} />
             <Route path="/admin/ambulance" element={<Ambulance />} />
 
