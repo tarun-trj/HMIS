@@ -382,24 +382,18 @@ export const addPrescription = async (req, res) => {
 export const addReport = async (req, res) => {
   try {
     const { consultationId } = req.params;
-    const doctor_id = req.query.doctor?.replace(/"/g, ''); // to remove the quotes if you're passing "10008"
-
+    const doctor_id = req.query.doctor?.replace(/"/g, '');
     const reportData = req.body;
-
-    console.log(consultationId);
-    console.log(doctor_id);
-    console.log(reportData);
-    console.log("report:", JSON.stringify(reportData, null, 2));
 
     if (!doctor_id) {
       return res.status(400).json({ error: "Doctor ID missing in token" });
     }
 
-    if (!consultationId || !reportData || !reportData.title || !reportData.status) {
+    if (!consultationId || !reportData.title || !reportData.status) {
       return res.status(400).json({ error: "Consultation ID, report title, and status are required" });
     }
 
-    // Find the consultation and verify the doctor has permission
+    // 1. Find the consultation
     const consultation = await Consultation.findOne({
       _id: consultationId,
       doctor_id: doctor_id
@@ -409,47 +403,29 @@ export const addReport = async (req, res) => {
       return res.status(404).json({ error: "Consultation not found or access denied" });
     }
 
+    console.log("reportData:", JSON.stringify(reportData, null, 2));
+
+    // 2. Save report in Report collection
     const newReport = new Report({
       status: reportData.status,
       reportText: reportData.reportText,
       title: reportData.title,
       description: reportData.description,
-      // createdAt: reportData.createdAt  // You can use the doctor_id or any other appropriate ID
+      createdAt: new Date(),
     });
 
-    // Save the new report to the database
-    console.log(newReport._id) ; 
+    const savedReport = await newReport.save();
 
+    // 3. Embed saved report (entire object) into consultation.reports
+    consultation.reports.push(savedReport.toObject()); // or a subset if you don't want to embed _id
 
-    let savedReport;
-    try {
-      savedReport = await newReport.save();
-    } catch (error) {
-      console.error('Error saving report:', error);
-      return res.status(500).json({ error: "Error saving report" });
-    }
-
-    console.log(newReport._id) ; 
-
-    console.log(savedReport._id) ; 
-
-    
-
-    // Update consultation with new report
-    const updatedConsultation = await Consultation.findByIdAndUpdate(
-      // console.log("🔵 Pushing to consultation:", savedReport._id),
-      consultationId,
-      { $push: { reports: savedReport._id} }, // Push the new report to the reports array
-      { new: true }
-    ) ; // Populate the reports array to include the report details
-
-
-    console.log(savedReport._id) ; 
+    const updatedConsultation = await consultation.save();
 
     res.status(200).json({
       success: true,
       data: updatedConsultation
     });
+
   } catch (error) {
     console.error('Error adding report:', error);
     res.status(500).json({
@@ -458,6 +434,7 @@ export const addReport = async (req, res) => {
     });
   }
 };
+
 
 
 // Update a specific diagnosis by ID
