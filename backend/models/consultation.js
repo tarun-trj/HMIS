@@ -43,28 +43,32 @@ const ReportSchema = new Schema(
   { timestamps: true }
 );
 
-const ConsultationSchema = new Schema({
-  patient_id: { type: Number, ref: 'Patient' },
-  doctor_id: { type:Number, ref: 'Doctor' },
-  booked_date_time: Date,
-  status: {
-    type: String, 
-    enum: ["scheduled","ongoing","completed", "cancelled"]
+const ConsultationSchema = new Schema(
+  {
+    patient_id: { type: Number, ref: "Patient" },
+    doctor_id: { type: Number, ref: "Doctor" },
+    booked_date_time: Date,
+    status: {
+      type: String,
+      enum: ["scheduled", "ongoing", "completed", "cancelled"],
+    },
+    reason: String, //symptoms
+    created_by: { type: Schema.Types.ObjectId, ref: "Receptionist" },
+    appointment_type: {
+      type: String,
+      enum: ["regular", "follow-up", "emergency", "consultation"],
+    },
+    actual_start_datetime: Date,
+    remark: String,
+    additional_info: String, // to keep speech to text data (transcript)
+    diagnosis: [{ type: Schema.Types.ObjectId, ref: "Diagnosis" }], // Array of diagnosis IDs
+    prescription: [{ type: Number, ref: "Prescription" }],
+    reports: [ReportSchema], // Array of embedded documents
+    bill_id: { type: Schema.Types.ObjectId, ref: "Bill" },
+    recordedAt: Date,
   },
-  reason: String, //symptoms
-  created_by: { type: Schema.Types.ObjectId, ref: 'Receptionist' },
-  appointment_type: {type: String, enum: ["regular", "follow-up", "emergency","consultation"]},
-  actual_start_datetime: Date,
-  remark: String,
-  additional_info: String, // to keep speech to text data (transcript)
-  diagnosis: [{ type: Schema.Types.ObjectId, ref: 'Diagnosis' }], // Array of diagnosis IDs
-  prescription: [{ type: Number, ref: 'Prescription' }],
-  // reports: [ReportSchema], // Array of embedded documents
-  reports: [{ type: Schema.Types.ObjectId, ref: 'Report' }],
-
-  bill_id: { type: Schema.Types.ObjectId, ref: 'Bill' },
-  recordedAt: Date
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 // Add a feedback subdocument schema
 const FeedbackSchema = new Schema({
