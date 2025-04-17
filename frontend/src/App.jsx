@@ -78,6 +78,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AddStaff from "./pages/admin/AddStaff";
 import ManagePayrolls from "./pages/admin/ManagePayrolls";
 import Ambulance from "./pages/admin/Ambulance";
+import Chatbot from "./pages/admin/Chatbot";
 
 // Analytics Pages
 import AnalyticsDashboard from "./pages/admin/analytics/AnalyticsDashboard";
@@ -253,6 +254,7 @@ function App() {
             <Route path="/admin/analytics/text-feedback" element={<TextualFeedbackAnalysis />} />
             <Route path="/admin/analytics/bed-occupancy" element={<BedOccupancyTrends />} />
             <Route path="/admin/analytics/feedbacks" element={<Feedbacks />} />
+            <Route path="/admin/assistant" element={<Chatbot />} />
           </Route>
 
           </Route>
