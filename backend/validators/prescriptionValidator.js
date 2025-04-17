@@ -10,7 +10,7 @@ const PrescriptionEntryJoiSchema = Joi.object({
 });
 
 const PrescriptionJoiSchema = Joi.object({
-    prescriptionDate: Joi.date().required(),
+    prescriptionDate: Joi.date().optional(),
     status: Joi.string()
         .valid("pending", "dispensed", "partially_dispensed", "cancelled")
         .required(),

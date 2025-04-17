@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from "react-router-dom";
+
 
 const Registration = () => {
   const [formData, setFormData] = useState({
@@ -19,7 +21,9 @@ const Registration = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [passwordError, setPasswordError] = useState('');
+  const navigate = useNavigate();
+
+  // const [passwordError, setPasswordError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,80 +31,76 @@ const Registration = () => {
       ...formData,
       [name]: value
     });
-    
-    // Clear password error when user is typing in either password field
-    if (name === 'password' || name === 'confirmPassword') {
-      setPasswordError('');
-    }
   };
 
-  const validatePasswords = () => {
-    if (formData.password !== formData.confirmPassword) {
-      setPasswordError('Passwords do not match');
-      return false;
-    }
-    
-    if (formData.password.length < 6) {
-      setPasswordError('Password must be at least 6 characters long');
-      return false;
-    }
-    
-    return true;
-  };
 
-  const handleSubmit = (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate passwords before submission
-    if (!validatePasswords()) {
+    // Mobile number validation
+    const mobileRegex = /^\d{10}$/;
+    if (!mobileRegex.test(formData.mobile)) {
+      setMessage({ type: 'error', text: 'Mobile number must be exactly 10 digits.' });
       return;
     }
-    
+    if (!mobileRegex.test(formData.emergencyNumber)) {
+      setMessage({ type: 'error', text: 'Emergency contact number must be exactly 10 digits.' });
+      return;
+    }
     setIsSubmitting(true);
 
-    // In a real application, you would send this data to your API
-    console.log('Submitting registration data:', formData);
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/reception/register-patient`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: data.message || 'Patient registered successfully!' });
+
+        setFormData({
+          patientName: '',
+          aadharId: '',
+          dob: '',
+          gender: '',
+          bloodGroup: '',
+          email: '',
+          height: '',
+          weight: '',
+          address: '',
+          emergencyNumber: '',
+          mobile: '',
+          password: '',
+          confirmPassword: ''
+        });
+        navigate("/receptionist/profile")
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Registration failed' });
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+    } finally {
       setIsSubmitting(false);
-      setMessage({
-        type: 'success',
-        text: 'Patient registered successfully!'
-      });
-      
-      // Reset form after successful submission
-      setFormData({
-        patientName: '',
-        aadharId: '',
-        dob: '',
-        gender: '',
-        bloodGroup: '',
-        email: '',
-        height: '',
-        weight: '',
-        address: '',
-        emergencyNumber: '',
-        mobile: '',
-        password: '',
-        confirmPassword: ''
-      });
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setMessage(null), 3000);
-    }, 1000);
+      setTimeout(() => setMessage(null), 5000);
+    }
   };
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-semibold mb-6">New User Registration</h2>
-      
+
       {message && (
         <div className={`mb-6 p-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
           {message.text}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 max-w-4xl mx-auto">
           {/* Left Column */}
@@ -118,7 +118,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 DOB:
@@ -132,7 +132,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Blood Group:
@@ -155,7 +155,7 @@ const Registration = () => {
                 <option value="O-">O-</option>
               </select>
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Height (cm):
@@ -169,7 +169,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Mobile:
@@ -183,23 +183,10 @@ const Registration = () => {
                 required
               />
             </div>
-            
-            <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2">
-                Password:
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                minLength="6"
-                required
-              />
-            </div>
+
+
           </div>
-          
+
           {/* Right Column */}
           <div>
             <div className="mb-4">
@@ -215,7 +202,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Gender:
@@ -233,7 +220,7 @@ const Registration = () => {
                 <option value="Other">Other</option>
               </select>
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Email:
@@ -247,7 +234,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Weight (kg):
@@ -261,7 +248,7 @@ const Registration = () => {
                 required
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-2">
                 Emergency Number:
@@ -275,26 +262,9 @@ const Registration = () => {
                 required
               />
             </div>
-            
-            <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2">
-                Confirm Password:
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border ${passwordError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 ${passwordError ? 'focus:ring-red-500' : 'focus:ring-teal-500'}`}
-                required
-              />
-              {passwordError && (
-                <p className="mt-1 text-red-500 text-sm">{passwordError}</p>
-              )}
-            </div>
           </div>
         </div>
-        
+
         {/* Address Field (Full Width) */}
         <div className="mt-6 max-w-4xl mx-auto">
           <div className="mb-4">
@@ -311,7 +281,7 @@ const Registration = () => {
             ></textarea>
           </div>
         </div>
-        
+
         {/* Submit Button */}
         <div className="mt-8 flex justify-center">
           <button

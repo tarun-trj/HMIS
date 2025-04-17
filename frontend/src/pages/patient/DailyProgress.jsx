@@ -1,123 +1,139 @@
 import React, { useState, useEffect } from 'react';
-
-const PatientConsultations = ({ patientId }) => {
-  const [activeTab, setActiveTab] = useState('consultations');
-  const [patient, setPatient] = useState(null);
-  const [consultations, setConsultations] = useState([]);
-  const [dailyProgress, setDailyProgress] = useState([]);
+import axios from 'axios';
+const PatientVitals = () => {
+  const [latestVital, setLatestVital] = useState(null);
+  const [allVitals, setAllVitals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const patientId = localStorage.getItem("user_id"); // 👈 Fetch from localStorage
+
 
   useEffect(() => {
-    const fetchPatientData = async () => {
+    const fetchPatientVitals = async () => {
+      
+      if (!patientId) {
+        setError("No patient ID found in local storage.");
+        setLoading(false);
+        return;
+      }
+
       try {
-        // In a real app, these would be API calls
-        const patientResponse = await fetch(`/api/patients/${patientId}`);
-        const patient = await patientResponse.json();
-        
-        const consultationsResponse = await fetch(`/api/patients/${patientId}/consultations`);
-        const consultations = await consultationsResponse.json();
-        
-        const progressResponse = await fetch(`/api/patients/${patientId}/daily-progress`);
-        const progress = await progressResponse.json();
-        
-        setPatient(patient);
-        setConsultations(consultations);
-        setDailyProgress(progress);
+        // Fetch the latest vital
+        const latestVitalResponse = await axios.get(`${import.meta.env.VITE_API_URL}/patients/${patientId}/vitals/latest`);
+        const latestVitalData = latestVitalResponse.data;
+
+
+        const allVitalsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/patients/${patientId}/vitals`);
+        const allVitalsData = allVitalsResponse.data;
+
+
+        setLatestVital(latestVitalData.data);
+        setAllVitals(allVitalsData.data || []);
       } catch (error) {
-        console.error("Error fetching patient data:", error);
+        console.error("Error fetching patient vitals:", error);
+        setError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPatientData();
+    fetchPatientVitals();
   }, [patientId]);
 
   // Mock data for demonstration purposes
   useEffect(() => {
-    if (!loading && !consultations.length) {
-      // Mock consultations data
-      setConsultations([
-        { id: 1, date: '2025-04-01', notes: 'Initial consultation, prescribed medication for pain relief', doctor: 'Dr. Smith' },
-        { id: 2, date: '2025-04-02', notes: 'Follow-up consultation, patient reports improvement', doctor: 'Dr. Jones' },
-        { id: 3, date: '2025-04-03', notes: 'Routine check, vitals are normal', doctor: 'Dr. Smith' },
-        { id: 4, date: '2025-04-04', notes: 'Final consultation, cleared for discharge', doctor: 'Dr. Williams' }
-      ]);
+    if (!loading && !latestVital && !error) {
+      // Mock latest vital
+      setLatestVital({
+        date: '2025-04-04',
+        time: '14:30',
+        bloodPressure: 120,
+        bodyTemp: 36.8,
+        pulseRate: 74,
+        breathingRate: 15
+      });
 
-      // Mock daily progress data
-      setDailyProgress([
-        { id: 1, date: '2025-04-01', bloodPressure: 120, bodyTemp: 37.2, pulseRate: 78, breathingRate: 16 },
-        { id: 2, date: '2025-04-02', bloodPressure: 118, bodyTemp: 36.9, pulseRate: 76, breathingRate: 15 },
-        { id: 3, date: '2025-04-03', bloodPressure: 122, bodyTemp: 37.0, pulseRate: 75, breathingRate: 16 },
-        { id: 4, date: '2025-04-04', bloodPressure: 120, bodyTemp: 36.8, pulseRate: 74, breathingRate: 15 }
+      // Mock vitals history
+      setAllVitals([
+        { _id: 1, date: '2025-04-01', time: '09:15', bloodPressure: 120, bodyTemp: 37.2, pulseRate: 78, breathingRate: 16 },
+        { _id: 2, date: '2025-04-02', time: '10:30', bloodPressure: 118, bodyTemp: 36.9, pulseRate: 76, breathingRate: 15 },
+        { _id: 3, date: '2025-04-03', time: '11:45', bloodPressure: 122, bodyTemp: 37.0, pulseRate: 75, breathingRate: 16 },
+        { _id: 4, date: '2025-04-04', time: '14:30', bloodPressure: 120, bodyTemp: 36.8, pulseRate: 74, breathingRate: 15 }
       ]);
     }
-  }, [loading, consultations.length]);
+  }, [loading, latestVital, error]);
 
   if (loading) {
-    return <div className="text-center p-4">Loading patient data...</div>;
+    return <div className="text-center p-4">Loading patient vitals...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center p-4 text-red-500">Error: {error}</div>;
   }
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <div className="flex justify-end mb-4">
-        <button 
-          className={`px-4 py-2 ${activeTab === 'consultations' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('consultations')}
-        >
-          Consultations
-        </button>
-        <button 
-          className={`px-4 py-2 ${activeTab === 'dailyProgress' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('dailyProgress')}
-        >
-          Daily Progress
-        </button>
+      {/* Latest Vitals Display */}
+      {latestVital && (
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4">Latest Vitals - {new Date(latestVital.date).toLocaleDateString()} {latestVital.time}</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-blue-100 p-4 rounded shadow">
+              <div className="text-blue-800 font-semibold">Blood Pressure</div>
+              <div className="text-2xl font-bold">{latestVital.bloodPressure} <span className="text-sm">mmHg</span></div>
+            </div>
+            <div className="bg-red-100 p-4 rounded shadow">
+              <div className="text-red-800 font-semibold">Body Temperature</div>
+              <div className="text-2xl font-bold">{latestVital.bodyTemp} <span className="text-sm">°C</span></div>
+            </div>
+            <div className="bg-purple-100 p-4 rounded shadow">
+              <div className="text-purple-800 font-semibold">Pulse Rate</div>
+              <div className="text-2xl font-bold">{latestVital.pulseRate} <span className="text-sm">bpm</span></div>
+            </div>
+            <div className="bg-green-100 p-4 rounded shadow">
+              <div className="text-green-800 font-semibold">Breathing Rate</div>
+              <div className="text-2xl font-bold">{latestVital.breathingRate} <span className="text-sm">breaths/min</span></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vitals History */}
+      <div>
+        <h2 className="text-xl font-bold mb-4">Vitals History</h2>
+        {allVitals.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead className="bg-gray-800 text-white">
+                <tr>
+                  <th className="py-2 px-4 text-left">Date</th>
+                  <th className="py-2 px-4 text-left">Time</th>
+                  <th className="py-2 px-4 text-left">Blood Pressure (mmHg)</th>
+                  <th className="py-2 px-4 text-left">Body Temp (°C)</th>
+                  <th className="py-2 px-4 text-left">Pulse Rate (bpm)</th>
+                  <th className="py-2 px-4 text-left">Breathing Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allVitals.map((vital, index) => (
+                  <tr key={vital._id || index} className={index % 2 === 0 ? "bg-gray-100" : "bg-white"}>
+                    <td className="py-2 px-4">{new Date(vital.date).toLocaleDateString()}</td>
+                    <td className="py-2 px-4">{vital.time}</td>
+                    <td className="py-2 px-4">{vital.bloodPressure}</td>
+                    <td className="py-2 px-4">{vital.bodyTemp}</td>
+                    <td className="py-2 px-4">{vital.pulseRate}</td>
+                    <td className="py-2 px-4">{vital.breathingRate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center p-4 bg-gray-100 rounded">No vitals history available</div>
+        )}
       </div>
-
-      {activeTab === 'consultations' && (
-        <div>
-          {consultations.map((consultation) => (
-            <div key={consultation.id} className="mb-2 bg-gray-800 text-white rounded">
-              <div className="grid grid-cols-2 p-4">
-                <div className="text-left">
-                  <span className="text-gray-300">Date</span>
-                  <p>{new Date(consultation.date).toLocaleDateString()}</p>
-                </div>
-                <div className="text-left">
-                  <span className="text-gray-300">Details</span>
-                  <p>{consultation.notes}</p>
-                  <p className="text-sm text-gray-300 mt-1">Doctor: {consultation.doctor}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'dailyProgress' && (
-        <div>
-          {dailyProgress.map((progress) => (
-            <div key={progress.id} className="mb-2 bg-gray-800 text-white rounded">
-              <div className="grid grid-cols-2 p-4">
-                <div className="text-left">
-                  <span className="text-gray-300">Date</span>
-                  <p>{new Date(progress.date).toLocaleDateString()}</p>
-                </div>
-                <div className="text-left">
-                  <span className="text-gray-300">Details</span>
-                  <p>Blood Pressure: {progress.bloodPressure} mmHg</p>
-                  <p>Body Temperature: {progress.bodyTemp}°C</p>
-                  <p>Pulse Rate: {progress.pulseRate} bpm</p>
-                  <p>Breathing Rate: {progress.breathingRate} breaths/min</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 };
 
-export default PatientConsultations;
+export default PatientVitals;

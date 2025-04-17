@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AuthProvider } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
+import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -14,8 +15,9 @@ import TrendsPage from './pages/TrendsPage';
 import AboutPage from './pages/AboutPage';
 import TermsPage from './pages/terms';
 import PrivacyPolicyPage from './pages/privacy';
+import AIHealthcarePage from './pages/AI'
 import './App.css';
-
+import ProtectedLayout from "./components/ProtectedLayout";
 // Common Pages
 import Profile from "./pages/common/Profile";
 import Calendar from "./pages/common/Calendar";
@@ -56,6 +58,9 @@ import NurseDashboard from "./pages/nurse/NurseDashboard";
 import PatientRecords from "./pages/nurse/PatientRecords";
 import PatientConsultations from "./pages/nurse/PatientConsultations"; // Add import for the new component
 import PatientConsultationDetails from "./pages/nurse/PatientConsultationDetails";
+import NurPatientProgress from "./pages/nurse/NurPatientProgress";
+import NurDetailedProgress from "./pages/nurse/NurDetailedProgress";
+import NurAddVitals from "./pages/nurse/NurAddVitals";
 
 import PharmacistDashboard from "./pages/pharmacist/PharmacistDashboard";
 
@@ -80,12 +85,19 @@ import IllnessTrends from "./pages/admin/analytics/IllnessTrends";
 import MedicineTrends from "./pages/admin/analytics/MedicineTrends";
 import FinancialTrends from "./pages/admin/analytics/FinancialTrends";
 import BedOccupancyTrends from "./pages/admin/analytics/BedOccupancyTrends";
+import DoctorPerformanceMetrics from "./pages/admin/analytics/DoctorPerformanceMetrics";
 import DoctorWorkingTrends from "./pages/admin/analytics/DoctorWorkingTrends";
 import TextualFeedbackAnalysis from "./pages/admin/analytics/FeedbackTextAnalysis";
 import Feedbacks from "./pages/admin/analytics/Feedbacks";
 
 import PublicData from "./pages/PublicData";
 import AddBill from "./pages/receptionist/AddBill";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import DoctorAppointment from "./pages/patient/DoctorAppointment";
+
+
+
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -96,11 +108,8 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <Navbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen}/>
-        <div className="flex">
+      <ScrollToTop />
 
-        <Sidebar isSidebarOpen={isSidebarOpen} />
-        <div className="flex-1 ml-0 transition-all">
 
         <Routes>
           {/* Authentication & Public Pages */}
@@ -115,9 +124,15 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage/>} />
           <Route path= "/terms" element={<TermsPage/>} />
+          <Route path= "/AI" element={<AIHealthcarePage/>} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+
+          <Route element={<ProtectedLayout />}>
 
          {/* Role-Based Common Pages */}                  
-         <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "receptionist", "admin", "patient", "pathologist"]} />}>
+         <Route element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "nurse", "admin", "pathologist","pharmacist"]} />}>
             <Route path=":role/profile" element={<Profile />} />
           </Route>
                      
@@ -135,7 +150,7 @@ function App() {
             <Route path=":role/contact-admin" element={<ContactAdmin />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "admin", "pathologist"]} />}>
+          <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "receptionist", "patient", "pathologist", "pharmacist"]} />}>
             <Route path=":role/payroll-info" element={<PayrollInfo />} />
           </Route>
 
@@ -166,6 +181,7 @@ function App() {
             <Route path="/patient/book-consultation" element={<BookConsultation />} />
             <Route path="/patient/booked-consultation" element={<BookedConsultation />} />
             <Route path="/patient/reschedule-consultation/:consultationId" element={<RescheduleConsultation />} />
+            <Route path="/patient/doctor/:doctorId" element={<DoctorAppointment />} />
 
           </Route>
 
@@ -191,7 +207,9 @@ function App() {
             <Route path="/nurse/patient-records/:patientId/consultations" element={<PatientConsultations />} />
                 {/* Add this new route for consultation details */}
                 <Route path="/nurse/patient-consultations/:consultationId" element={<PatientConsultationDetails />} />
-              
+                <Route path="/nurse/patient-progress/:patientId" element={<NurPatientProgress />} />
+                <Route path="/nurse/daily-progress/details/:entry" element={<NurDetailedProgress />} />
+                <Route path="/nurse/daily-progress/add-vitals" element={<NurAddVitals />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["pharmacist"]} />}>
@@ -230,15 +248,17 @@ function App() {
             <Route path="/admin/analytics/illness-trends" element={<IllnessTrends />} />
             <Route path="/admin/analytics/medicine-trends" element={<MedicineTrends />} />
             <Route path="/admin/analytics/financial-trends" element={<FinancialTrends />} />
-            <Route path="/admin/analytics/bed-occupancy-trends" element={<BedOccupancyTrends />} />
+            <Route path="/admin/analytics/doctor-performance-trends" element={<DoctorPerformanceMetrics />} />
             <Route path="/admin/analytics/doctor-working-trends" element={<DoctorWorkingTrends />} />
             <Route path="/admin/analytics/text-feedback" element={<TextualFeedbackAnalysis />} />
+            <Route path="/admin/analytics/bed-occupancy" element={<BedOccupancyTrends />} />
             <Route path="/admin/analytics/feedbacks" element={<Feedbacks />} />
           </Route>
-        </Routes>
-        </div>
 
-        </div>
+          </Route>
+
+        </Routes>
+
       </Router>
     </AuthProvider>
   );

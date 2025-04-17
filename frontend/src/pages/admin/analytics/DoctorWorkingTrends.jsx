@@ -9,99 +9,6 @@ import axios from 'axios';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-/* Backend Implementation Reference:
-GET /api/analytics/consultations/monthly
-MongoDB Aggregation Pipeline:
-[
-  {
-    $match: {
-      doctor_id: doctorId,
-      booked_date_time: { 
-        $gte: new Date(startDate), 
-        $lte: new Date(endDate) 
-      }
-    }
-  },
-  {
-    $group: {
-      _id: {
-        year: { $year: "$booked_date_time" },
-        month: { $month: "$booked_date_time" }
-      },
-      count: { $sum: 1 }
-    }
-  },
-  {
-    $sort: { "_id.year": 1, "_id.month": 1 }
-  }
-]
-
-GET /api/analytics/consultations/weekly
-MongoDB Aggregation Pipeline:
-[
-  {
-    $match: {
-      doctor_id: doctorId,
-      booked_date_time: { 
-        $gte: new Date(startDate), 
-        $lte: new Date(endDate) 
-      }
-    }
-  },
-  {
-    $group: {
-      _id: {
-        year: { $year: "$booked_date_time" },
-        week: { $week: "$booked_date_time" }
-      },
-      count: { $sum: 1 }
-    }
-  },
-  {
-    $sort: { "_id.year": 1, "_id.week": 1 }
-  }
-]
-*/
-
-// Dummy data for testing
-const generateDummyData = {
-  monthly: (start, end) => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const labels = [];
-    const data = [];
-    
-    let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const monthYear = `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-      labels.push(monthYear);
-      data.push(Math.floor(Math.random() * 50) + 10); // Random between 10-60
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
-    
-    return { labels, data };
-  },
-  
-  weekly: (start, end) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const labels = [];
-    const data = [];
-    
-    let currentDate = new Date(startDate);
-    let weekCount = 1;
-    while (currentDate <= endDate && weekCount <= 12) { // Show max 12 weeks
-      labels.push(`Week ${weekCount}`);
-      data.push(Math.floor(Math.random() * 15) + 5); // Random between 5-20
-      currentDate.setDate(currentDate.getDate() + 7);
-      weekCount++;
-    }
-    
-    return { labels, data };
-  }
-};
-
 const DoctorWorkingTrends = () => {
   const [doctorName, setDoctorName] = useState('');
   const [startDate, setStartDate] = useState(null);
@@ -110,18 +17,18 @@ const DoctorWorkingTrends = () => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedMonthData, setSelectedMonthData] = useState(null);
-  
+
   const handleTabChange = async (tab) => {
     setActiveTab(tab);
     setLoading(true);
-    
+
     try {
       if (tab === 'monthly') {
         // Restore the original monthly data
         setChartData(selectedMonthData);
       } else {
         // Fetch weekly data for the entire date range
-        const result = await fetchWeeklyConsultations('123', startDate, endDate);
+        const result = await fetchWeeklyConsultations(doctorName, startDate, endDate);
         setChartData({
           labels: result.labels,
           datasets: [{
@@ -144,10 +51,9 @@ const DoctorWorkingTrends = () => {
 
     setLoading(true);
     try {
-      const dummyDoctorId = '123';
       const fetchFunction = activeTab === 'monthly' ? fetchMonthlyConsultations : fetchWeeklyConsultations;
-      const result = await fetchFunction(dummyDoctorId, startDate, endDate);
-      
+      const result = await fetchFunction(doctorName, startDate, endDate);
+
       const newChartData = {
         labels: result.labels,
         datasets: [{
@@ -170,19 +76,19 @@ const DoctorWorkingTrends = () => {
 
   const handleChartClick = async (_, elements) => {
     if (!elements.length || activeTab !== 'monthly') return;
-    
+
     const clickedMonthIndex = elements[0].index;
     const monthStart = new Date(startDate);
     monthStart.setMonth(monthStart.getMonth() + clickedMonthIndex);
-    
+
     const monthEnd = new Date(monthStart);
     monthEnd.setMonth(monthEnd.getMonth() + 1);
 
     setActiveTab('weekly');
     setLoading(true);
-    
+
     try {
-      const result = await fetchWeeklyConsultations('123', monthStart, monthEnd);
+      const result = await fetchWeeklyConsultations(doctorName, monthStart, monthEnd);
       setChartData({
         labels: result.labels,
         datasets: [{
@@ -198,22 +104,42 @@ const DoctorWorkingTrends = () => {
     }
   };
 
-  const fetchMonthlyConsultations = async (doctorId, start, end) => {
+  const fetchMonthlyConsultations = async (doctorName, start, end) => {
     try {
-      // For testing, use dummy data instead of actual API call
-      const dummyResponse = generateDummyData.monthly(start, end);
-      return dummyResponse;
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/analytics/doctor-working`, {
+        params: {
+          doctorName,
+          startDate: start.toISOString(),
+          endDate: end.toISOString()
+        }
+      });
+
+      // Format the data for the chart
+      const labels = response.data.monthly.map(item => item.label);
+      const data = response.data.monthly.map(item => item.count);
+
+      return { labels, data };
     } catch (error) {
       console.error('Error fetching monthly data:', error);
       throw error;
     }
   };
 
-  const fetchWeeklyConsultations = async (doctorId, start, end) => {
+  const fetchWeeklyConsultations = async (doctorName, start, end) => {
     try {
-      // For testing, use dummy data instead of actual API call
-      const dummyResponse = generateDummyData.weekly(start, end);
-      return dummyResponse;
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/analytics/doctor-working`, {
+        params: {
+          doctorName,
+          startDate: start.toISOString(),
+          endDate: end.toISOString()
+        }
+      });
+
+      // Format the data for the chart
+      const labels = response.data.weekly.map(item => item.label);
+      const data = response.data.weekly.map(item => item.count);
+
+      return { labels, data };
     } catch (error) {
       console.error('Error fetching weekly data:', error);
       throw error;
@@ -227,7 +153,7 @@ const DoctorWorkingTrends = () => {
           <FontAwesomeIcon icon={faChartBar} className="mr-3" />
           Doctor Working Trends
         </h2>
-        
+
         {/* Form section */}
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-0 md:flex md:gap-4 mb-6">
           <div className="flex-1">
@@ -243,7 +169,7 @@ const DoctorWorkingTrends = () => {
               />
             </div>
           </div>
-          
+
           <div className="flex-1">
             <div className="relative">
               <FontAwesomeIcon icon={faCalendar} className="absolute left-3 top-3 text-gray-400 z-10" />
@@ -305,7 +231,7 @@ const DoctorWorkingTrends = () => {
           </div>
         ) : chartData && (
           <div className="h-[400px]">
-            <Bar 
+            <Bar
               data={chartData}
               options={{
                 responsive: true,

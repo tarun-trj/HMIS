@@ -4,23 +4,29 @@ import { MdEmail } from 'react-icons/md';
 import { BsTelephone } from 'react-icons/bs';
 import { IoLocationOutline } from 'react-icons/io5';
 import '../styles/Additional.css';
+import { useState, useEffect } from 'react';
 
 const FeaturesPage = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   return (
     <div className="page-container">
       <nav className="navbar">
         <div className="logo">
+        <Link to="/">
           <img src="/shield-icon.png" alt="HMIS Logo" />
+          </Link>
           <span>HMIS</span>
-        </div>
-        <div className="nav-links">
-          <Link to="/features" className="active">Features</Link>
-          <Link to="/community">Community</Link>
-          <Link to="/trends">Trends</Link>
-          <Link to="/about">About Us</Link>
+          </div>
+        <div className={`nav-links ${mobileMenuOpen ? 'show' : ''}`}>
+        <Link to="/" onClick={() => setMobileMenuOpen(false)}>Home</Link>
+          <Link to="/features" onClick={() => setMobileMenuOpen(false)}>Features</Link>
+          <Link to="/community" onClick={() => setMobileMenuOpen(false)}>Community</Link>
+          <Link to="/trends" onClick={() => setMobileMenuOpen(false)}>Trends</Link>
+          <Link to="/about" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
         </div>
         <button 
           className="mobile-menu-toggle"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle mobile menu"
         >
           ☰
@@ -88,7 +94,6 @@ const FeaturesPage = () => {
           <p>Join thousands of healthcare providers who trust HMIS to streamline their operations.</p>
           <div className="cta-buttons">
             <Link to="/register" className="btn">GET STARTED</Link>
-            <Link to="/demo" className="btn">REQUEST DEMO</Link>
           </div>
         </div>
       </section>

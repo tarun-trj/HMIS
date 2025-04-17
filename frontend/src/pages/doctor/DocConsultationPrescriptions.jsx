@@ -57,8 +57,8 @@ const DocConsultationPrescriptions = ({ consultationId }) => {
   // Mock data fetching function
   const fetchPrescriptionsByConsultationId = async (consultationId) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/consultations/consultationId/view', {
-        params: { id: consultationId }, // Pass query param here
+      const response = await axios.get(`http://localhost:5000/api/consultations/${consultationId}/view`, {
+        // params: { id: consultationId }, // Pass query param here
         headers: {
           'Content-Type': 'application/json',
         },

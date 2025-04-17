@@ -9,97 +9,6 @@ import axios from 'axios';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-/* Backend Implementation Reference:
-GET /api/analytics/payments/monthly
-MongoDB Aggregation Pipeline:
-[
-  {
-    $match: {
-      payment_date: { 
-        $gte: new Date(startDate), 
-        $lte: new Date(endDate) 
-      }
-    }
-  },
-  {
-    $group: {
-      _id: {
-        year: { $year: "$payment_date" },
-        month: { $month: "$payment_date" }
-      },
-      totalAmount: { $sum: "$amount" }
-    }
-  },
-  {
-    $sort: { "_id.year": 1, "_id.month": 1 }
-  }
-]
-
-GET /api/analytics/payments/weekly
-MongoDB Aggregation Pipeline:
-[
-  {
-    $match: {
-      payment_date: { 
-        $gte: new Date(startDate), 
-        $lte: new Date(endDate) 
-      }
-    }
-  },
-  {
-    $group: {
-      _id: {
-        year: { $year: "$payment_date" },
-        week: { $week: "$payment_date" }
-      },
-      totalAmount: { $sum: "$amount" }
-    }
-  },
-  {
-    $sort: { "_id.year": 1, "_id.week": 1 }
-  }
-]
-*/
-
-// Dummy data for testing
-const generateDummyData = {
-  monthly: (start, end) => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const labels = [];
-    const data = [];
-    
-    let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const monthYear = `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-      labels.push(monthYear);
-      data.push(Math.floor(Math.random() * 5000) + 1000); // Random between 1000-6000
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
-    
-    return { labels, data };
-  },
-  
-  weekly: (start, end) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const labels = [];
-    const data = [];
-    
-    let currentDate = new Date(startDate);
-    let weekCount = 1;
-    while (currentDate <= endDate && weekCount <= 12) { // Show max 12 weeks
-      labels.push(`Week ${weekCount}`);
-      data.push(Math.floor(Math.random() * 1500) + 500); // Random between 500-2000
-      currentDate.setDate(currentDate.getDate() + 7);
-      weekCount++;
-    }
-    
-    return { labels, data };
-  }
-};
-
 const FinancialTrends = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -107,11 +16,11 @@ const FinancialTrends = () => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedMonthData, setSelectedMonthData] = useState(null);
-  
+
   const handleTabChange = async (tab) => {
     setActiveTab(tab);
     setLoading(true);
-    
+
     try {
       if (tab === 'monthly') {
         // Restore the original monthly data
@@ -143,7 +52,7 @@ const FinancialTrends = () => {
     try {
       const fetchFunction = activeTab === 'monthly' ? fetchMonthlyPayments : fetchWeeklyPayments;
       const result = await fetchFunction(startDate, endDate);
-      
+
       const newChartData = {
         labels: result.labels,
         datasets: [{
@@ -166,17 +75,17 @@ const FinancialTrends = () => {
 
   const handleChartClick = async (_, elements) => {
     if (!elements.length || activeTab !== 'monthly') return;
-    
+
     const clickedMonthIndex = elements[0].index;
     const monthStart = new Date(startDate);
     monthStart.setMonth(monthStart.getMonth() + clickedMonthIndex);
-    
+
     const monthEnd = new Date(monthStart);
     monthEnd.setMonth(monthEnd.getMonth() + 1);
 
     setActiveTab('weekly');
     setLoading(true);
-    
+
     try {
       const result = await fetchWeeklyPayments(monthStart, monthEnd);
       setChartData({
@@ -196,15 +105,17 @@ const FinancialTrends = () => {
 
   const fetchMonthlyPayments = async (start, end) => {
     try {
-      // For testing, use dummy data instead of actual API call
-      // In production, this would be:
-      // const response = await axios.get('/api/analytics/payments/monthly', {
-      //   params: { startDate: start, endDate: end }
-      // });
-      // return response.data;
-      
-      const dummyResponse = generateDummyData.monthly(start, end);
-      return dummyResponse;
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/analytics/finance-trends`, {
+        startDate: start,
+        endDate: end
+      });
+
+      // Extract and format monthly data from response
+      const monthlyData = response.data.monthly;
+      return {
+        labels: monthlyData.map(item => item.label),
+        data: monthlyData.map(item => item.amount)
+      };
     } catch (error) {
       console.error('Error fetching monthly payment data:', error);
       throw error;
@@ -213,15 +124,17 @@ const FinancialTrends = () => {
 
   const fetchWeeklyPayments = async (start, end) => {
     try {
-      // For testing, use dummy data instead of actual API call
-      // In production, this would be:
-      // const response = await axios.get('/api/analytics/payments/weekly', {
-      //   params: { startDate: start, endDate: end }
-      // });
-      // return response.data;
-      
-      const dummyResponse = generateDummyData.weekly(start, end);
-      return dummyResponse;
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/analytics/finance-trends`, {
+        startDate: start,
+        endDate: end
+      });
+
+      // Extract and format weekly data from response
+      const weeklyData = response.data.weekly;
+      return {
+        labels: weeklyData.map(item => item.label),
+        data: weeklyData.map(item => item.amount)
+      };
     } catch (error) {
       console.error('Error fetching weekly payment data:', error);
       throw error;
@@ -235,7 +148,7 @@ const FinancialTrends = () => {
           <FontAwesomeIcon icon={faChartBar} className="mr-3" />
           Patient Payment Trends
         </h2>
-        
+
         {/* Form section */}
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-0 md:flex md:gap-4 mb-6">
           <div className="flex-1">
@@ -299,7 +212,7 @@ const FinancialTrends = () => {
           </div>
         ) : chartData ? (
           <div className="h-[400px]">
-            <Bar 
+            <Bar
               data={chartData}
               options={{
                 responsive: true,

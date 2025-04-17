@@ -2,7 +2,11 @@ import { Consultation } from '../models/consultation.js';
 import Medicine from '../models/inventory.js';
 import { Prescription } from '../models/consultation.js';
 import Patient from '../models/patient.js';
-import Bill from '../models/bill.js';
+import BillModels from '../models/bill.js';
+const { Bill, BillItem} = BillModels;
+
+import { Doctor, Receptionist } from '../models/staff.js';
+import Employee from '../models/employee.js'; 
 
 // dummy consultation remove after integrated with db
 const dummy = {
@@ -112,13 +116,31 @@ export const bookConsultation = async (req, res) => {
       doctor_id,
       booked_date_time,
       reason,
-      created_by,
+      created_by, // This is employee._id (number)
       appointment_type
     } = req.body;
+
+    // Validate booking date is not in the past
+    const bookingDate = new Date(booked_date_time);
+    const now = new Date();
+    
+    if (bookingDate <= now) {
+      return res.status(400).json({
+        message: 'Cannot book consultation in the past',
+        currentTime: now,
+        attemptedBookingTime: bookingDate
+      });
+    }
 
     // Check if patient exists
     const patient = await Patient.findById(patient_id);
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
+
+    // Find receptionist document by employee_id
+    const receptionist = await Receptionist.findOne({ employee_id: created_by });
+    if (!receptionist) {
+      return res.status(404).json({ message: 'Receptionist not found for the given employee ID' });
+    }
 
     // Create new consultation
     const newConsultation = new Consultation({
@@ -126,7 +148,7 @@ export const bookConsultation = async (req, res) => {
       doctor_id,
       booked_date_time,
       reason,
-      created_by,
+      created_by: receptionist._id, // Use receptionist's MongoDB ObjectId
       appointment_type,
       status: 'scheduled'
     });
@@ -138,7 +160,7 @@ export const bookConsultation = async (req, res) => {
       consultation: newConsultation
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -148,12 +170,24 @@ export const rescheduleConsultation = async (req, res) => {
     const { consultationId } = req.params;
     const { new_booked_date_time } = req.body;
 
+    // Validate new booking date is not in the past
+    const newBookingDate = new Date(new_booked_date_time);
+    const now = new Date();
+    
+    if (newBookingDate <= now) {
+      return res.status(400).json({
+        message: 'Cannot reschedule consultation to a past date/time',
+        currentTime: now,
+        attemptedRescheduleTime: newBookingDate
+      });
+    }
+
     const consultation = await Consultation.findById(consultationId);
     if (!consultation) {
       return res.status(404).json({ message: 'Consultation not found' });
     }
 
-    consultation.booked_date_time = new Date(new_booked_date_time);
+    consultation.booked_date_time = newBookingDate;
     consultation.status = 'scheduled';
 
     await consultation.save();
@@ -175,17 +209,10 @@ export const rescheduleConsultation = async (req, res) => {
  */
 export const fetchConsultationById = async (req, res) => {
   try {
-    const id = req.query.id; 
-    console.log("Received request request for consultation" + id);
-    const consultation = await Consultation.findById(id)
-      .populate({
-        path: 'doctor_id',
-        populate: {
-          path: 'employee_id',
-          select: 'name' // this gets the name from Employee
-        },
-        select: 'specialization employee_id' // select doctor fields (include employee_id so nested populate works)
-      })
+    const { consultationId: id } = req.params;
+    console.log("Received request for consultation " + id);
+
+    let consultation = await Consultation.findById(id)
       .populate("diagnosis")
       .populate({
         path: 'prescription',
@@ -219,14 +246,49 @@ export const fetchConsultationById = async (req, res) => {
 
     // If consultation not found, return dummy data
     if (!consultation) {
+      const dummy = {
+        id: "dummy-id",
+        date: null,
+        doctor: {
+          id: null,
+          name: "Unknown",
+          specialization: null,
+          profilePic: null
+        },
+        location: "N/A",
+        details: "No consultation found",
+        reason: "N/A",
+        status: "N/A",
+        appointment_type: "N/A",
+        actual_start_datetime: null,
+        remark: "",
+        diagnosis: [],
+        prescription: [],
+        reports: [],
+        bill_id: null,
+        recordedAt: null,
+        feedback: null
+      };
       return res.status(200).json({ consultation: dummy, dummy: true });
     }
-    // return res.status(200).json({ consultation });
-    // Format for frontend
+
+    // Fetch doctor and employee info
+    const doctor = await Doctor.findById(consultation.doctor_id);
+    let employee = null;
+
+    if (doctor && doctor.employee_id) {
+      employee = await Employee.findById(doctor.employee_id);
+    }
+
     const formatted = {
       id: consultation._id,
       date: consultation.booked_date_time?.toISOString().split("T")[0],
-      doctor: consultation.doctor_id?.employee_id?.name || "Unknown",
+      doctor: {
+        id: doctor?._id,
+        name: employee?.name || "Unknown Doctor",
+        specialization: doctor?.specialization || null,
+        profilePic: employee?.profile_pic || null
+      },
       location: "Room 101", // Placeholder
       details: consultation.reason,
       reason: consultation.reason,
@@ -262,9 +324,13 @@ export const fetchBillByConsultationId = async (req, res) => {
     const consultation = await Consultation.findById(consultationId);
     let bill;
 
+    console.log(consultation);
+
     if (consultation && consultation.bill_id) {
       bill = await Bill.findById(consultation.bill_id);
+      console.log("Bill fetched:", bill);
     }
+
 
     // Use dummyBill if no valid bill found
     const isDummy = !bill;
@@ -396,5 +462,56 @@ export const fetchDiagnosisByConsultationId = async (req, res) => {
   } catch (err) {
     console.error("Error fetching consultation:", err);
     return res.status(500).json({ error: "Server error" });
+  }
+};
+
+
+export const updateConsultation = async (req, res) => {
+  try {
+    const { consultationId } = req.params;
+    const { 
+      doctor_id, 
+      booked_date_time, 
+      reason, 
+      appointment_type, 
+      updated_by,
+      status
+    } = req.body;
+
+    // Validate new booking date is not in the past if provided
+    if (booked_date_time) {
+      const newBookingDate = new Date(booked_date_time);
+      const now = new Date();
+      
+      if (newBookingDate <= now) {
+        return res.status(400).json({
+          message: 'Cannot update consultation to a past date/time',
+          currentTime: now,
+          attemptedUpdateTime: newBookingDate
+        });
+      }
+    }
+
+    const consultation = await Consultation.findById(consultationId);
+    if (!consultation) {
+      return res.status(404).json({ message: 'Consultation not found' });
+    }
+
+    // Update fields if provided
+    if (doctor_id) consultation.doctor_id = doctor_id;
+    if (booked_date_time) consultation.booked_date_time = new Date(booked_date_time);
+    if (reason) consultation.reason = reason;
+    if (appointment_type) consultation.appointment_type = appointment_type;
+    if (updated_by) consultation.updated_by = updated_by;
+    if (status) consultation.status = status;
+
+    await consultation.save();
+
+    res.json({
+      message: 'Consultation updated successfully',
+      consultation
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

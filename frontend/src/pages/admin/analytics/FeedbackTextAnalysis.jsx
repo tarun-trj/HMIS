@@ -6,6 +6,7 @@ import nlp from 'compromise';
 import 'chartjs-plugin-datalabels';
 import { Chart } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import axios from 'axios';
 
 ChartJS.register(ArcElement, Tooltip, Legend, PointElement, LinearScale);
 Chart.register(ChartDataLabels);
@@ -38,11 +39,21 @@ const TextualFeedbackAnalysis = () => {
   const fetchFeedbackData = async (rating) => {
     setLoading(true);
     try {
-      // For demo purposes, use simulated data
-      setTimeout(() => {
-        const mockData = getMockFeedbackData(rating);
-        setRawFeedback(mockData);
-      }, 500);
+      const mockData = getMockFeedbackData(rating);
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/analytics/feedbacks/rating/${rating}`);
+      const normalizedApiData = response.data.comments.map(item => {
+        if (item && typeof item === 'object' && item.comments) {
+          return {
+            ...item,
+            created_at: item.created_at || new Date().toISOString(),
+          };
+        }
+        return null;
+      }).filter(Boolean); // Remove any null items
+      const combinedData = [...mockData, ...normalizedApiData];
+
+      setRawFeedback(combinedData);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching feedback data:", error);
       setLoading(false);
@@ -53,55 +64,55 @@ const TextualFeedbackAnalysis = () => {
   const extractHospitalTerms = (feedbackData) => {
     // Combine all feedback text into a corpus
     const allText = feedbackData.map(item => item.comments).join(' ');
-    
+
     // Extract potential healthcare terms using healthcare-specific patterns
     const doc = nlp(allText);
-    
+
     // Extract healthcare-specific noun phrases
     const medicalTerms = [];
-    
+
     // 1. Department and service area mentions
     const departments = doc.match('(emergency|radiology|cardiology|oncology|pediatric|surgery|laboratory|billing|reception|waiting) (room|area|department|ward|unit|center|office|desk)').out('array');
     medicalTerms.push(...departments);
-    
+
     // 2. Healthcare staff mentions
     const staff = doc.match('(doctor|physician|nurse|specialist|surgeon|receptionist|technician|staff|practitioner)').out('array');
     medicalTerms.push(...staff);
-    
+
     // 3. Healthcare-specific processes
     const processes = doc.match('(appointment|wait time|check-in|registration|discharge|admission|scheduling|procedure|treatment|examination|checkup|consultation|follow-up|test|scan)').out('array');
     medicalTerms.push(...processes);
-    
+
     // 4. Extract bigrams (potentially capturing new healthcare terms)
     const words = allText.toLowerCase().split(/\s+/);
     const bigrams = [];
     for (let i = 0; i < words.length - 1; i++) {
-      if (words[i].length > 2 && words[i+1].length > 2) {
-        bigrams.push(`${words[i]} ${words[i+1]}`);
+      if (words[i].length > 2 && words[i + 1].length > 2) {
+        bigrams.push(`${words[i]} ${words[i + 1]}`);
       }
     }
-    
+
     // Count all potential terms
     const termCounts = {};
     [...medicalTerms, ...bigrams].forEach(term => {
       const normalized = term.toLowerCase();
       termCounts[normalized] = (termCounts[normalized] || 0) + 1;
     });
-    
+
     // Filter out infrequent terms and score by significance
     const significantTerms = Object.entries(termCounts)
       .filter(([term, count]) => count >= 3) // Term appears at least 3 times
       .map(([term, count]) => {
         // Calculate term significance by comparing frequency across rating groups
         let distinctiveness = 0;
-        
+
         // Group feedback by rating
         const ratingGroups = {};
         feedbackData.forEach(item => {
           if (!ratingGroups[item.rating]) ratingGroups[item.rating] = [];
           ratingGroups[item.rating].push(item.comments);
         });
-        
+
         // Calculate frequency in each rating group
         const ratingFreqs = {};
         Object.entries(ratingGroups).forEach(([rating, texts]) => {
@@ -110,14 +121,14 @@ const TextualFeedbackAnalysis = () => {
           const matches = combined.match(regex) || [];
           ratingFreqs[rating] = matches.length / texts.length; // Normalized by group size
         });
-        
+
         // Calculate variance between ratings (indicates terms that distinguish ratings)
         const values = Object.values(ratingFreqs);
         const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
         const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
-        
+
         distinctiveness = variance * 10; // Scale up for easier comparison
-        
+
         return {
           term,
           count,
@@ -128,7 +139,7 @@ const TextualFeedbackAnalysis = () => {
       .sort((a, b) => b.score - a.score)
       .slice(0, 50) // Top 50 terms
       .map(item => item.term);
-    
+
     return significantTerms;
   };
 
@@ -136,10 +147,10 @@ const TextualFeedbackAnalysis = () => {
   const extractHospitalQualityDescriptors = (feedbackData) => {
     const allText = feedbackData.map(item => item.comments).join(' ');
     const doc = nlp(allText);
-    
+
     // Extract quality-related adjectives in healthcare context
     const qualityPhrases = [];
-    
+
     // 1. Adjectives describing healthcare terms
     const healthcareAdjectivePatterns = [
       // Staff descriptors
@@ -151,17 +162,17 @@ const TextualFeedbackAnalysis = () => {
       // Time descriptors
       '(long|short|quick|slow|excessive|reasonable) (wait|time|delay|appointment)'
     ];
-    
+
     healthcareAdjectivePatterns.forEach(pattern => {
       const matches = doc.match(pattern).out('array');
       qualityPhrases.push(...matches);
     });
-    
+
     // 2. Extract general sentiment adjectives
     const sentimentAdjectives = doc.adjectives()
       .if('#Comparable') // Comparative adjectives often indicate quality
       .out('array');
-    
+
     // 3. Find adjectives in the context of common satisfaction patterns
     const satisfactionPatterns = [
       'was #Adverb? #Adjective',
@@ -172,7 +183,7 @@ const TextualFeedbackAnalysis = () => {
       'extremely #Adjective',
       'quite #Adjective'
     ];
-    
+
     const contextualAdjectives = [];
     satisfactionPatterns.forEach(pattern => {
       const matches = doc.match(pattern).out('array');
@@ -185,94 +196,94 @@ const TextualFeedbackAnalysis = () => {
         }
       });
     });
-    
+
     // Count and score all descriptors
     const descriptorCounts = {};
     [...qualityPhrases, ...sentimentAdjectives, ...contextualAdjectives].forEach(phrase => {
       const normalized = phrase.toLowerCase();
       descriptorCounts[normalized] = (descriptorCounts[normalized] || 0) + 1;
     });
-    
+
     // Select most frequent descriptors
     const descriptorScores = Object.entries(descriptorCounts)
       .filter(([term, count]) => count >= 2)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 40)
       .map(item => item[0]);
-    
+
     return descriptorScores;
   };
 
   // Discover relationships between hospital terms
   const discoverHospitalTermRelationships = (feedbackData, hospitalTerms) => {
     const relationships = {};
-    
+
     // Co-occurrence analysis
     hospitalTerms.forEach(term => {
       // Find feedback containing this term
-      const relatedFeedback = feedbackData.filter(item => 
+      const relatedFeedback = feedbackData.filter(item =>
         item.comments.toLowerCase().includes(term)
       );
-      
+
       if (relatedFeedback.length < 3) {
         relationships[term] = [];
         return;
       }
-      
+
       // Find co-occurring hospital terms
       const coOccurrences = {};
       hospitalTerms.forEach(otherTerm => {
         if (term !== otherTerm) {
-          const count = relatedFeedback.filter(item => 
+          const count = relatedFeedback.filter(item =>
             item.comments.toLowerCase().includes(otherTerm)
           ).length;
-          
+
           if (count > 0) {
             // Calculate simple co-occurrence score
             coOccurrences[otherTerm] = count / relatedFeedback.length;
           }
         }
       });
-      
+
       // Enhance with syntactic relationships (terms appearing in same sentence)
       const allText = relatedFeedback.map(item => item.comments).join('. ');
       const doc = nlp(allText);
       const sentences = doc.sentences().out('array');
-      
+
       hospitalTerms.forEach(otherTerm => {
         if (term !== otherTerm && !coOccurrences[otherTerm]) {
           // Count sentences containing both terms
-          const sentencesWithBothTerms = sentences.filter(sentence => 
-            sentence.toLowerCase().includes(term) && 
+          const sentencesWithBothTerms = sentences.filter(sentence =>
+            sentence.toLowerCase().includes(term) &&
             sentence.toLowerCase().includes(otherTerm)
           ).length;
-          
+
           if (sentencesWithBothTerms > 0) {
             coOccurrences[otherTerm] = sentencesWithBothTerms / sentences.length;
           }
         }
       });
-      
+
       // Select top related terms
       relationships[term] = Object.entries(coOccurrences)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
         .map(([relatedTerm]) => relatedTerm);
     });
-    
+
     return relationships;
   };
 
   // Extract meaningful noun phrases from text
   const extractNounPhrases = (text, hospitalTerms) => {
     const doc = nlp(text);
-    
+
     // Get noun phrases (with optional adjectives and determiners)
     const nounPhrases = doc.match('#Determiner? #Adjective* #Noun+').out('array');
-    
+
     // Get subject-verb-object patterns that often contain key feedback
     const svoPatterns = doc.clauses().out('array');
-    
+
     // Common stopwords to filter out
     const stopwords = [
       'a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by',
@@ -280,56 +291,56 @@ const TextualFeedbackAnalysis = () => {
       'do', 'does', 'did', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
       'this', 'that', 'these', 'those', 'my', 'your', 'his', 'her'
     ];
-    
+
     // Combine and filter meaningful phrases
     const phrases = [...nounPhrases, ...svoPatterns]
       .filter(phrase => {
         // Only keep phrases of reasonable length
         const wordCount = phrase.split(' ').length;
         const charLength = phrase.length;
-        
+
         // Prioritize phrases that contain hospital terms
-        const containsHospitalTerm = hospitalTerms.some(term => 
+        const containsHospitalTerm = hospitalTerms.some(term =>
           phrase.toLowerCase().includes(term)
         );
-        
+
         // Basic filtering criteria
-        return charLength > 4 && wordCount <= 4 && 
-              !stopwords.includes(phrase.split(' ')[0].toLowerCase()) &&
-              !stopwords.includes(phrase.split(' ')[wordCount-1].toLowerCase());
+        return charLength > 4 && wordCount <= 4 &&
+          !stopwords.includes(phrase.split(' ')[0].toLowerCase()) &&
+          !stopwords.includes(phrase.split(' ')[wordCount - 1].toLowerCase());
       })
       .map(phrase => phrase.toLowerCase());
-    
+
     return phrases;
   };
 
   // Extract key terms using hospital-specific context
   const extractKeyTerms = (text, hospitalTerms, qualityDescriptors) => {
     const lowercaseText = text.toLowerCase();
-    
+
     // 1. Extract hospital terms that appear in the text
-    const matchedHospitalTerms = hospitalTerms.filter(term => 
+    const matchedHospitalTerms = hospitalTerms.filter(term =>
       lowercaseText.includes(term)
     );
-    
+
     // 2. Extract quality descriptors in hospital context
     const qualityPhrases = [];
     for (const descriptor of qualityDescriptors) {
       for (const term of hospitalTerms) {
         // Check for patterns like "excellent staff" or "staff was excellent"
-        if (lowercaseText.includes(`${descriptor} ${term}`) || 
-            lowercaseText.includes(`${term} ${descriptor}`) ||
-            lowercaseText.includes(`${term} was ${descriptor}`) ||
-            lowercaseText.includes(`${term} were ${descriptor}`)) {
+        if (lowercaseText.includes(`${descriptor} ${term}`) ||
+          lowercaseText.includes(`${term} ${descriptor}`) ||
+          lowercaseText.includes(`${term} was ${descriptor}`) ||
+          lowercaseText.includes(`${term} were ${descriptor}`)) {
           qualityPhrases.push(`${descriptor} ${term}`);
         }
       }
     }
-    
+
     // 3. Extract specific patterns using compromise
     const doc = nlp(text);
     const patternPhrases = [];
-    
+
     // Patterns for healthcare-specific phrases
     const healthcarePatterns = [
       // Wait time patterns
@@ -341,12 +352,12 @@ const TextualFeedbackAnalysis = () => {
       // Specific issues
       '(billing|insurance|medication|appointment) (issue|problem|error)'
     ];
-    
+
     healthcarePatterns.forEach(pattern => {
       const matches = doc.match(pattern).out('array');
       patternPhrases.push(...matches);
     });
-    
+
     return [...new Set([...matchedHospitalTerms, ...qualityPhrases, ...patternPhrases])];
   };
 
@@ -354,7 +365,7 @@ const TextualFeedbackAnalysis = () => {
   const calculateTfIdf = (documentPhrases, feedbackData, hospitalTerms, qualityDescriptors) => {
     const phraseTfidf = {};
     const phraseDocCounts = {};
-    
+
     // Calculate document frequency for each phrase
     Object.values(documentPhrases).forEach(phrases => {
       const uniquePhrases = [...new Set(phrases)];
@@ -362,7 +373,7 @@ const TextualFeedbackAnalysis = () => {
         phraseDocCounts[phrase] = (phraseDocCounts[phrase] || 0) + 1;
       });
     });
-    
+
     // Calculate TF-IDF with domain boosts
     Object.entries(documentPhrases).forEach(([docId, phrases]) => {
       // Count phrase frequency in this document
@@ -370,36 +381,36 @@ const TextualFeedbackAnalysis = () => {
       phrases.forEach(phrase => {
         phraseCounts[phrase] = (phraseCounts[phrase] || 0) + 1;
       });
-      
+
       // Calculate TF-IDF with boosts
       Object.entries(phraseCounts).forEach(([phrase, count]) => {
         // Term frequency in this document
         const tf = count;
-        
+
         // Inverse document frequency
         const idf = Math.log(feedbackData.length / (phraseDocCounts[phrase] || 1));
-        
+
         // Base TF-IDF score
         let score = tf * idf;
-        
+
         // Apply domain knowledge boosts
         const containsHospitalTerm = hospitalTerms.some(term => phrase.includes(term));
         const containsQualityDescriptor = qualityDescriptors.some(term => phrase.includes(term));
-        
+
         if (containsHospitalTerm) score *= 1.5;
         if (containsQualityDescriptor) score *= 1.3;
         if (phrase.split(' ').length > 1) score *= 1.2; // Boost multi-word phrases
-        
+
         // Penalize very short phrases
         if (phrase.length < 5) score *= 0.8;
-        
+
         // Store score
         if (!phraseTfidf[phrase]) phraseTfidf[phrase] = { score: 0, docs: [] };
         phraseTfidf[phrase].score += score;
         phraseTfidf[phrase].docs.push(docId);
       });
     });
-    
+
     return phraseTfidf;
   };
 
@@ -407,17 +418,17 @@ const TextualFeedbackAnalysis = () => {
   const groupSimilarPhrases = (phraseTfidf, termRelationships) => {
     const phraseGroups = [];
     const processedPhrases = new Set();
-    
+
     // Sort phrases by score for better grouping
     const sortedPhrases = Object.entries(phraseTfidf)
       .sort((a, b) => b[1].score - a[1].score);
-    
+
     for (const [phrase, data] of sortedPhrases) {
       if (processedPhrases.has(phrase)) continue;
-      
+
       // Skip phrases with very low scores
       if (data.score < 0.1) continue;
-      
+
       // Start a new group with this phrase
       const group = {
         mainPhrase: phrase,
@@ -426,11 +437,11 @@ const TextualFeedbackAnalysis = () => {
         docs: new Set(data.docs)
       };
       processedPhrases.add(phrase);
-      
+
       // Find similar phrases to group together
       for (const [otherPhrase, otherData] of sortedPhrases) {
         if (processedPhrases.has(otherPhrase)) continue;
-        
+
         if (areSemanticallyRelated(phrase, otherPhrase, termRelationships)) {
           group.phrases.push(otherPhrase);
           group.score += otherData.score * 0.7; // Reduce weight for similar phrases
@@ -438,10 +449,10 @@ const TextualFeedbackAnalysis = () => {
           processedPhrases.add(otherPhrase);
         }
       }
-      
+
       phraseGroups.push(group);
     }
-    
+
     return phraseGroups;
   };
 
@@ -453,22 +464,22 @@ const TextualFeedbackAnalysis = () => {
       'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had',
       'do', 'does', 'did', 'i', 'you', 'he', 'she', 'it', 'we', 'they'
     ];
-    
+
     // Simple word overlap
     const words1 = phrase1.split(' ');
     const words2 = phrase2.split(' ');
-    
+
     // Check for shared words
-    const sharedWords = words1.filter(word => 
+    const sharedWords = words1.filter(word =>
       words2.includes(word) && word.length > 3 && !stopwords.includes(word)
     );
-    
+
     // Check if phrases share significant words
     if (sharedWords.length >= 1) return true;
-    
+
     // Check if one phrase is contained within the other
     if (phrase1.includes(phrase2) || phrase2.includes(phrase1)) return true;
-    
+
     // Check for related terms using the discovered relationships
     for (const term in termRelationships) {
       if (phrase1.includes(term)) {
@@ -477,7 +488,7 @@ const TextualFeedbackAnalysis = () => {
           return true;
         }
       }
-      
+
       if (phrase2.includes(term)) {
         const relatedTerms = termRelationships[term];
         if (relatedTerms.some(relatedTerm => phrase1.includes(relatedTerm))) {
@@ -485,7 +496,7 @@ const TextualFeedbackAnalysis = () => {
         }
       }
     }
-    
+
     return false;
   };
 
@@ -495,17 +506,17 @@ const TextualFeedbackAnalysis = () => {
     const sortedGroups = phraseGroups
       .sort((a, b) => b.score - a.score)
       .slice(0, 10); // Take top 10 groups
-    
+
     // Create topic data structure
     return sortedGroups.map(group => {
       // Find the most representative phrase (prefer 2-3 word phrases)
       const mainPhrase = findBestPhrase(group.phrases);
-      
+
       // Find related comments
       const docIndices = Array.from(group.docs).map(idx => parseInt(idx));
       const relatedComments = docIndices.map(idx => feedbackData[idx])
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      
+
       return {
         phrase: mainPhrase,
         keyphrases: group.phrases.slice(0, 10), // Store related phrases
@@ -526,11 +537,11 @@ const TextualFeedbackAnalysis = () => {
       const wordCount = p.split(' ').length;
       return wordCount >= 2 && wordCount <= 3;
     });
-    
+
     if (multiWordPhrases.length > 0) {
       return multiWordPhrases[0];
     }
-    
+
     // Fall back to the first phrase
     return phrases[0];
   };
@@ -542,31 +553,31 @@ const TextualFeedbackAnalysis = () => {
     // Step 1: Extract hospital-specific terms and quality descriptors
     const hospitalTerms = extractHospitalTerms(feedbackData);
     const qualityDescriptors = extractHospitalQualityDescriptors(feedbackData);
-    
+
     // Step 2: Discover relationships between hospital terms
     const termRelationships = discoverHospitalTermRelationships(feedbackData, hospitalTerms);
-    
+
     // Step 3: Extract phrases from each document
     const documentPhrases = {};
     feedbackData.forEach((feedback, idx) => {
       // Extract both noun phrases and key terms using the discovered lists
       const nounPhrases = extractNounPhrases(feedback.comments, hospitalTerms);
       const keyTerms = extractKeyTerms(feedback.comments, hospitalTerms, qualityDescriptors);
-      
+
       // Combine unique phrases
       const uniquePhrases = [...new Set([...nounPhrases, ...keyTerms])];
       documentPhrases[idx] = uniquePhrases;
     });
-    
+
     // Step 4: Calculate TF-IDF with domain knowledge
     const phraseTfidf = calculateTfIdf(documentPhrases, feedbackData, hospitalTerms, qualityDescriptors);
-    
+
     // Step 5: Group similar phrases
     const phraseGroups = groupSimilarPhrases(phraseTfidf, termRelationships);
-    
+
     // Step 6: Create topic data from phrase groups
     const topicPhrases = createTopicPhrases(phraseGroups, feedbackData);
-    
+
     return topicPhrases;
   };
 
@@ -585,19 +596,19 @@ const TextualFeedbackAnalysis = () => {
     // Create a more distributed layout
     const xPositions = [];
     const yPositions = [];
-    
+
     // Position bubbles in a grid-like pattern
     const columns = Math.ceil(Math.sqrt(topicData.length));
     const xStep = 1000 / columns;
     const yStep = 500 / columns;
-    
+
     topicData.forEach((_, index) => {
       const col = index % columns;
       const row = Math.floor(index / columns);
       xPositions.push(col * xStep + (Math.random() * 100) - 50);
       yPositions.push(row * yStep + (Math.random() * 100) - 50);
     });
-    
+
     return {
       datasets: [
         {
@@ -654,7 +665,7 @@ const TextualFeedbackAnalysis = () => {
         display: false,
       },
       datalabels: {
-        display: function(context) {
+        display: function (context) {
           return context.dataset.data[context.dataIndex].r > 20;
         },
         color: '#fff',
@@ -681,15 +692,15 @@ const TextualFeedbackAnalysis = () => {
 
   const highlightKeyPhrase = (comment, phrase) => {
     if (!phrase) return comment;
-    
+
     // Create a case-insensitive regular expression from the phrase
     const regex = new RegExp(`(${phrase.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
-    
+
     // Split the comment by the regex matches
     const parts = comment.split(regex);
-    
+
     // Return the comment with highlighted phrase
-    return parts.map((part, i) => 
+    return parts.map((part, i) =>
       regex.test(part) ? <span key={i} className="bg-yellow-200 font-semibold">{part}</span> : part
     );
   };
@@ -719,11 +730,10 @@ const TextualFeedbackAnalysis = () => {
                 <button
                   key={rating}
                   onClick={() => setSelectedRating(rating)}
-                  className={`flex items-center justify-center h-10 w-10 rounded-full transition-all ${
-                    selectedRating === rating
+                  className={`flex items-center justify-center h-10 w-10 rounded-full transition-all ${selectedRating === rating
                       ? "bg-blue-500 text-white"
                       : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
+                    }`}
                 >
                   {rating}
                 </button>
@@ -766,8 +776,8 @@ const TextualFeedbackAnalysis = () => {
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {topicData.find(t => t.phrase === selectedTopic)?.keyphrases.slice(0, 10).map((phrase) => (
-                      <span 
-                        key={phrase} 
+                      <span
+                        key={phrase}
                         className="px-3 py-1 bg-white rounded-full text-sm font-medium text-blue-700 border border-blue-200 shadow-sm"
                       >
                         {phrase}
@@ -821,7 +831,7 @@ const TextualFeedbackAnalysis = () => {
 // Mock data generation function
 const getMockFeedbackData = (rating) => {
   const now = new Date();
-  
+
   // Complete feedback templates for all ratings
   const feedbackTemplates = {
     1: [
@@ -885,7 +895,7 @@ const getMockFeedbackData = (rating) => {
       "Professional doctors with excellent bedside manner. They made me feel at ease throughout the procedure."
     ]
   };
-  
+
   // Variables to randomize in templates
   const variables = {
     time: ['2', '3', '4', '5'],
@@ -901,37 +911,38 @@ const getMockFeedbackData = (rating) => {
     duration: ['two-day', 'week-long', 'short', 'overnight'],
     doctor: ['Smith', 'Johnson', 'Williams', 'Brown', 'Miller']
   };
-  
+
   // Replace variables in templates
   function replaceVariables(template) {
     let result = template;
-    
+
     Object.keys(variables).forEach(key => {
       const pattern = new RegExp(`\\{${key}\\}`, 'g');
       const options = variables[key];
       const replacement = options[Math.floor(Math.random() * options.length)];
       result = result.replace(pattern, replacement);
     });
-    
+
     return result;
   }
-  
+
   // Generate feedback data
   const mockData = [];
-  
+
   // Create a realistic number of feedback entries with better distribution
-  const count = rating === 5 ? 120 : rating === 4 ? 100 : rating === 3 ? 80 : rating === 2 ? 60 : 80;
-  
+  let count = rating === 5 ? 120 : rating === 4 ? 100 : rating === 3 ? 80 : rating === 2 ? 60 : 80;
+  count /= 4;
+
   for (let i = 0; i < count; i++) {
     const templates = feedbackTemplates[rating] || feedbackTemplates[5];
-    
+
     // Select base template
     const templateIndex = Math.floor(Math.random() * templates.length);
     const baseTemplate = templates[templateIndex];
-    
+
     // Process template with variable replacement
     let comment = replaceVariables(baseTemplate);
-    
+
     // Sometimes combine two templates for more complex feedback (20% chance)
     if (Math.random() < 0.2 && templates.length > 1) {
       const secondTemplateIndex = (templateIndex + 1 + Math.floor(Math.random() * (templates.length - 1))) % templates.length;
@@ -939,7 +950,7 @@ const getMockFeedbackData = (rating) => {
       const secondComment = replaceVariables(secondTemplate);
       comment = `${comment} ${secondComment}`;
     }
-    
+
     // Add occasional specific details (30% chance)
     if (Math.random() < 0.3) {
       const details = [
@@ -953,34 +964,27 @@ const getMockFeedbackData = (rating) => {
       const detailIndex = Math.floor(Math.random() * details.length);
       comment = `${comment} ${details[detailIndex]}`;
     }
-    
+
     // Create more realistic date distribution (weighted toward recent)
     let daysAgo;
     const rand = Math.random();
     if (rand < 0.4) {
-      // 40% of feedback within last month
       daysAgo = Math.floor(Math.random() * 30);
     } else if (rand < 0.7) {
-      // 30% within 1-3 months
       daysAgo = 30 + Math.floor(Math.random() * 60);
     } else {
-      // 30% within 3-6 months
       daysAgo = 90 + Math.floor(Math.random() * 90);
     }
-    
+
     const randomDate = new Date(now);
     randomDate.setDate(randomDate.getDate() - daysAgo);
-    
+
     mockData.push({
-      feedback_id: i + 1,
-      consult_id: Math.floor(Math.random() * 1000) + 1,
-      doctor_id: Math.floor(Math.random() * 20) + 1,
-      rating: rating,
       comments: comment,
       created_at: randomDate.toISOString()
     });
   }
-  
+
   return mockData;
 };
 

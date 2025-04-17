@@ -16,7 +16,7 @@ const BillItemSchema = new Schema({
 });
 
 
-const PaymentSchema = new Schema({
+const PaymentSchema = new Schema({  
     amount: Number,
     insurance_id: { type: Schema.Types.ObjectId, ref: 'Insurance' },
     payment_date: Date,
@@ -40,4 +40,5 @@ const BillSchema = new Schema({
 }, { timestamps: true });
 
 const Bill = mongoose.model('Bill', BillSchema);
-export default Bill;
+const BillItem = mongoose.model('BillItem', BillItemSchema);
+export default {Bill,BillItem}

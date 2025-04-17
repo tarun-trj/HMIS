@@ -1,153 +1,227 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home } from "lucide-react";
+import { CloudCog, Home, X } from "lucide-react";
+import axios from "axios";
+import html2pdf from 'html2pdf.js';
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import "jspdf-autotable";
+import bill from "../../../../backend/models/bill";
 
-//dummy function to simulate real API call to backend
-const fetchBillsByPatientId = async (patientId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const dummyBills = [
-        { bill_id: 1, date: "2025-04-03", bill_number: 12, total_amount: 13.50 },
-        { bill_id: 2, date: "2025-04-04", bill_number: 13, total_amount: 14.50 },
-        { bill_id: 3, date: "2025-04-05", bill_number: 14, total_amount: 15.0 },
-        { bill_id: 4, date: "2025-04-06", bill_number: 15, total_amount: 16.0 },
-      ];
-      resolve(dummyBills);
-    }, 500);
-  });
-};
-
-//dummy function to simulate fetching bill details from backend
-const fetchBillDetails = async (billId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Following the Bill Collection
-      const billDetails = {
-        _id: `b${billId}`,
-        bill_id: billId,
-        patient_id: "123",
-        generation_date: new Date().toISOString().split('T')[0],
-        total_amount: 150.0,
-        payment_status: {
-          type: "String",
-          enum: "partially_paid" 
-        },
-        bill_items: [
-          {
-            bill_item_id: "bi1001",
-            item_type:{
-              type:"String",
-              enum:"consultation"
-            },
-            consult_id: "c2001", // ref: Consultation (optional)
-            report_id: "", // ref: Reports (optional)
-            prescription_id: "", // ref: Prescription (optional)
-            item_description: "General Consultation",
-            item_amount: 70.0,
-            quantity: 1
-          },
-          {
-            bill_item_id: "bi1002",
-            item_type:{
-              type:"String",
-              enum:"medication"
-            },
-            consult_id: "c2002", // ref: Consultation (optional)
-            report_id: "", // ref: Reports (optional)
-            prescription_id: "", // ref: Prescription (optional)
-            item_description: "Blood Test",
-            item_amount: 80.0,
-            quantity: 1
-          }
-        ],
-        referredBy: "Dr. HMIS",
-        timestamp: new Date().toISOString()
-      };
-      resolve(billDetails);
-    }, 300);
-  });
-};
-
-//dummy function to simulate fetching payements from backend using billId
-const fetchPaymentsByBillId = async (billId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      //Payment Collection
-      const payments = [
-        {
-          _id: "pay1001",
-          payment_id: "p1001",
-          bill_id: billId, // ref: Bill
-          amount: 50.0,
-          insurance_id: "ins001", // ref: Insurance (optional)
-          payment_date: "2025-04-02",
-          payment_gateway_id: "pg123",
-          transaction_id: "tx78901",
-          status: {
-            type: "String",
-            enum: "success" // Could be "success" or "failed"
-          },
-          payment_method: {
-            type: "String",
-            enum: "cash" // Could be "cash", "card", "bank_transfer", "insurance"
-          }
-        },
-        {
-          _id: "pay1002",
-          payment_id: "p1002",
-          bill_id: billId, // ref: Bill
-          amount: 30.0,
-          insurance_id: "", // ref: Insurance (optional)
-          payment_date: "2025-04-03",
-          payment_gateway_id: "pg123",
-          transaction_id: "tx78902",
-          status: {
-            type: "String",
-            enum: "success" 
-          },
-          payment_method: {
-            type: "String",
-            enum: "card"
-          }
-        }
-      ];
-      resolve(payments);
-    }, 300);
-  });
-};
+// API base URL - adjust as needed
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/billing`;
 
 const Bills = () => {
+
   const [bills, setBills] = useState([]);
   const [selectedBill, setSelectedBill] = useState(null);
   const [billDetails, setBillDetails] = useState(null);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [newPayment, setNewPayment] = useState({
+    amount: 0,
+    payment_method: "cash",
+    payment_date: new Date().toISOString().split('T')[0],
+    transaction_id: "",
+    status: "success"
+  });
+
   const navigate = useNavigate();
-  const patientId = "123"; //dummy patient
+  const patientId = localStorage.getItem("user_id");
 
+  const formatINR = (amount) => {
+    return amount.toFixed(2).toString();
+  };
+  
+  const handlePrint = () => {
+    try {
+      const doc = new jsPDF();
+      let y = 10;
+      const pageHeight = 290;
+  
+      // Title
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Patient Billing Receipt', 14, y);
+      y += 10;
+  
+      // Bill and patient info
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Bill ID: ${billDetails?.bill_id || 'N/A'}`, 14, y);
+      y += 6;
+      doc.text(`Patient ID: ${billDetails?.patient_id || 'Unknown'}`, 14, y);
+      y += 10;
+  
+      // Billing Items Section
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Billing Items', 14, y);
+      y += 8;
+  
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Date', 14, y);
+      doc.text('Type', 40, y);
+      doc.text('Description', 70, y);
+      doc.text('Amount', 190, y, { align: 'right' });
+      y += 6;
+  
+      doc.setFont('helvetica', 'normal');
+      if (doc.setCharSpace) doc.setCharSpace(0); // Reduces spacing between characters
+  
+      if (billDetails?.bill_items && billDetails.bill_items.length > 0) {
+        billDetails.bill_items.forEach((item) => {
+          if (y > pageHeight) {
+            doc.addPage();
+            y = 10;
+          }
+  
+          const itemDate = billDetails?.generation_date || '-';
+          const itemType = item?.item_type?.enum || '-';
+          const description = item?.item_description || '-';
+          const rawAmount = Number(item?.item_amount || 0) * Number(item?.quantity || 1);
+          const amount = formatINR(rawAmount);
+  
+          const wrappedDesc = doc.splitTextToSize(description, 100);
+          const descHeight = wrappedDesc.length * 6;
+  
+          doc.text(itemDate, 14, y);
+          doc.text(itemType, 40, y);
+          doc.text(wrappedDesc, 70, y);
+          doc.text(amount, 190, y, { align: 'right' });
+  
+          y += descHeight;
+        });
+      } else {
+        doc.text('No billing items found.', 14, y);
+      }
+  
+      y += 8;
+  
+      // Payments Section
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Payments', 14, y);
+      y += 8;
+  
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Date', 14, y);
+      doc.text('Amount', 60, y);
+      doc.text('Status + Txn ID', 110, y);
+      y += 6;
+  
+      doc.setFont('helvetica', 'normal');
+  
+      if (payments && payments.length > 0) {
+        payments.forEach((payment) => {
+          if (y > pageHeight) {
+            doc.addPage();
+            y = 10;
+          }
+  
+          const payDate = payment?.payment_date || '-';
+          const payAmount = formatINR(payment.amount || 0);
+          const status = typeof payment.status.enum === 'object'
+            ? JSON.stringify(payment.status.enum)
+            : payment.status.enum || '-';
+          const txnId = payment?.transaction_id || 'N/A';
+  
+          doc.text(payDate, 14, y);
+          doc.text(payAmount, 60, y);
+          doc.text(`${status} (${txnId})`, 110, y);
+          y += 6;
+        });
+      } else {
+        doc.text('No payments found.', 14, y);
+        y += 8;
+      }
+  
+      // Billing Summary
+      y += 6;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Billing Summary', 14, y);
+      y += 8;
+  
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      const billed = formatINR(summary.billed || 0);
+      doc.text(`Billed: `, 14, y);
+      doc.text(billed, 50, y);
+      y += 6;
+      const paid = formatINR(summary.paid || 0);
+      doc.text('Paid:', 14, y);
+      doc.text(paid, 50, y);
+      y += 6;
+      const net = formatINR(summary.net || 0);
+      doc.text('Balance:', 14, y);
+      doc.text(net, 50, y);
+      y += 10;
+  
+      // Save PDF
+      doc.save('billing_receipt.pdf');
+    } catch (error) {
+      console.error('Error printing receipt:', error);
+    }
+  };
+  
+  
+
+  // Fetch all bills for the patient
   useEffect(() => {
-    const loadBills = async () => {
-      const data = await fetchBillsByPatientId(patientId);
-      setBills(data);
-    };
-
-    loadBills();
-  }, [patientId]);
-
-  useEffect(() => {
-    const loadBillDetails = async () => {
-      if (selectedBill) {
+    const fetchBills = async () => {
+      try {
         setLoading(true);
-        const details = await fetchBillDetails(selectedBill);
-        const paymentData = await fetchPaymentsByBillId(selectedBill);
-        
-        setBillDetails(details);
-        setPayments(paymentData);
+        const response = await axios.get(`${API_BASE_URL}/patient/${patientId}`);
+        if (response.data.success) {
+          setBills(response.data.data);
+        } else {
+          setError("Failed to fetch bills");
+        }
+      } catch (err) {
+        console.error("Error fetching bills:", err);
+        setError("Failed to fetch bills. Please try again later.");
+      } finally {
         setLoading(false);
       }
     };
-    
-    loadBillDetails();
+
+    fetchBills();
+  }, [patientId]);
+
+  // Fetch bill details and payments when a bill is selected
+  useEffect(() => {
+    const fetchBillDetails = async () => {
+      if (selectedBill) {
+        try {
+          setLoading(true);
+
+          // Fetch bill details
+          const detailsResponse = await axios.get(`${API_BASE_URL}/${selectedBill}`);
+
+          // Fetch payments
+          const paymentsResponse = await axios.get(`${API_BASE_URL}/${selectedBill}/payments`);
+
+          if (detailsResponse.data.success && paymentsResponse.data.success) {
+            setBillDetails(detailsResponse.data.data);
+            setPayments(paymentsResponse.data.data);
+          } else {
+            setError("Failed to fetch bill details");
+          }
+        } catch (err) {
+          console.error("Error fetching bill details:", err);
+          setError("Failed to fetch bill details. Please try again later.");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchBillDetails();
   }, [selectedBill]);
 
   const handleView = (billId) => {
@@ -159,126 +233,148 @@ const Bills = () => {
     setSelectedBill(null);
     setBillDetails(null);
     setPayments([]);
+    setError(null);
   };
 
   // Function to format amount with rupee symbol and 2 decimal places
   const formatAmount = (amount) => {
-    return `₹${amount.toFixed(2)}`;
+    return `₹${Number(amount).toFixed(2)}`;
   };
 
   const calculateSummary = () => {
-    if (!billDetails || !payments) return { billed: 0, discount: 0, insurance: 0, paid: 0, refunds: 0, net: 0 };
-    
+    if (!billDetails || !payments) return { billed: 0, paid: 0, net: 0 };
+
     // Calculate total from bill items
-    const billed = billDetails.bill_items?.reduce((sum, item) => 
+    const billed = billDetails.bill_items?.reduce((sum, item) =>
       sum + (item.item_amount * (item.quantity || 1)), 0) || 0;
-    
+
     // Calculate total payments
     const paid = payments.reduce((sum, payment) => {
       if (payment?.status?.enum === "success") {
-        return sum + (payment.amount || 0);
+        return sum + (Number(payment.amount) || 0);
       }
       return sum;
     }, 0);
-  
-    // Calculate insurance payments
-    const insurance = payments.reduce((sum, payment) => {
-      if (payment?.status?.enum === "success" && 
-          payment?.payment_method?.enum === "insurance") {
-        return sum + (payment.amount || 0);
-      }
-      return sum;
-    }, 0);
-  
-    // For this example, assume no refunds and discount is a placeholder
-    const discount = 0;
-    const refunds = 0;
-    
+
     // Net amount is billed minus paid
-    const net = billed - paid - discount;
+    const net = billed - paid;
 
-    return { billed, discount, insurance, paid, refunds, net };
+    return { billed, paid, net };
   };
 
-  const handleAddBillingItem = () => {
-    console.log("Adding billing item");
-    // Implementation would be added by backend team
+  const handlePaymentInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewPayment({
+      ...newPayment,
+      [name]: name === "amount" ? Number(value) : value
+    });
   };
 
-  const handleAddRegnChanges = () => {
-    console.log("Adding registration changes");
-    // Implementation would be added by backend team
+  const handleOpenPaymentModal = () => {
+    // Generate a unique transaction ID
+    setNewPayment({
+      ...newPayment,
+      transaction_id: `tx${Date.now()}`
+    });
+    setShowPaymentModal(true);
   };
 
-  const handleAddDiscount = () => {
-    console.log("Adding discount");
-    // Implementation would be added by backend team
+  const handleClosePaymentModal = () => {
+    setShowPaymentModal(false);
   };
 
-  const handleClearDiscount = () => {
-    console.log("Clearing discount");
-    // Implementation would be added by backend team
+  const handleAddPayment = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_BASE_URL}/${selectedBill}/payments`, newPayment);
+
+      if (response.data.success) {
+        // Refresh payments and bill details
+        const updatedPaymentsResponse = await axios.get(`${API_BASE_URL}/${selectedBill}/payments`);
+        const updatedDetailsResponse = await axios.get(`${API_BASE_URL}/${selectedBill}`);
+
+        setPayments(updatedPaymentsResponse.data.data);
+        setBillDetails(updatedDetailsResponse.data.data);
+        setShowPaymentModal(false);
+        setNewPayment({
+          amount: 0,
+          payment_method: "cash",
+          payment_date: new Date().toISOString().split('T')[0],
+          transaction_id: "",
+          status: "success"
+        });
+      } else {
+        setError("Failed to add payment");
+      }
+    } catch (err) {
+      console.error("Error adding payment:", err);
+      setError("Failed to add payment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleClearAll = () => {
-    console.log("Clearing all");
-    // Implementation would be added by backend team
-  };
-
-  const handleAddPayment = () => {
-    console.log("Adding payment");
-    // Implementation would be added by backend team
-  };
-
-  const handleSave = () => {
-    console.log("Saving bill");
-    // Implementation would be added by backend team
-  };
-
-  const handleSaveAndPrint = () => {
-    console.log("Saving and printing bill");
-    // Implementation would be added by backend team
-  };
-
-  const handlePrint = () => {
-    console.log("Printing bill");
-    // Implementation would be added by backend team
-  };
 
   const handlePrintReceipt = () => {
     console.log("Printing receipt");
-    // Implementation would be added by backend team
+    // Implementation would trigger print receipt function
   };
 
   const summary = calculateSummary();
 
+  if (loading && !selectedBill) {
+    return (
+      <div className="w-full h-full bg-white p-20">
+        <div className="max-w-4xl mx-auto text-center py-8">
+          Loading bills...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full bg-white p-20">
       <div className="max-w-4xl mx-auto">
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
         {selectedBill ? (
           // Bill details page
           <div className="bg-white rounded shadow">
+            <div className="py-4 px-6 bg-gray-100 rounded-t flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Bill Details</h2>
+              <button
+                onClick={handleBack}
+                className="flex items-center text-blue-600 hover:text-blue-800"
+              >
+                <Home className="h-4 w-4 mr-1" /> Back to Bills
+              </button>
+            </div>
+
             {loading ? (
               <p className="text-center py-8">Loading bill details...</p>
             ) : (
-              <div className="space-y-6">
-                {}
+              <div className="p-6 space-y-6">
+                {/* Bill header */}
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="font-medium">Seen/Referred By</span>
-                    <input 
-                      type="text" 
-                      placeholder="Scroller for Doc..." 
+                    <input
+                      type="text"
+                      placeholder="Scroller for Doc..."
                       className="ml-2 border rounded px-2 py-1 text-sm"
                       value={billDetails?.referredBy || ""}
-                      onChange={(e) => setBillDetails({...billDetails, referredBy: e.target.value})}
+                      onChange={(e) => setBillDetails({ ...billDetails, referredBy: e.target.value })}
                     />
                   </div>
                   <div>
                     <span className="font-medium">Timestamp-Bill Date</span>
-                    <input 
-                      type="text" 
-                      placeholder="Date / Time" 
+                    <input
+                      type="text"
+                      placeholder="Date / Time"
                       className="ml-2 border rounded px-2 py-1 text-sm"
                       value={billDetails?.generation_date || ""}
                       readOnly
@@ -289,126 +385,97 @@ const Bills = () => {
                 {/* Billing Items section */}
                 <div>
                   <h3 className="font-medium mb-2">Billing items</h3>
-                  <div className="flex space-x-2 mb-3">
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleAddBillingItem}
-                    >
-                      Add Billing Item
-                    </button>
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleAddRegnChanges}
-                    >
-                      Add Regn. Changes
-                    </button>
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleAddDiscount}
-                    >
-                      Add Discount
-                    </button>
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleClearDiscount}
-                    >
-                      Clear Discount
-                    </button>
-                    <button 
-                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleClearAll}
-                    >
-                      Clear All
-                    </button>
-                  </div>
-                  
+
                   {/* Billing items table */}
                   <div className="overflow-hidden rounded">
                     <div className="flex bg-[#1b2432] text-white py-2 rounded-t">
-                      <div className="w-1/3 text-center">Date</div>
-                      <div className="w-1/3 text-center">Item No.</div>
-                      <div className="w-1/3 text-center">Amount</div>
+                      <div className="w-1/4 text-center">Date</div>
+                      <div className="w-1/4 text-center">Type</div>
+                      <div className="w-1/4 text-center">Item Description</div>
+                      <div className="w-1/4 text-center">Amount</div>
                     </div>
-                    {billDetails?.bill_items.map((item, index) => (
-                      <div key={item.bill_item_id} className="flex bg-[#1d2839] text-white py-2 border-t border-gray-700">
-                        <div className="w-1/3 text-center">{billDetails.generation_date}</div>
-                        <div className="w-1/3 text-center">{item.bill_item_id}</div>
-                        <div className="w-1/3 text-center">{formatAmount(item.item_amount * item.quantity)}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Payments section */}
-                <div>
-                  <div className="flex items-center mb-2">
-                    <h3 className="font-medium">Payments</h3>
-                    <button 
-                      className="ml-4 bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
-                      onClick={handleAddPayment}
-                    >
-                      + Add Payment
-                    </button>
-                  </div>
-                  
-                  {/* Payments table */}
-                  <div className="overflow-hidden rounded mb-4">
-                    {/* Table header */}
-                    <div className="flex bg-[#1b2432] text-white py-2 rounded-t">
-                      <div className="w-1/4 truncate text-center px-1">Date</div>
-                      <div className="w-1/4 truncate text-center px-1">Mode</div>
-                      <div className="w-1/4 truncate text-center px-1">Amount</div>
-                      <div className="w-1/4 truncate text-center px-1">Status + Proof (Trans...)</div>
-                    </div>
-
-                    {/* Table rows */}
-                    {payments.map((payment) => (
-                      <div key={payment._id} className="flex bg-[#1d2839] text-white py-2 border-t border-gray-700">
-                        <div className="w-1/4 truncate text-center px-1">{payment.payment_date}</div>
-                        <div className="w-1/4 truncate text-center px-1">{payment.payment_method.enum}</div>
-                        <div className="w-1/4 truncate text-center px-1">{formatAmount(payment.amount)}</div>
-                        <div className="w-1/4 truncate text-center px-1">
-                          {payment.status.enum} ({payment.transaction_id})
+                    {billDetails?.bill_items && billDetails.bill_items.length > 0 ? (
+                      billDetails.bill_items.map((item) => (
+                        <div key={item.bill_item_id} className="flex bg-[#1d2839] text-white py-2 border-t border-gray-700">
+                          <div className="w-1/4 text-center">{billDetails.generation_date}</div>
+                          <div className="w-1/4 text-center capitalize">{item.item_type?.enum || "N/A"}</div>
+                          <div className="w-1/4 text-center">{item.item_description}</div>
+                          <div className="w-1/4 text-center">{formatAmount(item.item_amount * (item.quantity || 1))}</div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="bg-[#1d2839] text-white py-4 text-center">
+                        No billing items found
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
+                
+                  {/* Payments section */}
+                  <div>
+                    <div className="flex items-center mb-2">
+                      <h3 className="font-medium">Payments</h3>
+                      <button
+                        className="ml-4 bg-[#4C7E75] hover:bg-[#3d635c] text-white py-1 px-3 rounded text-sm"
+                        onClick={handleOpenPaymentModal}
+                      >
+                        + Add Payment
+                      </button>
+                    </div>
 
-                {/* Billing summary */}
-                <div className="text-center">
-                  <p className="mb-4">
-                    Billed :[{formatAmount(summary.billed)}] 
-                    Discount / Insurance :[{formatAmount(summary.discount + summary.insurance)}] 
-                    Paid :[{formatAmount(summary.paid)}]
-                    Refunds :[{formatAmount(summary.refunds)}] 
-                    Net :[{formatAmount(summary.net)}]
-                  </p>
+                    {/* Payments table */}
+                    <div className="overflow-hidden rounded mb-4">
+                      {/* Table header */}
+                      <div className="flex bg-[#1b2432] text-white py-2 rounded-t">
+                        <div className="w-1/4 truncate text-center px-1">Date</div>
+                        <div className="w-1/4 truncate text-center px-1">Mode</div>
+                        <div className="w-1/4 truncate text-center px-1">Amount</div>
+                        <div className="w-1/4 truncate text-center px-1">Status + Proof (Trans...)</div>
+                      </div>
+
+                      {/* Table rows */}
+                      {payments && payments.length > 0 ? (
+                        payments.map((payment) => (
+                          <div key={payment._id} className="flex bg-[#1d2839] text-white py-2 border-t border-gray-700">
+                            <div className="w-1/4 truncate text-center px-1">{payment.payment_date}</div>
+                            <div className="w-1/4 truncate text-center px-1 capitalize">{payment.payment_method?.enum}</div>
+                            <div className="w-1/4 truncate text-center px-1">{formatAmount(payment.amount)}</div>
+                            <div className="w-1/4 truncate text-center px-1">
+                              {payment.status?.enum} ({payment.transaction_id})
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="bg-[#1d2839] text-white py-4 text-center">
+                          No payments found
+                        </div>
+                      )}
+                    </div>
+                  </div>
+              
+
+                {/* Billing summary - simplified design */}
+                <div className="bg-gray-100 p-4 rounded-lg flex justify-between items-center">
+                  <div className="text-center flex-1">
+                    <p className="text-gray-600 text-sm font-medium">Billed</p>
+                    <p className="text-2xl font-bold text-gray-800">{formatAmount(summary.billed)}</p>
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-gray-600 text-sm font-medium">Paid</p>
+                    <p className="text-2xl font-bold text-green-600">{formatAmount(summary.paid)}</p>
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-gray-600 text-sm font-medium">Balance</p>
+                    <p className="text-2xl font-bold text-blue-600">{formatAmount(summary.net)}</p>
+                  </div>
                 </div>
 
                 {/* Action buttons */}
                 <div className="flex space-x-2 justify-start">
-                  <button 
-                    className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
-                    onClick={handleSave}
-                  >
-                    Save
-                  </button>
-                  <button 
-                    className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
-                    onClick={handleSaveAndPrint}
-                  >
-                    Save and Print
-                  </button>
-                  <button 
+
+                  <button
                     className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
                     onClick={handlePrint}
-                  >
-                    Print
-                  </button>
-                  <button 
-                    className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
-                    onClick={handlePrintReceipt}
                   >
                     Print Receipt
                   </button>
@@ -418,41 +485,148 @@ const Bills = () => {
           </div>
         ) : (
           // Bills listing
-          bills.map((bill, index) => (
-            <div 
-              key={bill.bill_id} 
-              className="flex items-center justify-between bg-gray-900 text-white rounded mb-4 p-4"
-            >
-              <div className="w-1/4 px-2 font-bold text-center text-white/80">
-                <p className="text-sm ">Date</p>
-                <p className="mt-1 font-bold">{bill.date}</p>
-              </div>
-              <div className="w-1/4 px-2 font-bold text-center text-white/80">
-                <p className="text-sm">Bill Number</p>
-                <p className="mt-1">{bill.bill_number}</p>
-              </div>
-              <div className="w-1/4 px-2 font-bold text-center text-white/80">
-                <p className="text-sm">Total Amount</p>
-                <p className="mt-1">{formatAmount(bill.total_amount)}</p>
-              </div>
-              <div className="w-1/4 flex justify-end px-2">
-                <button 
-                  onClick={() => handleView(bill.bill_id)}
-                  className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
+          <>
+            <header className="consultations-header">
+              <h2>Patient Bills</h2>
+              <Home className="home-icon cursor-pointer" onClick={() => navigate("/patient/profile")}/>
+            </header>
+
+            {bills.length > 0 ? (
+              bills.map((bill) => (
+                <div
+                  key={bill.bill_id}
+                  className="flex items-center justify-between bg-gray-900 text-white rounded mb-4 p-4"
                 >
-                  View Status
-                </button>
+                  <div className="w-1/5 px-2 font-bold text-center text-white/80">
+                    <p className="text-sm">Date</p>
+                    <p className="mt-1 font-bold">{bill.date}</p>
+                  </div>
+                  <div className="w-1/5 px-2 font-bold text-center text-white/80">
+                    <p className="text-sm">Bill Number</p>
+                    <p className="mt-1">{bill.bill_number}</p>
+                  </div>
+                  <div className="w-1/5 px-2 font-bold text-center text-white/80">
+                    <p className="text-sm">Total Amount</p>
+                    <p className="mt-1">{formatAmount(bill.total_amount)}</p>
+                  </div>
+                  <div className="w-1/5 px-2 font-bold text-center text-white/80">
+                    <p className="text-sm">Status</p>
+                    <p className={`mt-1 ${bill.payment_status === 'paid' ? 'text-green-400' :
+                        bill.payment_status === 'partially_paid' ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                      {bill.payment_status === 'paid' ? 'Paid' :
+                        bill.payment_status === 'partially_paid' ? 'Partially Paid' : 'Pending'}
+                    </p>
+                  </div>
+                  <div className="w-1/5 flex justify-end px-2">
+                    <button
+                      onClick={() => handleView(bill.bill_id)}
+                      className="bg-[#4C7E75] hover:bg-[#3d635c] text-white py-2 px-4 rounded"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8 bg-gray-100 rounded">
+                <p className="mb-4">No Bills Available</p>
+                <p className="text-sm">Create a new bill to get started</p>
               </div>
-            </div>
-          ))
-        )}
-        
-        {bills.length === 0 && !selectedBill && (
-          <p className="text-center text-gray-500 py-8">No Bills Available</p>
+            )}
+          </>
         )}
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Add Payment</h3>
+              <button onClick={handleClosePaymentModal} className="text-gray-500 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleAddPayment(); }}>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Amount</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  name="amount"
+                  value={newPayment.amount}
+                  onChange={handlePaymentInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Payment Method</label>
+                <select
+                  name="payment_method"
+                  value={newPayment.payment_method}
+                  onChange={handlePaymentInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Payment Date</label>
+                <input
+                  type="date"
+                  name="payment_date"
+                  value={newPayment.payment_date}
+                  onChange={handlePaymentInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Transaction ID</label>
+                <input
+                  type="text"
+                  name="transaction_id"
+                  value={newPayment.transaction_id}
+                  onChange={handlePaymentInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  readOnly
+                />
+                <p className="text-xs text-gray-500 mt-1">Auto-generated transaction ID</p>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={handleClosePaymentModal}
+                  className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#4C7E75] hover:bg-[#3d635c] text-white rounded"
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : "Add Payment"}
+                </button>s
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Bills;
+

@@ -1,4 +1,6 @@
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config(); // This must run BEFORE you access process.env
 
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -14,6 +16,7 @@ export const authenticateUser = (req, res, next) => {
         req.user = decoded; // Attach user info to request
         next();
     } catch (err) {
+        console.error("Token error:", err.name, err.message);
         return res.status(403).json({ error: "Invalid or expired token" });
     }
 };

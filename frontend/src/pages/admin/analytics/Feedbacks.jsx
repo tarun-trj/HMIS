@@ -90,17 +90,17 @@ const generateDummyData = () => {
   const minRating = 1.5;
   const maxRating = 5.0;
   const rangeSize = (maxRating - minRating) / 5;
-  
+
   // Generate range labels
   const ranges = Array.from({ length: 5 }, (_, i) => {
     const start = minRating + i * rangeSize;
     const end = i === 4 ? maxRating : minRating + (i + 1) * rangeSize;
     return `${start.toFixed(1)} - ${end.toFixed(1)}`;
   });
-  
+
   // Generate random count for each range
   const data = Array.from({ length: 5 }, () => Math.floor(Math.random() * 30) + 5);
-  
+
   return { ranges, data, minRating, maxRating };
 };
 
@@ -108,22 +108,51 @@ const Feedbacks = () => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [ratingStats, setRatingStats] = useState({ min: 0, max: 0 });
-  
+
   const fetchRatingDistribution = async () => {
     setLoading(true);
     try {
       // In production, this would be an actual API call:
-      // const response = await axios.get('/api/analytics/doctors/rating-distribution');
-      // const { ranges, data, minRating, maxRating } = response.data;
-      
-      // For testing, use dummy data
-      const { ranges, data, minRating, maxRating } = generateDummyData();
-      
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/analytics/feedback-rating-metrics`);
+      const distribution = response.data.ratingDistribution;
+
+      // // For testing, use dummy data
+      // const { ranges, data, minRating, maxRating } = generateDummyData();
+
+      // Get all possible ratings and their counts
+      const ratings = Object.keys(distribution).map(Number);
+      const minRating = Math.min(...ratings);
+      const maxRating = Math.max(...ratings);
+      const rangeSize = (maxRating - minRating) / 5;
+
+      // Generate range labels
+      const ranges = Array.from({ length: 5 }, (_, i) => {
+        const start = minRating + i * rangeSize;
+        const end = i === 4 ? maxRating : minRating + (i + 1) * rangeSize;
+        return `${start.toFixed(1)} - ${end.toFixed(1)}`;
+      });
+
+      // Count doctors in each range
+      const data = Array(5).fill(0);
+
+      Object.entries(distribution).forEach(([rating, count]) => {
+        const ratingNum = Number(rating);
+        for (let i = 0; i < 5; i++) {
+          const start = minRating + i * rangeSize;
+          const end = i === 4 ? maxRating + 0.001 : minRating + (i + 1) * rangeSize;
+
+          if (ratingNum >= start && ratingNum < end) {
+            data[i] += count;
+            break;
+          }
+        }
+      });
+
       setRatingStats({
         min: minRating,
         max: maxRating
       });
-      
+
       setChartData({
         labels: ranges,
         datasets: [
@@ -179,7 +208,7 @@ const Feedbacks = () => {
             Refresh Data
           </button>
         </div>
-        
+
         {/* Rating stats display */}
         <div className="mb-6 p-4 bg-gray-50 rounded-md">
           <div className="flex items-center">
@@ -192,7 +221,7 @@ const Feedbacks = () => {
             Chart displays distribution of doctors across five equal rating ranges.
           </p>
         </div>
-        
+
         {/* Chart section */}
         {loading ? (
           <div className="h-[400px] flex items-center justify-center">
@@ -201,7 +230,7 @@ const Feedbacks = () => {
         ) : chartData ? (
           <div className="h-[400px] flex justify-center">
             <div className="w-full max-w-lg">
-              <Pie 
+              <Pie
                 data={chartData}
                 options={{
                   responsive: true,
@@ -216,7 +245,7 @@ const Feedbacks = () => {
                     },
                     tooltip: {
                       callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                           const label = context.label || '';
                           const value = context.raw || 0;
                           const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -235,7 +264,7 @@ const Feedbacks = () => {
             <div className="text-gray-500">No data available</div>
           </div>
         )}
-        
+
         {/* Legend explanation */}
         {chartData && (
           <div className="mt-6 p-4 bg-gray-50 rounded-md">

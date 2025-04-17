@@ -24,13 +24,10 @@ const Sidebar = ({isSidebarOpen}) => {
     ],
     receptionist: [
       { path: "/receptionist/profile", label: "Profile", icon: <User size={20} /> },
-      { path: "/receptionist/registration", label: "New User Registration", icon: <PlusSquare size={20} /> },
-      { path: "/receptionist/appointment-booking", label: "Appointment Booking", icon: <Clipboard size={20} /> },
-      { path: "/receptionist/bed-assignment", label: "Bed Mapping", icon: <Clipboard size={20} /> },
+      { path: "/receptionist/registration", label: "New User Registration", icon: <PlusSquare size={20} /> },      { path: "/receptionist/bed-assignment", label: "Bed Mapping", icon: <Clipboard size={20} /> },
       { path: "/receptionist/calendar", label: "Doctors Schedule", icon: <Calendar size={20} /> },
       { path: "/receptionist/add-bill", label: "Add Bills", icon: <Clipboard size={20} /> },
       { path: "/receptionist/contact-admin", label: "Contact Admin", icon: <List size={20} /> },
-      { path: "/receptionist/update-appointment", label: "Appointment Update", icon: <Clipboard size={20} /> },
 
     ],
     pathologist: [

@@ -1,23 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { 
-  FaVirus, 
-  FaPills, 
-  FaChartLine, 
-  FaBed, 
-  FaUserMd, 
-  FaComment, 
+import {
+  FaVirus,
+  FaPills,
+  FaChartLine,
+  FaBed,
+  FaUserMd,
+  FaComment,
   FaStar,
   FaArrowRight
 } from "react-icons/fa";
 import axios from 'axios';
 
 const AnalyticsDashboard = () => {
-  // State for dashboard data
   const [dashboardData, setDashboardData] = useState({
     totalPatients: 0,
+    patientsTrend: 0,
+    patientsTrendDirection: 'up',
     totalRevenue: 0,
+    revenueTrend: 0,
+    revenueTrendDirection: 'up',
     averageRating: 0,
+    ratingChange: 0,
+    ratingTrendDirection: 'up',
     isLoading: true
   });
 
@@ -29,19 +34,24 @@ const AnalyticsDashboard = () => {
         // const patientsRes = await axios.get('/api/analytics/total-patients');
         // const revenueRes = await axios.get('/api/analytics/total-revenue');
         // const ratingRes = await axios.get('/api/analytics/average-satisfaction');
-        
+        const dashboardKPIs = await axios.get(`${import.meta.env.VITE_API_URL}/analytics/dashboard/kpis`);
+
         // Simulated response for demonstration
-        setTimeout(() => {
-          setDashboardData({
-            totalPatients: 2854,
-            totalRevenue: 3240000, // ₹32.4L
-            averageRating: 4.2,
-            isLoading: false
-          });
-        }, 500);
+        setDashboardData({
+          totalPatients: dashboardKPIs.data.totalPatients.value,
+          patientsTrend: parseFloat(dashboardKPIs.data.totalPatients.change),
+          patientsTrendDirection: dashboardKPIs.data.totalPatients.trend,
+          totalRevenue: dashboardKPIs.data.revenue.value,
+          revenueTrend: parseFloat(dashboardKPIs.data.revenue.change),
+          revenueTrendDirection: dashboardKPIs.data.revenue.trend,
+          averageRating: dashboardKPIs.data.satisfaction.value,
+          ratingChange: parseFloat(dashboardKPIs.data.satisfaction.change),
+          ratingTrendDirection: dashboardKPIs.data.satisfaction.trend,
+          isLoading: false
+        });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
-        setDashboardData(prev => ({...prev, isLoading: false}));
+        setDashboardData(prev => ({ ...prev, isLoading: false, error: "Failed to load dashboard data" }));
       }
     };
 
@@ -49,39 +59,39 @@ const AnalyticsDashboard = () => {
   }, []);
 
   // Format currency value
-  const formatCurrency = (value) => {
-    if (value >= 100000) {
-      return `₹${(value / 100000).toFixed(1)}L`;
-    }
-    return `₹${value.toLocaleString()}`;
-  };
+  // const formatCurrency = (value) => {
+  //   if (value >= 100000) {
+  //     return `₹${(value / 100000).toFixed(1)}L`;
+  //   }
+  //   return `₹${value.toLocaleString()}`;
+  // };
 
   // Function to get current date and time
   const getCurrentDate = () => {
     const now = new Date();
-    
+
     // Get day name
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const day = dayNames[now.getDay()];
-    
+
     // Get month name
     const monthNames = ["January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
     ];
     const month = monthNames[now.getMonth()];
-    
+
     // Get date and year
     const date = now.getDate();
     const year = now.getFullYear();
-    
+
     // Get hours and minutes for time
     const hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
-    
+
     // AM or PM
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const formattedHours = hours % 12 || 12; // Convert to 12-hour format
-    
+
     return `${day}, ${month} ${date}, ${year}, ${formattedHours}:${minutes} ${ampm} IST`;
   };
 
@@ -112,15 +122,15 @@ const AnalyticsDashboard = () => {
       borderColor: "border-blue-200",
     },
     {
-      title: "Bed Occupancy",
-      description: "Monitor room and bed utilization rates",
+      title: "Doctor Performance Analysis",
+      description: "Correlates consultation count and average rating",
       icon: <FaBed className="text-indigo-500" />,
-      path: "/admin/analytics/bed-occupancy-trends",
+      path: "/admin/analytics/doctor-performance-trends",
       color: "bg-gradient-to-r from-indigo-50 to-indigo-100 hover:from-indigo-100 hover:to-indigo-200",
       borderColor: "border-indigo-200",
     },
     {
-      title: "Doctor Workload",
+      title: "Doctor Working Trends",
       description: "Analyze physician schedules and patient loads",
       icon: <FaUserMd className="text-purple-500" />,
       path: "/admin/analytics/doctor-working-trends",
@@ -128,20 +138,28 @@ const AnalyticsDashboard = () => {
       borderColor: "border-purple-200",
     },
     {
-      title: "Feedback Analysis",
-      description: "AI-powered text analysis of patient comments",
+      title: "Feedback Textual Analysis",
+      description: "Statistics-powered text analysis of patient comments",
       icon: <FaComment className="text-amber-500" />,
       path: "/admin/analytics/text-feedback",
       color: "bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200",
       borderColor: "border-amber-200",
     },
     {
-      title: "Rating Metrics",
+      title: "Feedback Rating Metrics",
       description: "Track and analyze patient satisfaction ratings",
       icon: <FaStar className="text-yellow-500" />,
       path: "/admin/analytics/feedbacks",
       color: "bg-gradient-to-r from-yellow-50 to-yellow-100 hover:from-yellow-100 hover:to-yellow-200",
       borderColor: "border-yellow-200",
+    },
+    {
+      title: "Bed Occupancy Trends",
+      description: "Track and analyze bed occupancies",
+      icon: <FaBed className="text-blue-500" />,
+      path: "/admin/analytics/bed-occupancy",
+      color: "bg-gradient-to-r from-red-50 to-pink-100 hover:from-red-100 hover:to-pink-200",
+      borderColor: "border-pink-200",
     }
   ];
 
@@ -154,6 +172,11 @@ const AnalyticsDashboard = () => {
         </p>
       </div>
 
+      {dashboardData.error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {dashboardData.error}
+        </div>
+      )}
       {/* Top Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
@@ -165,8 +188,10 @@ const AnalyticsDashboard = () => {
               ) : (
                 <p className="text-2xl font-bold text-gray-800">{dashboardData.totalPatients.toLocaleString()}</p>
               )}
-              <span className="text-green-500 text-sm font-medium">↑ 12.5%</span>
-              <span className="text-gray-400 text-sm"> from last month</span>
+              <span className={`text-sm font-medium ${dashboardData.patientsTrendDirection === 'up' ? 'text-green-500' : 'text-red-500'}`}>
+                {dashboardData.patientsTrendDirection === 'up' ? '↑' : '↓'} {dashboardData.patientsTrend}%
+              </span>
+              <span className="text-gray-400 text-sm">from last month</span>
             </div>
             <div className="bg-blue-100 p-3 rounded-full">
               <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -179,13 +204,15 @@ const AnalyticsDashboard = () => {
         <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-gray-500 text-sm">Revenue (April 2025)</h3>
+              <h3 className="text-gray-500 text-sm">Revenue</h3>
               {dashboardData.isLoading ? (
                 <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
               ) : (
-                <p className="text-2xl font-bold text-gray-800">{formatCurrency(dashboardData.totalRevenue)}</p>
+                <p className="text-2xl font-bold text-gray-800">₹{dashboardData.totalRevenue}</p>
               )}
-              <span className="text-green-500 text-sm font-medium">↑ 8.3%</span>
+              <span className={`text-sm font-medium ${dashboardData.revenueTrendDirection === 'up' ? 'text-green-500' : 'text-red-500'}`}>
+                {dashboardData.revenueTrendDirection === 'up' ? '↑' : '↓'} {dashboardData.revenueTrend}%
+              </span>
               <span className="text-gray-400 text-sm"> from last month</span>
             </div>
             <div className="bg-green-100 p-3 rounded-full">
@@ -203,9 +230,11 @@ const AnalyticsDashboard = () => {
               {dashboardData.isLoading ? (
                 <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
               ) : (
-                <p className="text-2xl font-bold text-gray-800">{dashboardData.averageRating}/5.0</p>
+                <p className="text-2xl font-bold text-gray-800">{dashboardData.averageRating}</p>
               )}
-              <span className="text-yellow-500 text-sm font-medium">↓ 0.3</span>
+              <span className={`text-sm font-medium ${dashboardData.ratingTrendDirection === 'up' ? 'text-green-500' : 'text-red-500'}`}>
+                {dashboardData.ratingTrendDirection === 'up' ? '↑' : '↓'} {Math.abs(dashboardData.ratingChange)}%
+              </span>
               <span className="text-gray-400 text-sm"> from last month</span>
             </div>
             <div className="bg-purple-100 p-3 rounded-full">
@@ -220,8 +249,8 @@ const AnalyticsDashboard = () => {
       {/* Analytics Module Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {analyticsModules.map((module, index) => (
-          <Link 
-            key={index} 
+          <Link
+            key={index}
             to={module.path}
             className={`relative ${module.color} p-6 rounded-lg shadow-sm border ${module.borderColor} transition-all duration-300 hover:shadow-md hover:translate-y-[-2px]`}
           >

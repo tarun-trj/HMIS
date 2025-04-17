@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 export const fetchBillByConsultationId = async (consultationId) => {
   try {
-    const response = await fetch(`http://localhost:5000/api/consultations/${consultationId}/bill`);
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/consultations/${consultationId}/bill`);
     if (!response.ok) throw new Error("Failed to fetch bill");
 
     const data = await response.json();
@@ -75,7 +75,7 @@ const ConsultantBills = () => {
 
       {/* Back Button */}
       <div className="flex justify-end">
-        <button 
+        <button
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 mt-6"
           onClick={() => navigate(`/patient/previous-consultations/${id}`)}
         >

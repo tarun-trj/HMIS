@@ -49,10 +49,12 @@ const Home = () => {
     <div className="home-container">
       <nav className="navbar">
         <div className="logo">
-          <img src="/shield-icon.png" alt="HMIS Logo" />
+        <Link to="/">
+          <img src="/shield-icon.png" alt="HMIS Logo" />  </Link>
           <span>HMIS</span>
         </div>
         <div className={`nav-links ${mobileMenuOpen ? 'show' : ''}`}>
+        <Link to="/" onClick={() => setMobileMenuOpen(false)}>Home</Link>
           <Link to="/features" onClick={() => setMobileMenuOpen(false)}>Features</Link>
           <Link to="/community" onClick={() => setMobileMenuOpen(false)}>Community</Link>
           <Link to="/trends" onClick={() => setMobileMenuOpen(false)}>Trends</Link>
@@ -83,7 +85,7 @@ const Home = () => {
           <div className="hero-buttons">
             <Link to="/login" className="btn">LOGIN</Link>
             <Link to="/register" className="btn">SIGN UP</Link>
-            <Link to="/access-data" className="btn">ACCESS DATA</Link>
+            <Link to="/public-data" className="btn">PUBLIC DATA</Link>
           </div>
           <div className="hero-dots">
             {slides.map((_, index) => (

@@ -16,11 +16,11 @@ const DocConsultationDetails = () => {
   const fetchConsultationById = async (consultationId) => {
     // console.log(consultationId);
     try {
-      const response = await axios.get(`http://localhost:5000/api/consultations/consultationId/view`, {
-           params : {id: consultationId },
+      const response = await axios.get(`http://localhost:5000/api/consultations/${consultationId}/view`, {
+        headers: {
           'Content-Type': 'application/json',
         }
-      );
+      });
       return response.data; // Assuming your backend sends the consultation in the response body
     } catch (error) {
       console.error("Error fetching consultation details:", error);
@@ -80,7 +80,7 @@ const DocConsultationDetails = () => {
               </div>
               <div className="grid grid-cols-3 bg-gray-800 text-white">
                 <div className="p-4">{consultation.consultation.date}</div>
-                <div className="p-4">{consultation.consultation.doctor}</div>
+                <div className="p-4">{consultation.consultation.doctor.name}</div>
                 <div className="p-4">{consultation.consultation.location}</div>
               </div>
             </div>

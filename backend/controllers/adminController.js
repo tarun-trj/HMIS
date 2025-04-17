@@ -1,61 +1,148 @@
-
 import pdf from 'pdfkit';
 import fs from 'fs';
 import bodyParser from 'body-parser';
+import cloudinary from 'cloudinary';
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 import Payroll from '../models/payroll.js';
 import Employee from '../models/employee.js'; // Import Employee model
 import Medicine from '../models/inventory.js'; // Import Medicine model
 import { Doctor, Nurse, Pharmacist, Receptionist, Admin, Pathologist, Driver } from '../models/staff.js'; // Import staff models
 import FinanceLogs from '../models/logs.js'; // Import FinanceLogs model
-
+import { sendPasswordEmail } from "../config/sendMail.js"; // adjust the path
+import nodemailer from 'nodemailer';
+import PDFDocument from 'pdfkit';
+import Equipment from '../models/equipment.js';
+import Department from '../models/department.js';
 export const generatePayslip = async (req, res) => {
     try {
         const { employee_id } = req.body;
-
-        // Fetch employee details from the database
         const employee = await Employee.findById(employee_id);
         if (!employee) {
             return res.status(404).json({ message: 'Employee not found' });
         }
-
-        const { salary: basic_salary, allowance, deduction, net_salary, month_year } = employee;
-
-        // Create a new PDF document
-        const doc = new pdf();
-
-        // Define the file path for the generated PDF
-        const filePath = `payslips/payslip_${employee_id}_${Date.now()}.pdf`;
-
-        // Pipe the PDF to a writable stream
-        doc.pipe(fs.createWriteStream(filePath));
-
-        // Add content to the PDF
-        doc.fontSize(20).text('Payslip', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(12).text(`Employee ID: ${employee_id}`);
-        doc.text(`Month/Year: ${new Date(month_year).toLocaleDateString()}`);
-        doc.text(`Basic Salary: ${basic_salary}`);
-        doc.text(`Allowance: ${allowance}`);
-        doc.text(`Deduction: ${deduction}`);
-        doc.text(`Net Salary: ${net_salary}`);
-        doc.moveDown();
-        doc.text('Thank you for your service!', { align: 'center' });
-
-        // Finalize the PDF and end the stream
-        doc.end();
-
-        // Respond with the file path
-        res.status(200).json({ message: 'Payslip generated successfully', filePath });
-    } catch (error) {
-        console.error('Error generating payslip:', error);
-        if (res && res.status) {
-            res.status(500).json({ message: 'Failed to generate payslip', error });
-        } else {
-            console.error('Response object is undefined or invalid.');
-        }
+        const { salary: basic_salary, allowance, deduction, net_salary, month_year,email } = employee;
+  
+      // 1. Generate PDF in memory
+      const doc = new PDFDocument();
+      let buffers = [];
+      
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', async () => {
+        const pdfBuffer = Buffer.concat(buffers);
+  
+        // 2. Configure Nodemailer transporter
+        let transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.USER,
+            pass: process.env.PASS,
+          }
+        });
+  
+        // 3. Compose and send email with PDF as attachment
+        await transporter.sendMail({
+          from: '"Admin Department" hmis.iitg@gmail.com',
+          to: email,
+          subject: 'Your Monthly Payslip',
+          text: 'Please find your payslip attached.',
+          attachments: [
+            {
+              filename: `payslip_${employee_id}.pdf`,
+              content: pdfBuffer,
+              contentType: 'application/pdf'
+            }
+          ]
+        });
+  
+    });
+    
+    // 5. Write PDF content
+    doc.fontSize(20).text('Payslip', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Employee ID: ${employee_id}`);
+    doc.text(`Month/Year: ${new Date(month_year).toLocaleDateString()}`);
+    doc.text(`Basic Salary: ${basic_salary}`);
+    doc.text(`Allowance: ${allowance}`);
+    doc.text(`Deduction: ${deduction}`);
+    doc.text(`Net Salary: ${net_salary}`);
+    doc.moveDown();
+    doc.text('Thank you for your service!', { align: 'center' });
+    
+    doc.end(); // This triggers the 'end' event
+    res.status(200).json({ message: 'Payslip generated and emailed successfully!' });
+    
+} catch (error) {
+      console.error('Error sending payslip email:', error);
+      res.status(500).json({ message: 'Failed to generate/send payslip', error });
     }
-};
+  };
+const generatePayslipIn = async (req, res) => {
+    try {
+        const { employee_id } = req.body;
+        const employee = await Employee.findById(employee_id);
+        if (!employee) {
+            // return res.status(404).json({ message: 'Employee not found' });
+        }
+        const { salary: basic_salary, allowance, deduction, net_salary, month_year,email } = employee;
+  
+      // 1. Generate PDF in memory
+      const doc = new PDFDocument();
+      let buffers = [];
+      
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', async () => {
+        const pdfBuffer = Buffer.concat(buffers);
+  
+        // 2. Configure Nodemailer transporter
+        let transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.USER,
+            pass: process.env.PASS,
+          }
+        });
+  
+        // 3. Compose and send email with PDF as attachment
+        await transporter.sendMail({
+          from: '"Admin Department" hmis.iitg@gmail.com',
+          to: email,
+          subject: 'Your Monthly Payslip',
+          text: 'Please find your payslip attached.',
+          attachments: [
+            {
+              filename: `payslip_${employee_id}.pdf`,
+              content: pdfBuffer,
+              contentType: 'application/pdf'
+            }
+          ]
+        });
+  
+    });
+    
+    // 5. Write PDF content
+    doc.fontSize(20).text('Payslip', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Employee ID: ${employee_id}`);
+    doc.text(`Month/Year: ${new Date(month_year).toLocaleDateString()}`);
+    doc.text(`Basic Salary: ${basic_salary}`);
+    doc.text(`Allowance: ${allowance}`);
+    doc.text(`Deduction: ${deduction}`);
+    doc.text(`Net Salary: ${net_salary}`);
+    doc.moveDown();
+    doc.text('Thank you for your service!', { align: 'center' });
+    
+    doc.end(); // This triggers the 'end' event
+    // res.status(200).json({ message: 'Payslip generated and emailed successfully!' });
+    
+} catch (error) {
+      console.error('Error sending payslip email:', error);
+    //   res.status(500).json({ message: 'Failed to generate/send payslip', error });
+    }
+  };
+
+
 
 export const searchEmployees = async (req, res) => { 
     try {
@@ -80,106 +167,221 @@ export const searchEmployees = async (req, res) => {
 
 export const updateInventory = async (req, res) => {
     try {
-        const { medicineId, med_name, effectiveness, dosage_form, manufacturer, available, batch_no, quantity, expiry_date, manufacturing_date, unit_price, supplier } = req.body;
+        const { 
+            inventoryType = 'medicine',
+            // Medicine fields
+            medicineId, med_name, effectiveness, dosage_form, manufacturer, 
+            batch_no, quantity, expiry_date, manufacturing_date, unit_price, supplier,
+            // Equipment fields
+            itemId, equipment_name, installation_date, last_service_date, next_service_date,
+            // Common fields
+            order_status = 'ordered'
+        } = req.body;
+        // Deduct the total cost from the hospital bank account
+        const totalCost = unit_price * quantity;
+        if (global.hospitalBankAccount.balance < totalCost) {
+            return res.status(400).json({ message: 'Insufficient funds in hospital bank account' });
+        }
+        global.hospitalBankAccount.balance -= totalCost;
+        if (inventoryType === 'medicine') {
+            // Existing medicine validation and logic
+            if (!batch_no || !quantity || !expiry_date || !manufacturing_date || !unit_price || !supplier) {
+                return res.status(400).json({ message: 'Missing required inventory fields' });
+            }
 
-        // Find the medicine by ID
-        let medicine = await Medicine.findById(medicineId);
+            // Additional validation for new medicine
+            if (!medicineId && (!med_name || !effectiveness || !dosage_form || !manufacturer)) {
+                return res.status(400).json({ message: 'Missing required medicine fields' });
+            }
 
-        if (!medicine) {
-            // If medicine does not exist, create a new one
-            medicine = new Medicine({
-                _id: medicineId,
-                med_name,
-                effectiveness,
-                dosage_form,
-                manufacturer,
-                available,
-                inventory: [{
+            // Validate dates
+            const mfgDate = new Date(manufacturing_date);
+            const expDate = new Date(expiry_date);
+            
+            if (mfgDate >= expDate) {
+                return res.status(400).json({ message: 'Manufacturing date must be before expiry date' });
+            }
+
+            if (expDate <= new Date()) {
+                return res.status(400).json({ message: 'Expiry date must be in the future' });
+            }
+
+            let medicine;
+            if (medicineId) {
+                medicine = await Medicine.findById(medicineId);
+            }
+
+            if (!medicine) {
+                // Create new medicine with auto-incremented ID
+                medicine = new Medicine({
+                    med_name,
+                    effectiveness,
+                    dosage_form,
+                    manufacturer,
+                    available: true,
+                    order_status,
+                    inventory: [{
+                        batch_no,
+                        quantity,
+                        expiry_date,
+                        manufacturing_date,
+                        unit_price,
+                        supplier
+                    }]
+                });
+
+                await medicine.save();
+                return res.status(201).json({ 
+                    message: 'New medicine added successfully', 
+                    medicine,
+                    isNewMedicine: true 
+                });
+            }
+
+            // Update existing medicine's inventory
+            const batchIndex = medicine.inventory.findIndex(batch => batch.batch_no === batch_no);
+
+            if (batchIndex !== -1) {
+                // Update existing batch
+                medicine.inventory[batchIndex] = {
                     batch_no,
                     quantity,
                     expiry_date,
                     manufacturing_date,
                     unit_price,
                     supplier
-                }]
-            });
+                };
+            } else {
+                // Add new batch
+                medicine.inventory.push({
+                    batch_no,
+                    quantity,
+                    expiry_date,
+                    manufacturing_date,
+                    unit_price,
+                    supplier
+                });
+            }
+
+            // Update medicine manufacturer if provided
+            if (manufacturer) medicine.manufacturer = manufacturer;
+
+            // Update availability based on total quantity
+            const totalQuantity = medicine.inventory.reduce((sum, batch) => sum + batch.quantity, 0);
+            medicine.available = totalQuantity > 0;
 
             await medicine.save();
-            return res.status(201).json({ message: 'Medicine added and inventory updated successfully', medicine });
-        }
+            res.status(200).json({ 
+                message: 'Medicine inventory updated successfully', 
+                medicine,
+                isNewMedicine: false
+            });
 
-        // Check if the batch already exists
-        const batchIndex = medicine.inventory.findIndex(batch => batch.batch_no === batch_no);
-
-        if (batchIndex !== -1) {
-            // Update the existing batch
-            medicine.inventory[batchIndex] = {
-                ...medicine.inventory[batchIndex],
-                quantity: quantity || medicine.inventory[batchIndex].quantity,
-                expiry_date: expiry_date || medicine.inventory[batchIndex].expiry_date,
-                manufacturing_date: manufacturing_date || medicine.inventory[batchIndex].manufacturing_date,
-                unit_price: unit_price || medicine.inventory[batchIndex].unit_price,
-                supplier: supplier || medicine.inventory[batchIndex].supplier
-            };
         } else {
-            // Add a new batch
-            medicine.inventory.push({
-                batch_no,
-                quantity,
-                expiry_date,
-                manufacturing_date,
-                unit_price,
-                supplier
+            // Equipment validation
+            if (!quantity) {
+                return res.status(400).json({ message: 'Quantity is required' });
+            }
+
+            if (!itemId && (!equipment_name || !installation_date)) {
+                return res.status(400).json({ message: 'Equipment name and installation date are required for new equipment' });
+            }
+
+            let equipment;
+            if (itemId) {
+                equipment = await Equipment.findById(itemId);
+            }
+
+            if (!equipment) {
+                // Create new equipment
+                equipment = new Equipment({
+                    equipment_name,
+                    quantity,
+                    order_status,
+                    installation_date,
+                    last_service_date: installation_date, // Use installation date as first service date
+                    next_service_date: next_service_date || new Date(new Date(installation_date).getTime() + 90*24*60*60*1000) // Default 90 days
+                });
+
+                await equipment.save();
+                return res.status(201).json({
+                    message: 'New equipment added successfully',
+                    equipment,
+                    isNewItem: true
+                });
+            }
+
+            // Update existing equipment
+            equipment.quantity = quantity;
+            
+            if (last_service_date) {
+                equipment.last_service_date = last_service_date;
+            }
+            if (next_service_date) {
+                equipment.next_service_date = next_service_date;
+            }
+
+            await equipment.save();
+            return res.status(200).json({
+                message: 'Equipment updated successfully',
+                equipment,
+                isNewItem: false
             });
         }
 
-        // Save the updated medicine
-        await medicine.save();
-
-        res.status(200).json({ message: 'Inventory updated successfully', medicine });
     } catch (error) {
-        console.error('Error updating inventory:', error);
-        res.status(500).json({ message: 'Failed to update inventory', error });
+        console.error('Error managing inventory:', error);
+        res.status(500).json({ message: 'Failed to manage inventory', error });
     }
 };
 
 export const addStaff = async (req, res) => {
     try {
         const { 
-            name, email, password, profile_pic, role, department_id, phone_number, emergency_phone, address, 
+            name, email,  role, dept_id, phone_number, emergency_phone, address, 
             date_of_birth, date_of_joining, gender, blood_group, salary, aadhar_id, bank_details, 
             basic_salary, allowance, deduction 
         } = req.body;
+        const existingPatient = await Employee.findOne({ $or: [{ email }, { aadhar_number: aadhar_id }] });
+        if (existingPatient) {
+            return res.status(400).json({ message: 'Email or Aadhar ID already exists.' });
+        }
+
+        const imageUrl=req.file?.path;
+        // Hash the password
+        let PlainPassword=crypto.randomBytes(8).toString('base64').slice(0, 8);
+        const hashedPassword = await bcrypt.hash(PlainPassword, 10);
+
         // Create a new Employee document
         const newEmployee = new Employee({
             name,
             email,
-            password,
-            profile_pic,
+            password: hashedPassword,
+            profile_pic: imageUrl,
             role,
-            department_id,
+            dept_id,
             phone_number,
-            emergency_phone,
+            emergency_contact:emergency_phone,
             address,
             date_of_birth,
             date_of_joining,
             gender,
-            blood_group,
+            bloodGrp:blood_group,
             salary,
-            aadhar_id,
+            aadhar_number: aadhar_id,
             bank_details
         });
 
         // Save the employee to the database
         const savedEmployee = await newEmployee.save();
-
+        await sendPasswordEmail(email,PlainPassword,role,savedEmployee._id);
         // Assign the employee to the appropriate role schema
         switch (role) {
             case 'doctor':
                 const { specialization, qualification, experience, room_num } = req.body;
                 await Doctor.create({
                     employee_id: savedEmployee._id,
-                    department_id: department_id,
+                    department_id: dept_id,
                     specialization,
                     qualification,
                     experience,
@@ -203,7 +405,7 @@ export const addStaff = async (req, res) => {
                 await Pharmacist.create({ employee_id: savedEmployee._id });
                 break;
             case 'receptionist':
-                await Receptionist.create({ employee_id: savedEmployee._id, assigned_dept: department_id });
+                await Receptionist.create({ employee_id: savedEmployee._id, assigned_dept: dept_id });
                 break;
             case 'admin':
                 await Admin.create({ employee_id: savedEmployee._id });
@@ -218,39 +420,26 @@ export const addStaff = async (req, res) => {
             default:
                 return res.status(400).json({ message: 'Invalid role specified' });
         }
-
-        // Check if a payroll record already exists for the employee
-        let payroll = await Payroll.findOne({ employee_id: savedEmployee._id });
-
-        if (payroll) {
-            // Update the existing payroll record
-            payroll.basic_salary = basic_salary;
-            payroll.allowance = allowance;
-            payroll.deduction = deduction;
-            payroll.net_salary = basic_salary + allowance - deduction;
-            payroll.month_year = new Date();
-        } else {
-            // Create a new payroll record
-            payroll = new Payroll({
-                employee_id: savedEmployee._id,
-                basic_salary,
-                allowance,
-                deduction,
-                net_salary: basic_salary + allowance - deduction, // Calculate net_salary here
-                month_year: new Date()
-            });
-        }
-
+        
+        const payroll = new Payroll({
+            employee_id: savedEmployee._id,
+            basic_salary,
+            allowance,
+            deduction,
+            net_salary: basic_salary + allowance - deduction, // Calculate net_salary here
+            month_year: new Date()
+        });
         await payroll.save();
-            } catch (error) {
-                console.error('Error adding staff:', error);
-                res.status(500).json({ message: 'Failed to add staff', error });
-            }
-        };
+        res.status(201).json({ message: 'Staff added successfully', employee: savedEmployee });
+    } catch (error) {
+        console.error('Error adding staff:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+};
 
 export const updateSalary = async (req, res) => {
     try {
-        const { employee_id, new_salary, basic_salary, allowance, deduction, net_salary } = req.body;
+        const { employee_id,  basic_salary, allowance, deduction, net_salary } = req.body;
 
         // Find the employee by ID
         const employee = await Employee.findById(employee_id);
@@ -260,7 +449,7 @@ export const updateSalary = async (req, res) => {
         }
 
         // Update the salary
-        employee.salary = new_salary;
+        employee.salary = net_salary;
 
         // Save the updated employee
         await employee.save();
@@ -293,7 +482,7 @@ export const updateSalary = async (req, res) => {
 export const processPayroll = async (req, res) => {
     try {
         const { employee_ids } = req.body;
-
+        // console.log('Processing payroll for employee IDs:', employee_ids);
         if (!Array.isArray(employee_ids) || employee_ids.length === 0) {
             return res.status(400).json({ message: 'Invalid employee IDs provided' });
         }
@@ -308,28 +497,47 @@ export const processPayroll = async (req, res) => {
             }
 
             if (payroll.net_salary <= 0) {
-                console.error(`Net salary is zero or already processed for employee ID: ${employee_id}`);
+                console.error(`Net salary is zero: ${employee_id}`);
                 continue;
             }
-
-            // Generate a finance log
-            const financeLog = new FinanceLogs({
-                user_id: employee_id,
-                transaction_type: "expense",
-                amount: payroll.net_salary,
-                description: `Salary payment for ${new Date(payroll.month_year).toLocaleDateString()}`
-            });
-            await financeLog.save();
-
+            if(payroll.month_year.getMonth() === new Date().getMonth()){
+                console.error(`Payroll already processed for this month: ${employee_id}`);
+                continue;
+            }
+            console.log("Here");
             // Generate payslip by calling the generatePayslip function
-            await generatePayslip({ body: { employee_id } }, {});
+            await generatePayslipIn({ body: { employee_id } }, {});
 
             // Update the payroll record
-            payroll.net_salary = 0;
+            // payroll.net_salary = 0;
             payroll.payment_status = "paid";
             payroll.generation_date = new Date();
             await payroll.save();
+
+              // Perform transaction: Add amount to employee bank and subtract from hospital bank account
+        if (global.hospitalBankAccount.balance < payroll.net_salary) {
+            throw new Error('Insufficient funds in hospital bank account');
         }
+
+        // Deduct from hospital account
+        global.hospitalBankAccount.balance -= payroll.net_salary;
+
+        // Add to employee bank account
+        const employeeBankAccount = await FinanceLogs.findOne({ account_type: 'employee', employee_id: employee_id });
+
+        if (!employeeBankAccount) {
+            const newEmployeeBankAccount = new FinanceLogs({
+            account_type: 'employee',
+            employee_id: savedEmployee._id,
+            balance: payroll.net_salary
+            });
+            await newEmployeeBankAccount.save();
+        } else {
+            employeeBankAccount.balance += payroll.net_salary;
+            await employeeBankAccount.save();
+        }
+        }
+        console.log('Payroll processed successfully for all employees');
 
         res.status(200).json({ message: 'Payroll processed successfully' });
     } catch (error) {
@@ -338,3 +546,66 @@ export const processPayroll = async (req, res) => {
     }
 };
 
+export const updateOrderStatus = async (req, res) => {
+    try {
+        const { 
+            inventoryType,
+            itemId,
+            order_status  // 'ordered' for accept, 'cancelled' for reject
+        } = req.body;
+
+        if (!itemId || !order_status || !inventoryType) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        let item;
+        if (inventoryType === 'medicine') {
+            item = await Medicine.findById(itemId);
+        } else {
+            item = await Equipment.findById(itemId);
+        }
+
+        if (!item) {
+            return res.status(404).json({ message: `${inventoryType} not found` });
+        }
+
+        item.order_status = order_status;
+        await item.save();
+
+        res.status(200).json({ 
+            message: `Order ${order_status === 'ordered' ? 'accepted' : 'rejected'} successfully`,
+            item
+        });
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        res.status(500).json({ message: 'Failed to update order status', error });
+    }
+};
+
+export const getUniqueDepartments = async (req, res) => {
+    try {
+        const uniqueDepartments = await Department.aggregate([
+            {
+                $group: {
+                    _id: "$dept_name",
+                    id: { $first: "$_id" } // can be random, or change to $last, $min, etc.
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    dept_name: "$_id",
+                    id: 1
+                }
+            }
+        ]);
+
+        res.status(200).json({ 
+            message: 'Unique departments fetched successfully',
+            departments: uniqueDepartments
+        });
+    } catch (error) {
+        console.error('Error fetching unique departments:', error);
+        res.status(500).json({ message: 'Failed to fetch unique departments', error });
+    }
+};

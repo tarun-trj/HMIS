@@ -1,154 +1,233 @@
-@import url('https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;700&display=swap');
-
-/* Main Book Consultation Section */
+/* BookConsultation.css - Updated with Book Now button */
 .book-consultation {
-  font-family: 'Product Sans', sans-serif;
-  padding: 30px;
-  background-color: white;
-  width: 100%;
-  max-width: 800px;
-  margin: auto;
-  min-height: 100vh;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
 }
 
-/* Header */
 .consultation-header {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1c2b3a;
-  padding-bottom: 10px;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: #333;
 }
 
-/* Search Section */
 .consultation-search {
-  margin-top: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .search-title {
   font-size: 18px;
-  font-weight: 600;
-  color: #1c2b3a;
-  margin-bottom: 10px;
+  font-weight: 500;
+  margin-bottom: 15px;
+  color: #444;
 }
 
-/* Search Controls */
 .search-controls {
   display: flex;
-  gap: 10px;
-  align-items: center;
-  width: 100%;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
-/* Dropdown */
 .location-dropdown {
-  min-width: 180px;
-  max-width: 200px;
-  flex-shrink: 0;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  background-color: #4C7E75;
-  color: white;
-  cursor: pointer;
-  height: 42px;
-  font-size: 16px;
+  min-width: 200px;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  flex: 1;
 }
 
-.location-dropdown option {
-  background: white;
-  color: black;
-}
-
-/* Search Box */
 .search-box {
   display: flex;
   align-items: center;
-  border: 1px solid #ccc;
-  border-radius: 8px;
   background-color: white;
-  flex-grow: 1;
-  height: 42px;
-  padding: 0 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0 15px;
+  flex: 2;
+}
+
+.search-icon {
+  color: #777;
+  margin-right: 10px;
 }
 
 .search-box input {
   border: none;
-  background: transparent;
-  flex-grow: 1;
+  padding: 10px 0;
+  width: 100%;
+  font-size: 14px;
   outline: none;
-  font-size: 16px;
-  padding: 10px;
 }
 
-.search-icon {
-  font-size: 20px;
-  color: #4C7E75;
-}
-
-/* Divider */
 hr {
-  border: none;
-  height: 3px;
-  background-color: #4C7E75;
+  border: 0;
+  height: 1px;
+  background-color: #eee;
   margin: 20px 0;
 }
 
-/* Doctor List */
 .doctor-list {
-  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.doctor-item-container {
+  display: flex;
+  align-items: center;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.doctor-item-container:hover {
+  border-color: #3498db;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .doctor-item {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 18px;
-  font-weight: 400;
-  color: #1c2b3a;
-  margin: 8px 0;
+  align-items: flex-start;
+  padding: 15px;
+  cursor: pointer;
+  flex-grow: 1;
 }
 
-/* Specialty Section */
+.doctor-item input[type="checkbox"] {
+  margin-right: 15px;
+  margin-top: 5px;
+}
+
+.doctor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-grow: 1;
+}
+
+.doctor-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.doctor-specialty {
+  font-size: 14px;
+  color: #555;
+}
+
+.doctor-qualification {
+  font-size: 13px;
+  color: #777;
+}
+
+.doctor-rating {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #f39c12;
+}
+
+.book-now-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 15px;
+  transition: background-color 0.2s;
+}
+
+.book-now-button:hover {
+  background-color: #2980b9;
+}
+
+.error-message {
+  color: #e74c3c;
+  text-align: center;
+  padding: 15px;
+}
+
 .specialty-section {
-  margin-top: 20px;
+  margin-top: 30px;
 }
 
 .section-title {
   font-size: 18px;
-  font-weight: 600;
-  color: #1c2b3a;
-  margin-bottom: 10px;
+  font-weight: 500;
+  margin-bottom: 15px;
+  color: #444;
 }
 
 .specialties {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
 }
 
-/* Specialty Cards */
 .specialty-card {
   display: flex;
   align-items: center;
-  background-color: #D9D9D9;
-  color: black;
   padding: 15px;
+  background-color: #f8f9fa;
   border-radius: 8px;
+  transition: all 0.2s ease;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: 400;
-  transition: background 0.3s;
 }
 
 .specialty-card:hover {
-  background-color: #4C7E75;
-  color: white;
+  background-color: #edf2f7;
+  transform: translateY(-2px);
 }
 
 .specialty-card .icon {
-  margin-right: 10px;
-  color: #64b6ac;
-  font-size: 18px;
+  color: #3498db;
+  margin-right: 12px;
 }
 
-/* No Data */
+.specialty-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.specialty-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #444;
+}
+
+.specialty-count {
+  font-size: 12px;
+  color: #777;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .search-controls {
+    flex-direction: column;
+  }
+
+  .specialties {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  
+  .doctor-item-container {
+    flex-direction: column;
+  }
+  
+  .book-now-button {
+    margin: 0 15px 15px 15px;
+    width: calc(100% - 30px);
+  }
+}

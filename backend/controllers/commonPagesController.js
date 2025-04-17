@@ -4,12 +4,14 @@ import Employee from '../models/employee.js';
 import Patient from '../models/patient.js';
 import Medicine from '../models/inventory.js';
 import { Doctor, Nurse, Pharmacist, Receptionist, Admin, Pathologist, Driver } from '../models/staff.js';
+import Equipment from '../models/equipment.js';
+import cloudinary from "../config/cloudinary.js";
 
 // Get consultations for doctor's calendar
 export const getDoctorCalendar = async (req, res) => {
   try {
     const { doctorId, startDate, endDate } = req.query;
-    console.log(req.query);
+    // console.log(req.query);
     
     if (!doctorId) {
       return res.status(400).json({ message: "Doctor ID is required" });
@@ -34,7 +36,7 @@ export const getDoctorCalendar = async (req, res) => {
       .populate('patient_id', 'name email phone_number')
       .sort({ booked_date_time: 1 });
     
-    console.log(consultations);
+    // console.log(consultations);
     
     // Transform data for calendar view
     const calendarEvents = consultations.map(consultation => {
@@ -52,7 +54,8 @@ export const getDoctorCalendar = async (req, res) => {
         reason: consultation.reason,
         patientId: consultation.patient_id._id,
         patientPhone: consultation.patient_id.phone_number,
-        patientEmail: consultation.patient_id.email
+        patientEmail: consultation.patient_id.email,
+        appointment_type:consultation.appointment_type
       };
     });
     
@@ -121,13 +124,15 @@ export const findPayrollById = async (req, res) => {
   try {
     const { employeeId } = req.query;
       console.log(req.query)
-
+      let employeePayrolls;
       if (!employeeId) {
-          return res.status(400).json({ message: "employeeId is required" });
+          employeePayrolls = await Payroll.find({});
+      }
+      else {
+          employeePayrolls = await Payroll.find({ employee_id: employeeId }).populate('employee_id');
       }
 
-      // Find all payrolls for this employee
-      const employeePayrolls = await Payroll.find({ employee_id: employeeId });
+      //update has to be made here to fetch from finance logs
 
       res.status(200).json({ payrolls: employeePayrolls });
   } catch (error) {
@@ -145,7 +150,8 @@ export const fetchProfile = async (req, res) => {
               .select('-password');
       } else if (['doctor', 'nurse', 'pathologist', 'receptionist', 'pharmacist', 'admin', 'driver'].includes(userType)) {
           user = await Employee.findById(Number(id))
-              .select('-password -bank_details.account_number');
+              .select('-password -bank_details.account_number')
+              .populate('dept_id', 'dept_id dept_name');
 
           // Get role specific details
           const RoleModel = {
@@ -159,8 +165,19 @@ export const fetchProfile = async (req, res) => {
           }[userType];
 
           if (user && RoleModel) {
-              const roleSpecificInfo = await RoleModel.findOne({ employee_id: user._id })
+              let roleSpecificInfo = await RoleModel.findOne({ employee_id: user._id })
                   .select('-_id');
+
+              // Only populate department_id for doctor and nurse
+              if (['doctor', 'nurse'].includes(userType)) {
+                  roleSpecificInfo = await roleSpecificInfo
+                      .populate(userType === 'doctor' ? 'department_id' : 'assigned_dept', 'dept_id dept_name');
+              }
+              
+              // Format rating to 2 decimal places if it exists
+              if (roleSpecificInfo && roleSpecificInfo.rating) {
+                  roleSpecificInfo.rating = Number(roleSpecificInfo.rating.toFixed(2));
+              }
               
               user = {
                   ...user.toObject(),
@@ -168,11 +185,9 @@ export const fetchProfile = async (req, res) => {
               };
           }
       }
-
       if (!user) {
           return res.status(404).json({ message: 'User not found' });
       }
-
       res.status(200).json(user);
   } catch (error) {
       res.status(500).json({ 
@@ -186,37 +201,73 @@ export const updateProfile = async (req, res) => {
   try {
       const { userType, id } = req.params;
       const updateData = req.body;
-      const requestingUser = req.user;
       let user;
 
-      // Only allow users to edit their own profile
-      if (requestingUser.id !== Number(id)) {
-          return res.status(403).json({ 
-              message: 'Unauthorized to update other user profiles' 
+      // Completely protected fields (never editable by user)
+      const protectedFields = [
+          '_id',
+          'email',
+          'aadhar_number',
+          'date_of_joining',
+          'password',
+          'role',
+          'salary',
+          'dept_id'
+      ];
+
+      // Fields that can be edited by user
+      const editableFields = [
+          'name',
+          'phone_number',
+          'emergency_contact',
+          'address',
+          'gender',
+          'bloodGrp',
+          'profile_pic',
+          'date_of_birth'
+      ];
+
+      // Bank details fields that can be edited
+      const editableBankFields = [
+          'bank_name',
+          'ifsc_code',
+          'branch_name'
+      ];
+
+      // Filter update data to only include editable fields
+      const filteredUpdateData = {};
+      editableFields.forEach(field => {
+          if (updateData[field] !== undefined) {
+              filteredUpdateData[field] = updateData[field];
+          }
+      });
+
+      // Handle bank details update separately
+      if (updateData.bank_details) {
+          filteredUpdateData.bank_details = {};
+          editableBankFields.forEach(field => {
+              if (updateData.bank_details[field] !== undefined) {
+                  filteredUpdateData.bank_details[field] = updateData.bank_details[field];
+              }
           });
       }
 
       if (userType === 'patient') {
           user = await Patient.findByIdAndUpdate(
               Number(id),
-              updateData,
+              filteredUpdateData,
               { new: true, runValidators: true }
           ).select('-password');
       } else if (['doctor', 'nurse', 'pathologist', 'receptionist', 'pharmacist', 'admin', 'driver'].includes(userType)) {
-          // Only admin can update these fields
-          delete updateData.salary;
-          delete updateData.bank_details;
-          delete updateData.role;
-          delete updateData.dept_id;
-
           // Update main employee document
           user = await Employee.findByIdAndUpdate(
               Number(id),
-              updateData,
+              filteredUpdateData,
               { new: true, runValidators: true }
-          ).select('-password -bank_details.account_number');
+          ).select('-password -bank_details.account_number -bank_details.balance')
+           .populate('dept_id', 'dept_id dept_name');
 
-          // Update role-specific details if provided
+          // Handle role-specific updates
           if (updateData.role_details) {
               const RoleModel = {
                   'doctor': Doctor,
@@ -228,12 +279,46 @@ export const updateProfile = async (req, res) => {
                   'driver': Driver
               }[userType];
 
-              if (RoleModel) {
-                  await RoleModel.findOneAndUpdate(
+              // Role-specific editable fields
+              const roleEditableFields = {
+                  'doctor': ['specialization', 'qualification', 'experience', 'room_num'],
+                  'nurse': ['location', 'assigned_room', 'assigned_bed', 'assigned_amb'],
+                  'pathologist': [],
+                  'receptionist': [],
+                  'pharmacist': [],
+                  'admin': [],
+                  'driver': []
+              }[userType] || [];
+
+              // Filter role-specific updates
+              const filteredRoleData = {};
+              roleEditableFields.forEach(field => {
+                  if (updateData.role_details[field] !== undefined) {
+                      filteredRoleData[field] = updateData.role_details[field];
+                  }
+              });
+
+              if (Object.keys(filteredRoleData).length > 0 && RoleModel) {
+                  let roleSpecificInfo = await RoleModel.findOneAndUpdate(
                       { employee_id: user._id },
-                      updateData.role_details,
+                      filteredRoleData,
                       { new: true, runValidators: true }
                   );
+
+                  // Only populate department_id for doctor and nurse
+                  if (['doctor', 'nurse'].includes(userType)) {
+                      roleSpecificInfo = await roleSpecificInfo
+                          .populate(userType === 'doctor' ? 'department_id' : 'assigned_dept', 'dept_id dept_name');
+                  }
+
+                  if (roleSpecificInfo?.rating) {
+                      roleSpecificInfo.rating = Number(roleSpecificInfo.rating.toFixed(2));
+                  }
+
+                  user = {
+                      ...user.toObject(),
+                      role_details: roleSpecificInfo
+                  };
               }
           }
       }
@@ -241,7 +326,6 @@ export const updateProfile = async (req, res) => {
       if (!user) {
           return res.status(404).json({ message: 'User not found' });
       }
-
       res.status(200).json({
           message: 'Profile updated successfully',
           user
@@ -257,71 +341,156 @@ export const updateProfile = async (req, res) => {
 
 export const searchInventory = async (req, res) => {
   try {
-      const { searchQuery } = req.query;
-      
-      if (!searchQuery) {
-          return res.status(400).json({ message: "Search query is required." });
+    const { searchQuery, page = 1, limit = 10, type = 'medicine', role = 'user', viewMode = 'inventory' } = req.query;
+    const skip = (page - 1) * limit;
+    
+    let searchFilter = {};
+    let results;
+    let total;
+    
+    // Base search filter based on type
+    if (searchQuery?.trim()) {
+      if (type === 'medicine') {
+        searchFilter.$or = [
+          { _id: isNaN(searchQuery) ? null : Number(searchQuery) },
+          { med_name: { $regex: searchQuery, $options: 'i' } },
+          { manufacturer: { $regex: searchQuery, $options: 'i' } }
+        ];
+      } else {
+        searchFilter.$or = [
+          { _id: isNaN(searchQuery) ? null : Number(searchQuery) },
+          { equipment_name: { $regex: searchQuery, $options: 'i' } }
+        ];
       }
+    }
 
-      let searchFilter = {};
+    // Add order status filter based on role and view mode
+    if (role !== 'admin') {
+      // Non-admin users can only see ordered items
+      searchFilter.order_status = 'ordered';
+    } else if (viewMode === 'pending') {
+      // Admin viewing pending requests
+      searchFilter.order_status = 'requested';
+    } else {
+      // Admin viewing inventory (show ordered items)
+      searchFilter.order_status = 'ordered';
+    }
 
-      // If searchQuery is a number, search by ID
-      if (!isNaN(searchQuery)) {
-          searchFilter = { _id: Number(searchQuery) };
-      } 
-      // If searchQuery is text, search by name, manufacturer, or dosage form
-      else {
-          searchFilter = {
-              $or: [
-                  { med_name: { $regex: searchQuery, $options: 'i' } },
-                  { manufacturer: { $regex: searchQuery, $options: 'i' } },
-                  { dosage_form: { $regex: searchQuery, $options: 'i' } }
-              ]
-          };
-      }
+    if (type === 'medicine') {
+      results = await Medicine.find(searchFilter)
+        .select('_id med_name manufacturer available inventory')
+        .sort({ _id: 1 })
+        .skip(skip)
+        .limit(Number(limit));
+        
+      total = await Medicine.countDocuments(searchFilter);
 
-      // Apply the search filter to the find query
-      const medicines = await Medicine.find(searchFilter)
-          .select('_id med_name effectiveness dosage_form manufacturer available inventory');
-
-      if (!medicines.length) {
-          return res.status(404).json({ 
-              message: "No medicines found matching the search criteria." 
-          });
-      }
-
-      // Transform the response to include the latest inventory details
-      const transformedMedicines = medicines.map(med => {
-          const latestInventory = med.inventory.length > 0 
-              ? med.inventory[med.inventory.length - 1] 
-              : null;
-
-          return {
-              id: med._id,
-              name: med.med_name,
-              effectiveness: med.effectiveness,
-              dosage_form: med.dosage_form,
-              manufacturer: med.manufacturer,
-              available: med.available,
-              current_stock: latestInventory ? {
-                  quantity: latestInventory.quantity,
-                  batch_no: latestInventory.batch_no,
-                  expiry_date: latestInventory.expiry_date,
-                  unit_price: latestInventory.unit_price,
-                  supplier: latestInventory.supplier
-              } : null
-          };
+      results = results.map(med => {
+        const latestInventory = med.inventory[med.inventory.length - 1] || {};
+        return {
+          id: med._id,
+          name: med.med_name,
+          manufacturer: med.manufacturer,
+          available: med.available,
+          quantity: latestInventory.quantity || 0,
+          next_availability: (!med.available || latestInventory.quantity === 0) ? 
+            new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0] : null,
+          expired_quantity: calculateExpiredQuantity(latestInventory)
+        };
       });
+    } else {
+      results = await Equipment.find(searchFilter)
+        .select('_id equipment_name quantity installation_date last_service_date next_service_date')
+        .sort({ _id: 1 })
+        .skip(skip)
+        .limit(Number(limit));
+        
+      total = await Equipment.countDocuments(searchFilter);
 
-      res.status(200).json({
-          count: medicines.length,
-          items: transformedMedicines
-      });
+      results = results.map(equip => ({
+        id: equip._id,
+        name: equip.equipment_name,
+        quantity: equip.quantity || 0,
+        last_service_date: equip.last_service_date,
+        next_service_date: equip.next_service_date,
+        service_status: calculateServiceStatus(equip.next_service_date)
+      }));
+    }
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      items: results,
+      total,
+      page: Number(page),
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    });
 
   } catch (error) {
-      res.status(500).json({ 
-          message: 'Error searching medicines',
-          error: error.message 
-      });
+    res.status(500).json({ 
+      message: 'Error searching inventory',
+      error: error.message 
+    });
+  }
+};
+
+// Helper functions
+const calculateExpiredQuantity = (inventory) => {
+  if (!inventory || !inventory.expiry_date) return 0;
+  const expiryDate = new Date(inventory.expiry_date);
+  const today = new Date();
+  return expiryDate < today ? inventory.quantity : 0;
+};
+
+const calculateServiceStatus = (nextServiceDate) => {
+  if (!nextServiceDate) return 'Unknown';
+  const today = new Date();
+  const next = new Date(nextServiceDate);
+  const daysUntil = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
+  
+  if (daysUntil < 0) return 'Overdue';
+  if (daysUntil <= 30) return 'Due Soon';
+  return 'OK';
+};
+
+
+export const uploadEmployeePhoto = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    const newProfilePicUrl = req.file.path;
+
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Delete old image from Cloudinary
+    if (employee.profile_pic) {
+      const segments = employee.profile_pic.split('/');
+      const filenameWithExt = segments[segments.length - 1];
+      const publicId = `profile_pics/${filenameWithExt.split('.')[0]}`;
+      console.log("Deleting from Cloudinary:", publicId);
+      await cloudinary.uploader.destroy(publicId);
+    }
+
+    // Update new image URL
+    employee.profile_pic = newProfilePicUrl;
+    await employee.save();
+
+    return res.status(200).json({
+      message: "Profile photo uploaded successfully",
+      profile_pic: newProfilePicUrl,
+    });
+
+  } catch (err) {
+    console.error("Upload error:", err);
+    return res.status(500).json({ message: "Server error during upload" });
   }
 };

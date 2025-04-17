@@ -11,13 +11,13 @@ const VitalsJoiSchema = Joi.object({
         }),
     bloodPressure: Joi.string()
         .pattern(/^\d{2,3}\/\d{2,3}$/)
-        .required()
+        .optional()
         .messages({
             'string.pattern.base': 'Blood pressure must be in format "120/80"',
         }),
-    bodyTemp: Joi.number().required(),
-    pulseRate: Joi.number().required(),
-    breathingRate: Joi.number().required()
+    bodyTemp: Joi.number().optional(),
+    pulseRate: Joi.number().optional(),
+    breathingRate: Joi.number().optional()
 });
 
 // Sub-schema: Patient Info
@@ -42,12 +42,14 @@ const PatientJoiSchema = Joi.object({
     phone_number: Joi.string().pattern(/^\d{10}$/).optional(),
     emergency_contact: Joi.string().pattern(/^\d{10}$/).optional(),
     email: Joi.string().email().optional(),
-    date_of_birth: Joi.date().optional(),
+    date_of_birth: Joi.date().less('now').optional().messages({
+        'date.less': 'Date of birth must be in the past'
+    }),
     aadhar_number: Joi.string().pattern(/^\d{12}$/).optional(),
     gender: Joi.string().valid("male", "female").optional(),
     address: Joi.string().optional(),
-    patient_info: PatientInfoSchema.optional(),
-    vitals: Joi.array().items(VitalsSchema).optional(),
+    patient_info: PatientInfoJoiSchema.optional(),
+    vitals: Joi.array().items(VitalsJoiSchema).optional(),
     insurance_details: Joi.array()
         .items(Joi.string().regex(/^[0-9a-fA-F]{24}$/))
         .optional()

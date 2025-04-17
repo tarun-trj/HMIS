@@ -2,27 +2,27 @@ import Joi from 'joi';
 import {ReportJoiSchema} from "./reportValidator.js";
 
 export const ConsultationJoiSchema = Joi.object({
-    patient_id: Joi.number().integer().required(),
-    doctor_id: Joi.number().integer().required(),
+    patient_id: Joi.number().integer().optional(),
+    doctor_id: Joi.number().integer().optional(),
 
-    booked_date_time: Joi.date().required(),
+    booked_date_time: Joi.date().optional(),
 
     status: Joi.string()
         .valid("scheduled", "ongoing", "completed", "cancelled")
-        .required(),
+        .optional(),
 
     reason: Joi.string().allow('').optional(), // symptoms or chief complaint
 
     created_by: Joi.string()
         .regex(/^[0-9a-fA-F]{24}$/)
-        .required()
+        .optional()
         .messages({
             'string.pattern.base': 'created_by must be a valid ObjectId'
         }),
 
     appointment_type: Joi.string()
         .valid("regular", "follow-up", "emergency", "consultation")
-        .required(),
+        .optional(),
 
     actual_start_datetime: Joi.date().optional(),
 

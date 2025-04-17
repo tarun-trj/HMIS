@@ -9,9 +9,11 @@ backend/.env
 
 # Vite and cache files
 frontend/.vite/
-frontend/.env
 .vscode/
 .DS_Store
 
 # IDE files
 .idea/
+
+# Testing outputs
+backend/uploads/

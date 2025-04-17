@@ -2,43 +2,59 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home } from "lucide-react";
 import "../../styles/patient/BookedConsultations.css";
+import { useAuth } from "../../context/AuthContext";
 
-export const fetchConsultationsByPatientId = async (patientId) => {
+import axios from "axios";
+
+export const fetchConsultationsByPatientId = async (patientId, axiosInstance) => {
   try {
-    const res = await fetch(`http://localhost:5000/api/patients/${patientId}/consultations`);
-    const data = await res.json();
+    const res = await axiosInstance.get(`${import.meta.env.VITE_API_URL}/patients/${patientId}/consultations`);
+    const data = res.data;
 
-    if (!res.ok || !data.consultations) {
+    if (!data) {
       throw new Error("Failed to fetch consultations");
     }
 
-    // Get current date (without time) to compare safely
     const now = new Date();
 
-    // Filter only past consultations (date < now)
-    const futureConsultations = data.consultations.filter((c) => {
-      const consultDate = new Date(c.date); // assumes ISO or YYYY-MM-DD
-      return consultDate >= now;
-    });
+    // Filter only past consultations
+    const pastConsultations = Array.isArray(data)
+      ? data.filter((c) => {
+        const consultDate = new Date(c.booked_date_time);
+        return consultDate > now;
+      })
+      : [];
 
-    // Sort by ascending date (closest first)
-    futureConsultations.sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Transform the data to match the component's expected format
+    const formattedConsultations = pastConsultations.map(consult => ({
+      id: consult._id,
+      date: new Date(consult.booked_date_time).toLocaleString(),
+      doctor: consult.doctor.name,
+      location: consult.appointment_type,
+      doctorId: consult.doctor_id,
+      status: consult.status,
+      reason: consult.reason,
+      // Add any other properties your component needs
+    }));
 
-
-    return futureConsultations;
+    console.log(formattedConsultations);
+    return formattedConsultations;
   } catch (err) {
     console.error("Error fetching consultations:", err);
-    return []; // fallback return
+    return [];
   }
 };
 
+
 export const deleteConsultationById = async (consultationId) => {
   try {
-    const res = await fetch(`http://localhost:5000/api/patients/${consultationId}/cancel`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/patients/${consultationId}/cancel`, {
       method: "DELETE",
     });
 
+
     const data = await res.json();
+    console.log(data)
 
     if (!res.ok) {
       throw new Error(data?.error || data?.message || "Failed to cancel consultation.");
@@ -55,7 +71,10 @@ export const deleteConsultationById = async (consultationId) => {
 const BookedConsultation = () => {
   const [consultations, setConsultations] = useState([]);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
-  
+  const [Loading, setLoading] = useState(true);
+  const { axiosInstance } = useAuth();
+
+
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelConsultationId, setCancelConsultationId] = useState(null);
 
@@ -63,12 +82,14 @@ const BookedConsultation = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const navigate = useNavigate();
-  const patientId = "123";
+  const patientId = localStorage.getItem("user_id");
 
   useEffect(() => {
     const loadConsultations = async () => {
-      const data = await fetchConsultationsByPatientId(patientId);
+      const data = await fetchConsultationsByPatientId(patientId, axiosInstance);
+      if (window._authFailed) return; // Skip updating state if auth failed
       setConsultations(data);
+      setLoading(false);
     };
 
     loadConsultations();
@@ -79,6 +100,15 @@ const BookedConsultation = () => {
     setShowCancelModal(true);
   };
 
+  const confirmReschedule = () => {
+    if (selectedConsultation) {
+      console.log(selectedConsultation)
+      navigate('/patient/reschedule-consultation/' + selectedConsultation.id)
+      // Clear selection after navigation
+      setSelectedConsultation(null);
+    }
+  };
+
   const handleReschedule = (consult) => {
     setSelectedConsultation(consult);
   };
@@ -87,11 +117,11 @@ const BookedConsultation = () => {
     if (cancelConsultationId) {
       try {
         const result = await deleteConsultationById(cancelConsultationId);
-  
+
         if (result.success) {
-          setConsultations((prev) => prev.filter((c) => c.id !== cancelConsultationId));
           setShowCancelModal(false);
           setCancelConsultationId(null);
+          window.location.reload();
         } else {
           setShowCancelModal(false);
           setErrorMessage(result.message);
@@ -104,30 +134,80 @@ const BookedConsultation = () => {
       }
     }
   };
-  ;
+  if (Loading) return <div className="loading">Loading...</div>;
+
 
   return (
     <div className="consultations-page">
       <main className="consultations-content">
         <header className="consultations-header">
-          <h2>Patient Consultations</h2>
-          <Home className="home-icon" />
+          <h2>Booked Consultations</h2>
+          <Home className="home-icon cursor-pointer" onClick={() => navigate("/patient/profile")}/>
         </header>
         <section className="consultations-list">
           {consultations.length > 0 ? (
-            consultations.map((consult) => (
-              <div key={consult.id} className="consultation-card">
-                <span className="consult-date">{consult.date}</span>
-                <span className="consult-doctor">{consult.doctor}</span>
-                <span className="consult-location">{consult.location}</span>
-                <button className="cancel-btn" onClick={() => handleCancel(consult.id)}>Cancel</button>
-                <button className="reschedule-btn" onClick={() => handleReschedule(consult)}>Reschedule</button>
+            <>
+              <div className="consultation-card header">
+                <span className="consult-date">Date</span>
+                <span className="consult-doctor">Doctor</span>
+                <span className="consult-location">Location</span>
+                <span className="consult-status">Status</span>
+                <span className="consult-actions">Actions</span>
               </div>
-            ))
+
+              {consultations.map((consult) => (
+                <div key={consult.id} className="consultation-card">
+                  <span className="consult-date">{consult.date}</span>
+                  <span className="consult-doctor">{consult.doctor}</span>
+                  <span className="consult-location">{consult.location}</span>
+                  <span className="consult-status">{consult.status}</span>
+                  <div className="consult-actions">
+                  <button
+                    onClick={() => handleCancel(consult.id)}
+                    disabled={consult.status === "cancelled" || consult.status === "ongoing"}
+                    className={`px-4 py-2 rounded-md font-medium transition
+                      ${consult.status === "cancelled" || consult.status === "ongoing"
+                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                        : "bg-red-600 text-white hover:bg-red-700"}`}
+                    title={
+                      consult.status === "cancelled"
+                        ? "Already cancelled"
+                        : consult.status === "ongoing"
+                        ? "Ongoing consultation cannot be cancelled"
+                        : "Cancel consultation"
+                    }
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={() => handleReschedule(consult)}
+                    disabled={consult.status === "completed" || consult.status === "cancelled" || consult.status === "ongoing"}
+                    className={`px-4 py-2 rounded-md font-medium transition
+                      ${consult.status === "completed" || consult.status === "cancelled" || consult.status === "ongoing"
+                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                        : "bg-green-600 text-white hover:bg-green-700"}`}
+                    title={
+                      consult.status === "completed"
+                        ? "Completed consultations cannot be rescheduled"
+                        : consult.status === "cancelled"
+                        ? "Cancelled consultations cannot be rescheduled"
+                        : consult.status === "ongoing"
+                        ? "Ongoing consultations cannot be rescheduled"
+                        : "Reschedule consultation"
+                    }
+                  >
+                    Reschedule
+                  </button>
+                  </div>
+                </div>
+              ))}
+            </>
           ) : (
             <p className="no-data">No Consultations Available</p>
           )}
         </section>
+
       </main>
 
       {/* Custom Modal for Reschedule Confirmation */}
@@ -151,7 +231,7 @@ const BookedConsultation = () => {
           </div>
         </div>
       )}
-      
+
       {/* Cancel Confirmation Modal */}
       {showCancelModal && (
         <div className="modal-overlay">

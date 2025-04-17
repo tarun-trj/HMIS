@@ -31,9 +31,15 @@
   margin-top: 20px;
 }
 
+.consultation-card.header {
+  font-weight: bold;
+}
+
 /* Consultation Card (Slab Style) */
 .consultation-card {
-  display: flex;
+  text-transform: capitalize;
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 2fr 3fr; /* Adjust fractions based on desired widths */
   justify-content: space-between;
   align-items: center;
   background-color: #1c2b3a;
@@ -169,4 +175,17 @@
 
 .confirm-modal-btn:hover {
   background-color: #5bc0de;
+}
+
+
+.consult-actions {
+  display: flex;
+  gap: 6px; /* adds spacing between buttons */
+  justify-content: center;
+  align-items: center;
+}
+
+.consult-actions button {
+  padding: 6px 10px; /* slightly reduced padding */
+  font-size: 17px;
 }
