@@ -54,8 +54,8 @@ const Navbar = ({ toggleSidebar,isSidebarOpen }) => {
             </button>
           </>
         ) : (
-          <Link to="/login" className="text-gray-300 hover:text-white transition">
-            Login
+          <Link to="/" className="text-gray-300 hover:text-white transition">
+            Home
           </Link>
         )}
       </div>

@@ -570,7 +570,6 @@ export const uploadProfilePhoto = async (req, res) => {
       const segments = patient.profile_pic.split('/');
       const filenameWithExt = segments[segments.length - 1]; // eg: abc123.png
       const publicId = `profile_pics/${filenameWithExt.split('.')[0]}`; // assuming folder is profile_pics
-      console.log(publicId);
       await cloudinary.uploader.destroy(publicId);
     }
 
