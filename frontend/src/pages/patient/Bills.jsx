@@ -315,11 +315,6 @@ const Bills = () => {
   };
 
 
-  const handlePrintReceipt = () => {
-    console.log("Printing receipt");
-    // Implementation would trigger print receipt function
-  };
-
   const summary = calculateSummary();
 
   if (loading && !selectedBill) {

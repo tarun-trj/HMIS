@@ -7,7 +7,8 @@ import {
   addBillingItem,
   createBill,
   addBillingItems,
-  getAllDetailedBillsByPatientId
+  getAllDetailedBillsByPatientId,
+  addPayments
 } from '../controllers/billController.js';
 
 const router = express.Router();
@@ -26,6 +27,10 @@ router.get('/:billId/payments', getPaymentsByBillId);
 
 // Add a payment to a bill
 router.post('/:billId/payments', addPayment);
+
+// Add payments to a bill
+router.post('/:billId/payments-list', addPayments);
+
 
 // Add a billing item to a bill
 router.post('/:billId/item', addBillingItem);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
+import axios from 'axios';
 const fetchConsultationsByPatientId = async (patientId) => {
   try {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/patients/${patientId}/consultations`);
@@ -33,12 +33,38 @@ const fetchConsultationsByPatientId = async (patientId) => {
   }
 };
 
+const fetchPatientInsurance = async (patientId) => {
+  try {
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/insurance/${patientId}/insurances`);
+     const   data=(res.data);
+    
+  console.log(data)
+    
+    return data|| [];
+  } catch (err) {
+    console.error("Error fetching patient insurance:", err);
+    return [];
+  }
+};
+const fetchAvailableRooms = async () => {
+  try {
+    const res = await axios.get('http://localhost:5000/api/reception/rooms');
+    
+    const data=await res.data
+ 
+    return data || [];
+  } catch (err) {
+    console.error("Error fetching available rooms:", err);
+    return [];
+  }
+};
+
 // Fetch bills for a patient
 const fetchPatientBills = async (patientId) => {
   try {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/billing/detailed/patient/${patientId}`);
     const data = await res.json();
-    console.log(data)
+    
     if (!res.ok) {
       throw new Error("Failed to fetch bills");
     }
@@ -53,36 +79,43 @@ const fetchPatientBills = async (patientId) => {
 const AddBills = () => {
   const [formData, setFormData] = useState({
     patient_id: '',
-    generation_date: new Date().toISOString().split('T')[0],
-    total_amount: '',
-    payment_status: 'pending',
+    total_amount: '0.00',
     services: []
   });
 
   const [currentService, setCurrentService] = useState({
-    item_type: 'consultation',
+    item_type: 'procedure',
     item_description: '',
-    consult_id: '',
-    report_id: '',
-    prescription_id: '',
     room_id: '',
     price: '',
     quantity: 1
   });
-
+  const [availableRooms, setAvailableRooms] = useState([]);
   const [patientConsultations, setPatientConsultations] = useState([]);
   const [patientBills, setPatientBills] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [billableItems, setBillableItems] = useState({
     consultations: [],
     reports: [],
     prescriptions: []
   });
+  const [patientInsurance, setPatientInsurance] = useState([]);
+  const [selectedInsurance, setSelectedInsurance] = useState(null);
+  const [insurancePayments, setInsurancePayments] = useState([]);
+
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      const rooms = await fetchAvailableRooms();
+      setAvailableRooms(rooms);
+    };
+    
+    fetchRooms();
+  }, []);
 
   // Fetch patient consultations and bills when patient ID changes
   useEffect(() => {
-    if (formData.patient_id) {
+    if (formData.patient_id&&formData.patient_id.length>4) {
       fetchPatientData(formData.patient_id);
     }
   }, [formData.patient_id]);
@@ -99,14 +132,65 @@ const AddBills = () => {
     try {
       const consultationsData = await fetchConsultationsByPatientId(patientId);
       const billsData = await fetchPatientBills(patientId);
+      const insuranceData = await fetchPatientInsurance(patientId);
       
       setPatientConsultations(consultationsData);
       setPatientBills(billsData);
+      setPatientInsurance(insuranceData);
     } catch (error) {
       console.error("Error fetching patient data:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleInsuranceSelect = (insurance) => {
+    setSelectedInsurance(insurance);
+  };
+
+  const handleCallInsurance = () => {
+    if (!selectedInsurance) {
+      alert('Please select an insurance provider first');
+      return;
+    }
+    if(formData.total_amount<=0)
+    {
+      alert('Total amount is 0, please select more items to bill');
+      return;
+    }
+    // Simulate insurance coverage (in a real app, this would make an API call)
+    // For simulation, let's say insurance covers 70% of the bill
+    const totalAmount = parseFloat(formData.total_amount);
+    const coveragePercent = 0.7; // 70% coverage
+    const insuranceCoverage = totalAmount * coveragePercent;
+    
+    // Create a new insurance payment
+    const newPayment = {
+      id: Date.now(), // temporary id for UI purposes
+      insurance_id: selectedInsurance._id,
+      insurance_provider: selectedInsurance.insurance_provider,
+      policy_number: selectedInsurance.policy_number,
+      amount: insuranceCoverage.toFixed(2),
+      payment_date: new Date(),
+      payment_method: 'insurance',
+      status: 'success'
+    };
+    
+    // Add to insurance payments
+    setInsurancePayments(prev => [...prev, newPayment]);
+    
+    // Recalculate remaining amount
+    const newTotal = totalAmount - insuranceCoverage;
+    
+    setFormData(prev => ({
+      ...prev,
+      total_amount: newTotal.toFixed(2)
+    }));
+    
+    // Reset selected insurance after processing
+    setSelectedInsurance(null);
+    
+    alert(`Insurance claim processed. Insurance will cover $${insuranceCoverage.toFixed(2)}`);
   };
 
   // Process consultations to identify billable items
@@ -119,9 +203,7 @@ const AddBills = () => {
     patientBills.forEach(bill => {
       if (!bill.items) return;
       
-      
       bill.items.forEach(item => {
-        console.log(item)
         if (item.consultation_details) billedConsultations.add(item.consultation_details.id);
         if (item.test_details) billedReports.add(item.test_details.id);
         if (item.prescription_id) billedPrescriptions.add(item.prescription_id);
@@ -167,7 +249,7 @@ const AddBills = () => {
             return; // Skip this prescription
           }
           
-          if (!billedPrescriptions.has(prescriptionId)) {
+          if (!billedPrescriptions.has(prescriptionId) && prescriptionObj.status !== "cancelled") {
             allPrescriptions.push({
               _id: prescriptionId,
               consultationId: consultation._id,
@@ -203,6 +285,25 @@ const AddBills = () => {
     }));
   };
 
+  const handleServicePriceChange = (index, value) => {
+    const updatedServices = [...formData.services];
+    
+    // Update the price for this service
+    const oldPrice = parseFloat(updatedServices[index].price) || 0;
+    const newPrice = parseFloat(value) || 0;
+    updatedServices[index].price = newPrice.toFixed(2);
+    
+    // Recalculate total
+    const totalDifference = newPrice - oldPrice;
+    const newTotal = (parseFloat(formData.total_amount) || 0) + totalDifference;
+    
+    setFormData(prev => ({
+      ...prev,
+      services: updatedServices,
+      total_amount: newTotal.toFixed(2)
+    }));
+  };
+
   const addService = () => {
     if (!currentService.item_description || !currentService.price) {
       alert('Please enter service description and price');
@@ -215,17 +316,18 @@ const AddBills = () => {
 
     setFormData(prev => ({
       ...prev,
-      services: [...prev.services, {...currentService, price: servicePrice.toFixed(2)}],
+      services: [...prev.services, {
+        ...currentService, 
+        price: servicePrice.toFixed(2),
+        isCustom: true
+      }],
       total_amount: newTotal.toFixed(2)
     }));
 
     // Reset service form for next entry
     setCurrentService({
-      item_type: 'consultation',
+      item_type: 'procedure',
       item_description: '',
-      consult_id: '',
-      report_id: '',
-      prescription_id: '',
       room_id: '',
       price: '',
       quantity: 1
@@ -244,34 +346,79 @@ const AddBills = () => {
   };
 
   const handleConsultationSelect = (consultation) => {
-    setSelectedConsultation(consultation);
+    // Check if this consultation is already in the services
+    const isAlreadyAdded = formData.services.some(
+      service => service.item_type === 'consultation' && service.consult_id === consultation._id
+    );
+    
+    if (isAlreadyAdded) {
+      alert('This consultation is already added to the bill.');
+      return;
+    }
     
     // Set consultation as a service item
     const consultationService = {
       item_type: 'consultation',
       item_description: `Consultation on ${new Date(consultation.booked_date_time).toLocaleDateString()} - ${consultation.reason || 'General'}`,
       consult_id: consultation._id,
-      price: '100.00', // You might want to get this from your pricing configuration
-      quantity: 1
+      price: '100.00', // Default price
+      quantity: 1,
+      originalItem: consultation // Store original item for reference
     };
     
-    // Add consultation service
-    addServiceToForm(consultationService);
+    // Add consultation service to form
+    const servicePrice = parseFloat(consultationService.price);
+    const newTotal = (parseFloat(formData.total_amount) || 0) + servicePrice;
+    
+    setFormData(prev => ({
+      ...prev,
+      services: [...prev.services, consultationService],
+      total_amount: newTotal.toFixed(2)
+    }));
   };
 
   const handleReportSelect = (report) => {
+    // Check if already added
+    const isAlreadyAdded = formData.services.some(
+      service => service.item_type === 'test' && service.report_id === report._id
+    );
+    
+    if (isAlreadyAdded) {
+      alert('This report is already added to the bill.');
+      return;
+    }
+    
     const reportService = {
       item_type: 'test',
       item_description: `Report: ${report.title || 'Medical Test'}`,
       report_id: report._id,
-      price: '50.00', // Example price
-      quantity: 1
+      price: '50.00', // Default price
+      quantity: 1,
+      originalItem: report // Store original item for reference
     };
     
-    addServiceToForm(reportService);
+    // Add report service to form
+    const servicePrice = parseFloat(reportService.price);
+    const newTotal = (parseFloat(formData.total_amount) || 0) + servicePrice;
+    
+    setFormData(prev => ({
+      ...prev,
+      services: [...prev.services, reportService],
+      total_amount: newTotal.toFixed(2)
+    }));
   };
 
   const handlePrescriptionSelect = (prescription) => {
+    // Check if already added
+    const isAlreadyAdded = formData.services.some(
+      service => service.item_type === 'medication' && service.prescription_id === prescription._id
+    );
+    
+    if (isAlreadyAdded) {
+      alert('This prescription is already added to the bill.');
+      return;
+    }
+    
     // Get prescription details for a better description
     let prescriptionDetails = '';
     
@@ -291,21 +438,18 @@ const AddBills = () => {
       item_type: 'medication',
       item_description: `Prescription #${prescription.displayId}${prescriptionDetails ? ` (${prescriptionDetails})` : ''}`,
       prescription_id: prescription._id,
-      price: '75.00', // Example price
-      quantity: 1
+      price: '75.00', // Default price
+      quantity: 1,
+      originalItem: prescription // Store original item for reference
     };
     
-    addServiceToForm(prescriptionService);
-  };
-
-  // Helper function to add a service to the form
-  const addServiceToForm = (service) => {
-    const servicePrice = parseFloat(service.price);
+    // Add prescription service to form
+    const servicePrice = parseFloat(prescriptionService.price);
     const newTotal = (parseFloat(formData.total_amount) || 0) + servicePrice;
     
     setFormData(prev => ({
       ...prev,
-      services: [...prev.services, service],
+      services: [...prev.services, prescriptionService],
       total_amount: newTotal.toFixed(2)
     }));
   };
@@ -318,9 +462,16 @@ const AddBills = () => {
       return;
     }
     
+    // Calculate the original total before insurance
+    const originalTotal = formData.services.reduce((sum, service) => sum + parseFloat(service.price), 0);
+    const insuranceTotal = insurancePayments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
+    
     // Prepare the bill data
     const billData = {
-      patient_id: formData.patient_id
+      patient_id: formData.patient_id,
+      total_amount: originalTotal.toFixed(2),
+      remaining_amount: formData.total_amount, // After insurance
+      payment_status: insurancePayments.length > 0 ? "partially_paid" : "pending"
     };
     
     try {
@@ -334,7 +485,7 @@ const AddBills = () => {
       });
       
       const data = await response.json();
-
+  
       if (data.success) {
         // Prepare billing items
         const billItems = {
@@ -361,10 +512,36 @@ const AddBills = () => {
         
         const itemsData = await itemsResponse.json();
         
+        if (itemsData.success && insurancePayments.length > 0) {
+          // Add insurance payments to the bill
+          const paymentsData = {
+            payments: insurancePayments.map(payment => ({
+              amount: parseFloat(payment.amount),
+              insurance_id: payment.insurance_id,
+              payment_date: payment.payment_date,
+              status: payment.status,
+              payment_method: payment.payment_method
+            }))
+          };
+          
+          // Add payments to the bill
+          await fetch(`${import.meta.env.VITE_API_URL}/billing/${data.data.bill_id}/payments-list`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(paymentsData),
+          });
+        }
+        
         if (itemsData.success) {
-          // Update bill_id in consultations if needed
-          if (selectedConsultation) {
-            await fetch(`${import.meta.env.VITE_API_URL}/consultations/update/${selectedConsultation._id}`, {
+          // Update bill_id in consultations
+          const consultationsToUpdate = formData.services
+            .filter(service => service.item_type === 'consultation' && service.consult_id)
+            .map(service => service.consult_id);
+            
+          for (const consultId of consultationsToUpdate) {
+            await fetch(`${import.meta.env.VITE_API_URL}/consultations/update/${consultId}`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
@@ -378,12 +555,10 @@ const AddBills = () => {
           // Reset form
           setFormData({
             patient_id: '',
-            generation_date: new Date().toISOString().split('T')[0],
-            total_amount: '',
-            payment_status: 'pending',
+            total_amount: '0.00',
             services: []
           });
-          setSelectedConsultation(null);
+          setInsurancePayments([]);
           
           // Refresh patient data if needed
           if (formData.patient_id) {
@@ -404,56 +579,26 @@ const AddBills = () => {
   // Show relevant fields based on item type
   const renderDynamicFields = () => {
     switch(currentService.item_type) {
-      case 'consultation':
-        return (
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Consultation ID:</label>
-            <input
-              type="text"
-              name="consult_id"
-              value={currentService.consult_id}
-              onChange={handleServiceChange}
-              className="w-full p-2 border border-gray-300 rounded"
-            />
-          </div>
-        );
-      case 'medication':
-        return (
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Prescription ID:</label>
-            <input
-              type="text"
-              name="prescription_id"
-              value={currentService.prescription_id}
-              onChange={handleServiceChange}
-              className="w-full p-2 border border-gray-300 rounded"
-            />
-          </div>
-        );
-      case 'test':
-        return (
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Report ID:</label>
-            <input
-              type="text"
-              name="report_id"
-              value={currentService.report_id}
-              onChange={handleServiceChange}
-              className="w-full p-2 border border-gray-300 rounded"
-            />
-          </div>
-        );
       case 'room_charge':
         return (
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Room ID:</label>
-            <input
-              type="text"
+            <label className="block text-sm font-medium mb-1">Room:</label>
+            <select
               name="room_id"
               value={currentService.room_id}
               onChange={handleServiceChange}
               className="w-full p-2 border border-gray-300 rounded"
-            />
+            >
+              <option value="">Select a room</option>
+              {availableRooms.map(room => (
+                <option key={room._id} value={room._id}>
+                  {room.room_number} - {room.room_type} 
+                </option>
+              ))}
+            </select>
+            
+            {/* Optional: Auto-fill price when room is selected */}
+         
           </div>
         );
       default:
@@ -479,43 +624,10 @@ const AddBills = () => {
             />
           </div>
 
+          {/* Display total amount prominently */}
           <div>
-            <label className="block text-sm font-medium mb-2">Generation Date:</label>
-            <input
-              type="date"
-              name="generation_date"
-              value={formData.generation_date}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Total Amount:</label>
-            <input
-              type="number"
-              name="total_amount"
-              value={formData.total_amount}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              readOnly
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Payment Status:</label>
-            <select
-              name="payment_status"
-              value={formData.payment_status}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="pending">Pending</option>
-              <option value="paid">Paid</option>
-              <option value="partially_paid">Partially Paid</option>
-            </select>
+            <label className="block text-lg font-medium mb-2">Total Amount:</label>
+            <div className="text-2xl font-bold text-teal-600">${formData.total_amount}</div>
           </div>
         </div>
 
@@ -524,6 +636,124 @@ const AddBills = () => {
             <div className="animate-pulse text-gray-500">Loading patient data...</div>
           </div>
         )}
+
+        {/* Bill Items Section - Shows selected services */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium mb-4">Bill Items</h3>
+          
+          {formData.services.length > 0 ? (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-200">
+                    <th className="p-2 text-left">Type</th>
+                    <th className="p-2 text-left">Description</th>
+                    <th className="p-2 text-center">Quantity</th>
+                    <th className="p-2 text-right">Price</th>
+                    <th className="p-2 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formData.services.map((service, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="p-2 capitalize">{service.item_type}</td>
+                      <td className="p-2">{service.item_description}</td>
+                      <td className="p-2 text-center">{service.quantity || 1}</td>
+                      <td className="p-2 text-right">
+                        <input
+                          type="number"
+                          value={service.price}
+                          onChange={(e) => handleServicePriceChange(index, e.target.value)}
+                          className="w-24 p-1 border border-gray-300 rounded text-right"
+                          step="0.01"
+                          min="0"
+                        />
+                      </td>
+                      <td className="p-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeService(index)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="bg-gray-50 p-6 rounded-lg mb-6 text-center">
+              <p className="text-gray-600">No items added to the bill yet. Select items from below or add custom services.</p>
+            </div>
+          )}
+        </div>
+        <div className="mb-6">
+  <h3 className="text-lg font-medium mb-4">Insurance Coverage</h3>
+  
+  {insurancePayments.length > 0 && (
+    <div className="bg-gray-50 p-4 rounded-lg mb-4">
+      <h4 className="text-md font-medium mb-2">Insurance Payments:</h4>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="p-2 text-left">Provider</th>
+            <th className="p-2 text-left">Policy Number</th>
+            <th className="p-2 text-right">Amount Covered</th>
+            <th className="p-2 text-center">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {insurancePayments.map((payment, index) => (
+            <tr key={index} className="border-b">
+              <td className="p-2">{payment.insurance_provider}</td>
+              <td className="p-2">{payment.policy_number}</td>
+              <td className="p-2 text-right">${payment.amount}</td>
+              <td className="p-2 text-center">{new Date(payment.payment_date).toLocaleDateString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+  
+  {patientInsurance.length > 0 ? (
+    <div className="bg-gray-50 p-4 rounded-lg">
+      <h4 className="text-md font-medium mb-2">Available Insurance:</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {patientInsurance.map(insurance => (
+          <div 
+            key={insurance.insurance_provider} 
+            className={`p-4 border rounded-lg bg-white cursor-pointer ${selectedInsurance && selectedInsurance.insurance_provider === insurance.insurance_provider ? 'ring-2 ring-blue-500' : 'hover:bg-blue-50'}`}
+            onClick={() => handleInsuranceSelect(insurance)}
+          >
+            <h4 className="font-medium">{insurance.insurance_provider}</h4>
+            <p className="text-sm text-gray-600">Policy: {insurance.policy_number}</p>
+            <p className="text-sm text-gray-600">
+              Valid until: {new Date(insurance.policy_end_date).toLocaleDateString()}
+            </p>
+          </div>
+        ))}
+      </div>
+      
+      <div className="mt-4 flex justify-end">
+        <button 
+          type="button"
+          onClick={handleCallInsurance}
+          disabled={!selectedInsurance}
+          className={`px-4 py-2 rounded text-white ${!selectedInsurance ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+        >
+          Call Insurance
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="bg-gray-50 p-6 rounded-lg text-center">
+      <p className="text-gray-600">No insurance providers found for this patient.</p>
+    </div>
+  )}
+</div>
 
         {/* Billable Items Section */}
         {formData.patient_id && !loading && (
@@ -577,6 +807,9 @@ const AddBills = () => {
                         <p className="text-sm text-gray-600">
                           From consultation on {new Date(report.consultationDate).toLocaleDateString()}
                         </p>
+                        <span className="mt-2 inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                          {report.status}
+                        </span>
                         <span className="mt-2 inline-block bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                           Unbilled
                         </span>
@@ -648,11 +881,8 @@ const AddBills = () => {
                   onChange={handleServiceChange}
                   className="w-full p-2 border border-gray-300 rounded"
                 >
-                  <option value="consultation">Consultation</option>
-                  <option value="medication">Medication</option>
                   <option value="procedure">Procedure</option>
                   <option value="room_charge">Room Charge</option>
-                  <option value="test">Test</option>
                   <option value="other">Other</option>
                 </select>
               </div>
@@ -705,45 +935,6 @@ const AddBills = () => {
               </button>
             </div>
           </div>
-
-          {/* Display added services */}
-          {formData.services.length > 0 && (
-            <div className="mb-6">
-              <h4 className="text-md font-medium mb-2">Added Services:</h4>
-              <div className="max-h-64 overflow-y-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-200">
-                      <th className="p-2 text-left">Type</th>
-                      <th className="p-2 text-left">Description</th>
-                      <th className="p-2 text-center">Quantity</th>
-                      <th className="p-2 text-right">Price</th>
-                      <th className="p-2 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formData.services.map((service, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="p-2">{service.item_type}</td>
-                        <td className="p-2">{service.item_description}</td>
-                        <td className="p-2 text-center">{service.quantity || 1}</td>
-                        <td className="p-2 text-right">${parseFloat(service.price).toFixed(2)}</td>
-                        <td className="p-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => removeService(index)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            Remove
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="flex justify-center md:justify-start">

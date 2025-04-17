@@ -410,6 +410,101 @@ export const addPayment = async (req, res) => {
   }
 };
 
+
+export const addPayments = async (req, res) => {
+  try {
+    const { billId } = req.params;
+    const { payments } = req.body;
+
+    if (!billId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bill ID is required'
+      });
+    }
+
+    if (!Array.isArray(payments) || payments.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one payment is required'
+      });
+    }
+
+    const bill = await Bill.findById(billId);
+    if (!bill) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bill not found'
+      });
+    }
+
+    const newPayments = payments.map((payment) => {
+      if (!payment.amount || !payment.payment_method) {
+        throw new Error('Each payment must include amount and payment method');
+      }
+
+      // Update hospital bank account
+      global.hospitalBankAccount.balance += payment.amount;
+      console.log(`Payment of ${payment.amount} added to hospital bank account. New balance: ${global.hospitalBankAccount.balance}`);
+
+      return {
+        amount: payment.amount,
+        insurance_id: payment.insurance_id,
+        payment_date: payment.payment_date || new Date(),
+        payment_gateway_id: payment.payment_gateway_id,
+        transaction_id: payment.transaction_id || `tx${Date.now()}${Math.floor(Math.random() * 1000)}`,
+        status: payment.status || "success",
+        payment_method: payment.payment_method
+      };
+    });
+
+    // Append new payments to the bill
+    bill.payments.push(...newPayments);
+
+    // Recalculate total paid amount
+    const paidAmount = bill.payments.reduce((sum, payment) => {
+      if (payment.status === "success") {
+        return sum + payment.amount;
+      }
+      return sum;
+    }, 0);
+
+    // Update bill payment status
+    if (paidAmount >= bill.total_amount) {
+      bill.payment_status = "paid";
+    } else if (paidAmount > 0) {
+      bill.payment_status = "partially_paid";
+    } else {
+      bill.payment_status = "pending";
+    }
+
+    bill.remaining_amount = bill.total_amount - paidAmount;
+
+    await bill.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Payments added successfully',
+      data: {
+        payments: newPayments,
+        bill: {
+          _id: bill._id,
+          payment_status: bill.payment_status,
+          remaining_amount: bill.remaining_amount
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error adding payments:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to add payments',
+      error: error.message
+    });
+  }
+};
+
 /**
  * Add a new billing item to a bill
  * @param {Request} req - Express request object
@@ -419,7 +514,6 @@ export const addBillingItem = async (req, res) => {
   try {
     const { billId } = req.params;
     const itemData = req.body;
-console.log(itemData)
     if (!billId) {
       return res.status(400).json({
         success: false,
@@ -512,7 +606,6 @@ export const addBillingItems = async (req, res) => {
   try {
     const { billId } = req.params;
     const { items } = req.body;
-    console.log('Request items:', items);
 
     if (!billId) {
       return res.status(400).json({
