@@ -1637,7 +1637,7 @@ export const addConsultation = async (req, res) => {
   }
 };
 
-
+*/
 
 
 export const getAllDiagnoses = async (req, res) => {
@@ -1663,7 +1663,7 @@ export const getAllDiagnoses = async (req, res) => {
     });
   }
 };
-*/
+
 
 /*
 export const printAllDoctors = async (req, res) => {
