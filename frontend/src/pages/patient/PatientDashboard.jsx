@@ -224,28 +224,13 @@ const PatientDashboard = () => {
                   className="input-field"
                 />
               </div>
-              <div className="input-group">
-                <label>Bed No:</label>
-                <input
-                  type="text"
-                  value={editedDetails.bedNo}
-                  onChange={(e) => setEditedDetails({ ...editedDetails, bedNo: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-              <div className="input-group">
-                <label>Room No:</label>
-                <input
-                  type="text"
-                  value={editedDetails.roomNo}
-                  onChange={(e) => setEditedDetails({ ...editedDetails, roomNo: e.target.value })}
-                  className="input-field"
-                />
-              </div>
+              <div className="patient-detail"><label>Bed No:</label><span>{patient_info.bedNo}</span></div>
+              <div className="patient-detail"><label>Room No:</label><span>{patient_info.roomNo}</span></div>
             </>
           ) : (
             <>
               <h1 className="mb-0 pb-0">{patientData.name}</h1>
+              <h2 className="patient-detail"><label>Patient ID:</label><span>{patientData.id}</span></h2>
               <div className="patient-detail"><label>Age:</label><span>{calculateAge(patientData.date_of_birth)}</span></div>
               <div className="patient-detail"><label>Blood Group:</label><span>{patient_info.bloodGrp}</span></div>
               <div className="patient-detail"><label>Height:</label><span>{patient_info.height} cm</span></div>
