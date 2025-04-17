@@ -17,3 +17,4 @@ frontend/.vite/
 
 # Testing outputs
 backend/uploads/
+/backend/temp/
