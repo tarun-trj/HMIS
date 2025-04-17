@@ -78,10 +78,19 @@ ConsultationSchema.add({
   feedback: FeedbackSchema,
 });
 
-PrescriptionSchema.plugin(AutoIncrement, { inc_field: '_id',id: 'prescription_id_counter',  start_seq: 10000, increment_by: 1 });
-const Prescription = mongoose.model('Prescription', PrescriptionSchema);
-const Consultation = mongoose.model('Consultation', ConsultationSchema);
-const Feedback = mongoose.model('Feedback', FeedbackSchema);
-const Report = mongoose.model('Report', ReportSchema);
-const PrescriptionEntry = mongoose.model('PrescriptionEntry', PrescriptionEntrySchema);
-export {Consultation, Prescription,Feedback, Report, PrescriptionEntry};
+PrescriptionSchema.plugin(AutoIncrement, {
+  inc_field: "_id",
+  id: "prescription_id_counter",
+  start_seq: 10000,
+  increment_by: 1,
+});
+const Prescription = mongoose.model("Prescription", PrescriptionSchema);
+const PrescriptionEntry = mongoose.model(
+  "PrescriptionEntry",
+  PrescriptionEntrySchema
+);
+const Consultation = mongoose.model("Consultation", ConsultationSchema);
+const Feedback = mongoose.model("Feedback", FeedbackSchema);
+const Report = mongoose.model("Report", ReportSchema);
+
+export { Consultation, Prescription, PrescriptionEntry, Feedback, Report };
