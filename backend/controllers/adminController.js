@@ -440,7 +440,7 @@ export const addStaff = async (req, res) => {
 export const deleteStaff = async (req, res) => {
     try {  
         const { id } = req.params;
-        console.log(id);
+        // console.log(id);
         res.status(200).json({ message: 'Staff deleted successfully' });
         // Find the employee by ID
         const employee = await Employee.findById(id);
