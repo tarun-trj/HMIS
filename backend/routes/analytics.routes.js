@@ -38,8 +38,8 @@ router.post('/occupied-beds/:period', getBedOccupancyTrends);
 // Route to get facility statistics
 router.get('/facility-stats', getFacilityStatistics);
 
-router.get('/doc-performance', getDoctorQuadrantData);
-router.get('/dept-performance',getDepartmentQuadrantData);
+router.post('/doc-performance', getDoctorQuadrantData);
+router.post('/dept-performance',getDepartmentQuadrantData);
 router.get('/doctors/all',getAllDoctorsData);
 
 

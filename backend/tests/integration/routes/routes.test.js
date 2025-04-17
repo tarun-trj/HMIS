@@ -1,5 +1,5 @@
 // tests/integration/routes/routes.test.js
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, importOriginal } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import mongoose from 'mongoose';
@@ -165,15 +165,19 @@ vi.mock('../../../controllers/publicDataController.js', () => ({
   getDiagonses: vi.fn((req, res) => res.status(200).json({ diagnoses: [] }))
 }));
 
-vi.mock('../../../controllers/receptionistController.js', () => ({
+vi.mock('../../../controllers/receptionistController.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+  ...actual,
   registerNewPatient: vi.fn((req, res) => res.status(201).json({ patient: {} })),
   getAllBedInfo: vi.fn((req, res) => res.status(200).json({ beds: [] })),
+  getAllBeds: vi.fn((req, res) => res.status(200).json({ rooms: [] })),
   assignBed: vi.fn((req, res) => res.status(200).json({ message: 'Bed assigned' })),
   dischargeBed: vi.fn((req, res) => res.status(200).json({ message: 'Bed discharged' })),
   getAllPatients: vi.fn((req, res) => res.status(200).json({ patients: [] })),
   addBill: vi.fn((req, res) => res.status(201).json({ bill: {} })),
   fetchPatientInsurance: vi.fn((req, res) => res.status(200).json({ insurance: {} }))
-}));
+}});
 
 // Mock middleware
 vi.mock('../../../middleware/authMiddleware.js', () => ({

@@ -21,6 +21,8 @@ const PatientDashboard = () => {
   const [policyEndDate, setPolicyEndDate] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
+  const [isImageUploading, setIsImageUploading] = useState(false);
+
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedDetails, setEditedDetails] = useState({
@@ -46,6 +48,7 @@ const PatientDashboard = () => {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setIsImageUploading(true); // start loading
     const formData = new FormData();
     formData.append("profile_pic", file);
     try {
@@ -61,6 +64,9 @@ const PatientDashboard = () => {
       setUser((prev) => ({ ...prev, profile_pic: newProfilePicUrl }));
     } catch (err) {
       console.error("Upload failed", err);
+    }
+    finally {
+      setIsImageUploading(false); // stop loading
     }
   };
 
@@ -171,15 +177,41 @@ const PatientDashboard = () => {
     <div className="patient-dashboard">
       {/* Profile Section */}
       <div className="profile-section">
-        <div className="profile-photo-container">
-          <div className="profile-photo">
-            {profilePhoto ? <img src={profilePhoto} alt="Profile" /> : <span className="text-gray-600">Profile Photo</span>}
-            <button className="edit-button absolute bottom-1 right-1" onClick={() => fileInputRef.current.click()}>
-              <Pencil />
-            </button>
-            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} />
-          </div>
+      <div
+        className={`relative w-40 h-40 rounded-full overflow-hidden border border-gray-300 transform transition-transform duration-300 ${
+          isImageUploading ? "cursor-not-allowed opacity-60" : "cursor-pointer group hover:scale-105"
+        }`}
+        onClick={() => {
+          if (!isImageUploading) fileInputRef.current.click();
+        }}
+      >
+
+      {isImageUploading ? (
+        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-600 text-sm">
+          Uploading...
         </div>
+      ) : profilePhoto ? (
+        <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-100">
+          Profile Photo
+        </div>
+      )}
+
+
+      {/* Hover overlay with label */}
+      <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center text-white text-sm font-medium">
+        Click to change
+      </div>
+
+      <input
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+    </div>
 
         <div className="patient-info">
           {isEditing ? (
