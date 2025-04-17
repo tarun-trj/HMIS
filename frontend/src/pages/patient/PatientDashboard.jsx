@@ -62,6 +62,7 @@ const PatientDashboard = () => {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setIsImageUploading(true);
     const formData = new FormData();
     formData.append("profile_pic", file);
     try {
@@ -77,6 +78,8 @@ const PatientDashboard = () => {
       setUser((prev) => ({ ...prev, profile_pic: newProfilePicUrl }));
     } catch (err) {
       console.error("Upload failed", err);
+    } finally {
+      setIsImageUploading(false);
     }
   };
 
