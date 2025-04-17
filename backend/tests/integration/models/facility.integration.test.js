@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import mongoose from 'mongoose';
+import mongoose, { syncIndexes } from 'mongoose';
 import { Ambulance, Bed, Room, DailyOccupancy } from '../../../models/facility.js';
 import { connectDB, disconnectDB } from '../../helpers/db.js';
 
@@ -52,6 +52,8 @@ describe('Facility Models - Integration', () => {
   it('should enforce unique dates for daily occupancy', async () => {
     const date = new Date('2025-04-17');
     await DailyOccupancy.create({ date });
+    syncIndexes();
+    syncIndexes();
     
     await expect(DailyOccupancy.create({ date }))
       .rejects.toThrow(/duplicate key/);
