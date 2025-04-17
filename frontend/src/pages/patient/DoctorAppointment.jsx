@@ -29,6 +29,7 @@ const DoctorAppointment = () => {
       try {
         setLoading(true);
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/patients/doctors/${doctorId}`);
+        console.log(response.data)
         setDoctor(response.data);
         setLoading(false);
       } catch (err) {
@@ -111,11 +112,12 @@ const DoctorAppointment = () => {
 
       const consultationData = {
         patient_id: patientId,
-        doctor_id: doctorId,
+        doctor_id: doctor.employee_id._id,
         booked_date_time: appointmentDateTime,
         reason: reason,
         appointment_type: appointmentType,
         created_by: 10126, // Assuming 10126 is the ID of a bot account for users self creating appointments
+        status:'requested'
       };
 
       await axios.post(`${import.meta.env.VITE_API_URL}/consultations/book`, consultationData);

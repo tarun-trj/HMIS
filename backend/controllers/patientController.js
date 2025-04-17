@@ -492,7 +492,7 @@ export const getPatientVitalById = async (req, res) => {
 export const getLatestPatientVital = async (req, res) => {
   try {
     const patientId = parseInt(req.params.patientId);
-    
+
     // Validate patient ID
     if (isNaN(patientId)) {
       return res.status(400).json({ 
@@ -503,8 +503,9 @@ export const getLatestPatientVital = async (req, res) => {
 
     // Find patient by ID
     const patient = await Patient.findById(patientId);
-    
+
     if (!patient) {
+
       return res.status(404).json({ 
         success: false, 
         message: 'Patient not found' 
@@ -512,7 +513,8 @@ export const getLatestPatientVital = async (req, res) => {
     }
 
     if (!patient.vitals || patient.vitals.length === 0) {
-      return res.status(404).json({ 
+
+      return res.status(200).json({ 
         success: false, 
         message: 'No vital records found for this patient' 
       });

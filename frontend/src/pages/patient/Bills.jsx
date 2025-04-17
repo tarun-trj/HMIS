@@ -531,7 +531,6 @@ const Bills = () => {
             ) : (
               <div className="text-center text-gray-500 py-8 bg-gray-100 rounded">
                 <p className="mb-4">No Bills Available</p>
-                <p className="text-sm">Create a new bill to get started</p>
               </div>
             )}
           </>

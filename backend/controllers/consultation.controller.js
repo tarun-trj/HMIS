@@ -118,7 +118,8 @@ export const bookConsultation = async (req, res) => {
       booked_date_time,
       reason,
       created_by, // This is employee._id (number)
-      appointment_type
+      appointment_type,
+      status
     } = req.body;
 
     // Validate booking date is not in the past
@@ -156,7 +157,7 @@ export const bookConsultation = async (req, res) => {
       reason,
       created_by: receptionist._id, // Use receptionist's MongoDB ObjectId
       appointment_type,
-      status: 'scheduled'
+      status: status
     });
 
     await appointmentEmail({
@@ -205,7 +206,7 @@ export const rescheduleConsultation = async (req, res) => {
     }
 
     consultation.booked_date_time = newBookingDate;
-    consultation.status = 'scheduled';
+    consultation.status = 'requested';
 
     await consultation.save();
 
@@ -492,7 +493,8 @@ export const updateConsultation = async (req, res) => {
       reason, 
       appointment_type, 
       updated_by,
-      status
+      status,
+      bill_id
     } = req.body;
 
     // Validate new booking date is not in the past if provided
@@ -521,7 +523,9 @@ export const updateConsultation = async (req, res) => {
     if (appointment_type) consultation.appointment_type = appointment_type;
     if (updated_by) consultation.updated_by = updated_by;
     if (status)consultation.status=status
+    if (bill_id)consultation.bill_id=bill_id
     await consultation.save();
+
     // Ensure status is always updated when date changes
      // Fetch patient details
      const patient = await Patient.findById(consultation.patient_id);
