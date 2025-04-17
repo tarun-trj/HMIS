@@ -5,10 +5,24 @@ import "../../styles/patient/PatientDashboard.css";
 import axios from 'axios';
 import { useAuth } from "../../context/AuthContext";
 
-const calculateAge = dob =>
-  new Date().getFullYear() -
-  new Date(dob).getFullYear() -
-  (new Date() < new Date(new Date(dob).setFullYear(new Date().getFullYear())) ? 1 : 0);
+const calculateAge = dob => {
+  const birth = new Date(dob);
+  const now = new Date();
+
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  const days = now.getDate() - birth.getDate();
+
+  if (days < 0) {
+    months--;
+  }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+
+  return `${years}Y ${months}M`;
+};
 
 const PatientDashboard = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -20,9 +34,8 @@ const PatientDashboard = () => {
   const [policyNumber, setPolicyNumber] = useState("");
   const [policyEndDate, setPolicyEndDate] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationMessage, setVerificationMessage] = useState("");
   const [isImageUploading, setIsImageUploading] = useState(false);
-
+  const [verificationMessage, setVerificationMessage] = useState("");
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedDetails, setEditedDetails] = useState({
@@ -30,11 +43,12 @@ const PatientDashboard = () => {
     bloodGrp: "",
     height: "",
     weight: "",
-    bedNo: "",
-    roomNo: "",
     phone_number: "",
     email: "",
     emergency_contact: "",
+    address: "",
+    date_of_birth: "",
+    aadhar_number: "",
     gender: ""
   });
 
@@ -48,7 +62,7 @@ const PatientDashboard = () => {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setIsImageUploading(true); // start loading
+    setIsImageUploading(true);
     const formData = new FormData();
     formData.append("profile_pic", file);
     try {
@@ -64,9 +78,8 @@ const PatientDashboard = () => {
       setUser((prev) => ({ ...prev, profile_pic: newProfilePicUrl }));
     } catch (err) {
       console.error("Upload failed", err);
-    }
-    finally {
-      setIsImageUploading(false); // stop loading
+    } finally {
+      setIsImageUploading(false);
     }
   };
 
@@ -76,15 +89,21 @@ const PatientDashboard = () => {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`);
         setPatientData(response.data);
         setProfilePhoto(response.data.profile_pic);
-        console.log(response.data);
         if (response.data) {
-          setEditedDetails({
-            name: response.data.name || '',
-            phone_number: response.data.phone_number || '',
-            email: response.data.email || '',
-            emergency_contact: response.data.emergency_contact || '',
-            address: response.data.address || '',
-          });
+          setEditedDetails(prev => ({
+            ...prev,
+            name: response.data.name || "",
+            phone_number: response.data.phone_number || "",
+            email: response.data.email || "",
+            emergency_contact: response.data.emergency_contact || "",
+            address: response.data.address || "",
+            gender: response.data.gender || "",
+            date_of_birth: response.data.date_of_birth || "",
+            aadhar_number: response.data.aadhar_number || "",
+            bloodGrp: response.data.patient_info.bloodGrp || "",
+            height: response.data.patient_info.height || "",
+            weight: response.data.patient_info.weight || "",
+          }));
         }
       } catch (error) {
         console.error('Failed to fetch patient data:', error);
@@ -177,41 +196,42 @@ const PatientDashboard = () => {
     <div className="patient-dashboard">
       {/* Profile Section */}
       <div className="profile-section">
-      <div
-        className={`relative w-40 h-40 rounded-full overflow-hidden border border-gray-300 transform transition-transform duration-300 ${
-          isImageUploading ? "cursor-not-allowed opacity-60" : "cursor-pointer group hover:scale-105"
-        }`}
-        onClick={() => {
-          if (!isImageUploading) fileInputRef.current.click();
-        }}
-      >
+        <div
+          className={`relative w-40 h-40 rounded-full overflow-hidden border border-gray-300 transform transition-transform duration-300 ${
+            isImageUploading ? "cursor-not-allowed opacity-60" : "cursor-pointer group hover:scale-105"
+          }`}
+          onClick={() => {
+            if (!isImageUploading) fileInputRef.current.click();
+          }}
+        >
 
-      {isImageUploading ? (
-        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-600 text-sm">
-          Uploading...
+        {isImageUploading ? (
+          <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-600 text-sm">
+            Uploading...
+          </div>
+        ) : profilePhoto ? (
+          <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-100">
+            Profile Photo
+          </div>
+        )}
+
+
+        {/* Hover overlay with label */}
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center text-white text-sm font-medium">
+          Click to change
         </div>
-      ) : profilePhoto ? (
-        <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-100">
-          Profile Photo
-        </div>
-      )}
 
-
-      {/* Hover overlay with label */}
-      <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center text-white text-sm font-medium">
-        Click to change
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
       </div>
 
-      <input
-        type="file"
-        accept="image/*"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        style={{ display: 'none' }}
-      />
-    </div>
 
         <div className="patient-info">
           {isEditing ? (
@@ -224,10 +244,6 @@ const PatientDashboard = () => {
                   onChange={(e) => setEditedDetails({ ...editedDetails, name: e.target.value })}
                   className="input-field"
                 />
-              </div>
-              <div className="input-group">
-                <label>Age:</label>
-                <span>{calculateAge(patientData.date_of_birth)}</span>
               </div>
               <div className="input-group">
                 <label>Blood Group:</label>
@@ -256,28 +272,14 @@ const PatientDashboard = () => {
                   className="input-field"
                 />
               </div>
-              <div className="input-group">
-                <label>Bed No:</label>
-                <input
-                  type="text"
-                  value={editedDetails.bedNo}
-                  onChange={(e) => setEditedDetails({ ...editedDetails, bedNo: e.target.value })}
-                  className="input-field"
-                />
-              </div>
-              <div className="input-group">
-                <label>Room No:</label>
-                <input
-                  type="text"
-                  value={editedDetails.roomNo}
-                  onChange={(e) => setEditedDetails({ ...editedDetails, roomNo: e.target.value })}
-                  className="input-field"
-                />
-              </div>
+              <button className="cancel-button bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600" onClick={() => setIsEditing(false)}>
+                Cancel
+              </button>
             </>
           ) : (
             <>
               <h1 className="mb-0 pb-0">{patientData.name}</h1>
+              <div className="patient-detail"><label>Patient ID:</label><span>{patientData._id}</span></div>
               <div className="patient-detail"><label>Age:</label><span>{calculateAge(patientData.date_of_birth)}</span></div>
               <div className="patient-detail"><label>Blood Group:</label><span>{patient_info.bloodGrp}</span></div>
               <div className="patient-detail"><label>Height:</label><span>{patient_info.height} cm</span></div>
@@ -355,17 +357,32 @@ const PatientDashboard = () => {
               {isEditing ? (
                 <>
                   <div className="input-group">
-                    <input
-                      type="text"
-                      value={(editedDetails.gender || '').toLowerCase()}
-                      onChange={(e) =>
-                        setEditedDetails({ ...editedDetails, gender: e.target.value.toLowerCase() })
-                      }
-                      placeholder="Gender"
-                      className="input-field"
-                    />
+                    <div className="input-group">
+                      <label>Gender:</label>
+                      <div className="radio-group">
+                        <label>
+                          <input
+                            type="radio"
+                            value="male"
+                            checked={editedDetails.gender === "male"}
+                            onChange={() => setEditedDetails({ ...editedDetails, gender: "male" })}
+                          />
+                          Male
+                        </label>
+                        <label>
+                          <input
+                            type="radio"
+                            value="female"
+                            checked={editedDetails.gender === "female"}
+                            onChange={() => setEditedDetails({ ...editedDetails, gender: "female" })}
+                          />
+                          Female
+                        </label>
+                      </div>
+                    </div>
                   </div>
                   <div className="input-group">
+                    <label>Date of Birth:</label>
                     <input
                       type="date"
                       value={editedDetails.date_of_birth || ''}
@@ -377,6 +394,7 @@ const PatientDashboard = () => {
                     />
                   </div>
                   <div className="input-group">
+                    <label>Aadhar Number:</label>
                     <input
                       type="text"
                       value={editedDetails.aadhar_number || ''}
