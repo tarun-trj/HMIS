@@ -63,6 +63,7 @@ const Sidebar = ({isSidebarOpen}) => {
       { path: "/admin/analytics", label: "Analytics", icon: <List size={20} /> },
       { path: "/admin/manage-payrolls", label: "Manage Payrolls", icon: <Briefcase size={20} /> },
       { path: "/admin/ambulance", label: "Manage Ambulance", icon: <Clipboard size={20} /> },
+      { path: "/admin/assistant", label: "Assistant", icon: <Clipboard size={20} /> },
     ],
   };
 

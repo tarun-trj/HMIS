@@ -1,6 +1,10 @@
 import { Consultation } from '../models/consultation.js';
 import Medicine from '../models/inventory.js';
+import { Prescription } from '../models/consultation.js';
 import Patient from '../models/patient.js';
+import BillModels from '../models/bill.js';
+const { Bill, BillItem} = BillModels;
+
 import { Doctor, Receptionist } from '../models/staff.js';
 import Employee from '../models/employee.js'; 
 import{appointmentEmail,updateAppointmentEmail} from "../config/sendMail.js";
@@ -228,17 +232,36 @@ export const fetchConsultationById = async (req, res) => {
     let consultation = await Consultation.findById(id)
       .populate("diagnosis")
       .populate({
-        path: "prescription",
+        path: 'prescription',
         populate: {
-          path: "entries.medicine_id",  // Accessing 'medicine_id' in 'entries'
-          model: "Medicine",  // Explicitly specifying the Medicine model to populate
-          select: "med_name"  // Select only the 'med_name' field from Medicine schema
+          path: 'entries.medicine_id',
+          model: 'Medicine',
+          select: 'med_name' // fetch only medicine name
         }
       })
-      .populate("reports")
-      .populate("bill_id")
-      .populate("created_by", "name role");
+      .populate({
+        path : 'reports',
+        model : 'Report',
+        select : 'status reportText title description createdBy createdAt updatedAt',
+      })
+      console.log(JSON.stringify(consultation.prescription, null, 2));
 
+
+      // Populate entries.medicine_id manually for each prescription
+      if (consultation && consultation.prescription) {
+        await Promise.all(
+          consultation.prescription.map(async (prescription) => {
+            await Prescription.populate(prescription, {
+              path: 'entries.medicine_id',
+              model: 'Medicine',
+              select: 'med_name'
+            });
+          })
+        );
+      }
+
+
+    // If consultation not found, return dummy data
     if (!consultation) {
       const dummy = {
         id: "dummy-id",
@@ -318,9 +341,13 @@ export const fetchBillByConsultationId = async (req, res) => {
     const consultation = await Consultation.findById(consultationId);
     let bill;
 
+    console.log(consultation);
+
     if (consultation && consultation.bill_id) {
       bill = await Bill.findById(consultation.bill_id);
+      console.log("Bill fetched:", bill);
     }
+
 
     // Use dummyBill if no valid bill found
     const isDummy = !bill;
@@ -338,6 +365,7 @@ export const fetchBillByConsultationId = async (req, res) => {
       id: sourceBill._id || consultationId,
       totalAmount: sourceBill.total_amount,
       paymentStatus: sourceBill.payment_status,
+      generation_date: sourceBill.generation_date,
       breakdown
     };
     // ==========================================================
@@ -357,11 +385,12 @@ export const fetchBillByConsultationId = async (req, res) => {
 export const fetchPrescriptionByConsultationId = async (req, res) => {
   try {
     console.log("Received request for prescription.");
-    const { consultationId: id } = req.params;
+    const { id } = req.params;
+    console.log("Received request for consultation" + id);
 
     const consultation = await Consultation.findById(id)
       .populate({
-        path: 'prescription',
+        path: 'prescription', 
         populate: {
           path: 'entries.medicine_id',
           model: 'Medicine',
@@ -421,8 +450,10 @@ export const fetchPrescriptionByConsultationId = async (req, res) => {
  */
 export const fetchDiagnosisByConsultationId = async (req, res) => {
   try {
-    const { id } = req.params;
-    console.log("Received request for consultation" + id);
+    const { consultationId } = req.params;
+    const id = consultationId ; 
+    console.log("Received request for consultation2" + id);
+
     const consultation = await Consultation.findById(id)
       .populate("doctor_id", "name")
       .populate("diagnosis");
