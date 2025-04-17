@@ -195,8 +195,11 @@ const PatientDashboard = () => {
         <div className="profile-photo-container">
           <div className="profile-photo">
             {profilePhoto ? <img src={profilePhoto} alt="Profile" /> : <span className="text-gray-600">Profile Photo</span>}
-            <button className="edit-button absolute bottom-1 right-1" onClick={() => fileInputRef.current.click()}>
-              <Pencil />
+            <button
+              className="edit-button-picture circular-btn absolute bottom-0 right-0"
+              onClick={() => fileInputRef.current.click()}
+            >
+              <Pencil size={16} />
             </button>
             <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} />
           </div>
@@ -326,17 +329,32 @@ const PatientDashboard = () => {
               {isEditing ? (
                 <>
                   <div className="input-group">
-                    <input
-                      type="text"
-                      value={(editedDetails.gender || '').toLowerCase()}
-                      onChange={(e) =>
-                        setEditedDetails({ ...editedDetails, gender: e.target.value.toLowerCase() })
-                      }
-                      placeholder="Gender"
-                      className="input-field"
-                    />
+                    <div className="input-group">
+                      <label>Gender:</label>
+                      <div className="radio-group">
+                        <label>
+                          <input
+                            type="radio"
+                            value="male"
+                            checked={editedDetails.gender === "male"}
+                            onChange={() => setEditedDetails({ ...editedDetails, gender: "male" })}
+                          />
+                          Male
+                        </label>
+                        <label>
+                          <input
+                            type="radio"
+                            value="female"
+                            checked={editedDetails.gender === "female"}
+                            onChange={() => setEditedDetails({ ...editedDetails, gender: "female" })}
+                          />
+                          Female
+                        </label>
+                      </div>
+                    </div>
                   </div>
                   <div className="input-group">
+                    <label>Date of Birth:</label>
                     <input
                       type="date"
                       value={editedDetails.date_of_birth || ''}
@@ -348,6 +366,7 @@ const PatientDashboard = () => {
                     />
                   </div>
                   <div className="input-group">
+                    <label>Aadhar Number:</label>
                     <input
                       type="text"
                       value={editedDetails.aadhar_number || ''}
