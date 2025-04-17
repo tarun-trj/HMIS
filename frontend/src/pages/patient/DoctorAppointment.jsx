@@ -41,10 +41,25 @@ const DoctorAppointment = () => {
   useEffect(() => {
     if (selectedDate) {
       // In a real app, you would fetch available times from the backend
-      // This is a placeholder generating times between 9 AM and 5 PM
+      // This is a placeholder generating times between 9 AM and 6 PM
       const times = [];
       const startHour = 9;
       const endHour = 17;
+      const now = new Date();
+      const isToday = new Date(selectedDate).toDateString() === now.toDateString();
+
+      for (let hour = startHour; hour < endHour; hour++) {
+        if(isToday && hour < now.getHours()) continue; // Skip past hours if today
+
+        if (!isToday || hour > now.getHours()){
+          times.push(`${hour}:00`);
+        }
+
+        if (!isToday || hour > now.getHours() || now.getMinutes() < 30) {
+          times.push(`${hour}:30`);
+        }
+
+      }
 
       for (let hour = startHour; hour < endHour; hour++) {
         times.push(`${hour}:00`);
@@ -143,7 +158,9 @@ const DoctorAppointment = () => {
             <p className="doctor-specialty">{doctor.specialization}</p>
             <div className="doctor-rating">
               <Star size={16} className="star-icon" />
-              <span>{doctor.rating}/5</span>
+
+              <span>{(Math.round(doctor.rating * 10) / 10).toFixed(1)}/5</span>
+
               <span className="rating-count">({doctor.num_ratings} ratings)</span>
             </div>
           </div>
@@ -222,6 +239,7 @@ const DoctorAppointment = () => {
 
           <div className="appointment-type-selector">
             <label htmlFor="appointment-type">Appointment Type:</label>
+            <div style={{ marginBottom: '10px' }}></div>
             <select
               id="appointment-type"
               value={appointmentType}
@@ -237,13 +255,15 @@ const DoctorAppointment = () => {
 
           <div className="reason-input">
             <label htmlFor="reason">Reason for Visit (Symptoms):</label>
+            <div style={{ marginBottom: '10px' }}></div>
             <textarea
               id="reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Please describe your symptoms or reason for the appointment"
-              rows={3}
+              rows={2} // Reduced vertical length
               className="reason-textarea"
+              style={{ width: '100%', resize: 'none' }} // Increased horizontal length
             />
           </div>
         </div>
