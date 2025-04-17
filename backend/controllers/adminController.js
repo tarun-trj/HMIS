@@ -437,6 +437,56 @@ export const addStaff = async (req, res) => {
     }
 };
 
+export const deleteStaff = async (req, res) => {
+    try {  
+        const { id } = req.params;
+        // console.log(id);
+        res.status(200).json({ message: 'Staff deleted successfully' });
+        // Find the employee by ID
+        const employee = await Employee.findById(id);
+
+        if (!employee) {
+            return res.status(404).json({ message: 'Employee not found' });
+        }
+
+        // Delete the employee record
+        await Employee.findByIdAndDelete(id);
+
+        // Delete associated role-specific record
+        switch (employee.role) {
+            case 'doctor':
+                await Doctor.findOneAndDelete({ employee_id: id });
+                break;
+            case 'nurse':
+                await Nurse.findOneAndDelete({ employee_id: id });
+                break;
+            case 'pharmacist':
+                await Pharmacist.findOneAndDelete({ employee_id: id });
+                break;
+            case 'receptionist':
+                await Receptionist.findOneAndDelete({ employee_id: id });
+                break;
+            case 'admin':
+                await Admin.findOneAndDelete({ employee_id: id });
+                break;
+            case 'pathologist':
+                await Pathologist.findOneAndDelete({ employee_id: id });
+                break;
+            case 'driver':
+                await Driver.findOneAndDelete({ employee_id: id });
+                break;
+            default:
+                break;
+        }
+
+        // Delete associated payroll record
+        await Payroll.findOneAndDelete({ employee_id: id });
+    } catch (error) {
+        console.error('Error deleting staff:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
 export const updateSalary = async (req, res) => {
     try {
         const { employee_id,  basic_salary, allowance, deduction, net_salary } = req.body;
