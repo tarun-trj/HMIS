@@ -290,6 +290,8 @@ export const rescheduleConsultation = async (req, res) => {
 
     // Check if newDateTime is in the past
     if (newDate <= now) {
+      console.log(newDate);
+      console.log(now);
       return res.status(400).json({
         success: false,
         error: "The new consultation time must be in the future.",

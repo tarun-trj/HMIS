@@ -165,10 +165,11 @@ const BookedConsultation = () => {
                   <button
                     onClick={() => handleCancel(consult.id)}
                     disabled={consult.status === "cancelled" || consult.status === "ongoing"}
-                    className={`px-4 py-2 rounded-md font-medium transition
-                      ${consult.status === "cancelled" || consult.status === "ongoing"
-                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                        : "bg-red-600 text-white hover:bg-red-700"}`}
+                    className={`px-4 py-2 rounded-md font-medium transition ${
+                      consult.status === "cancelled" || consult.status === "ongoing"
+                        ? "disabled cursor-not-allowed"
+                        : "cancel-active hover:bg-red-700"
+                    }`}
                     title={
                       consult.status === "cancelled"
                         ? "Already cancelled"
@@ -179,14 +180,20 @@ const BookedConsultation = () => {
                   >
                     Cancel
                   </button>
-
                   <button
                     onClick={() => handleReschedule(consult)}
-                    disabled={consult.status === "completed" || consult.status === "cancelled" || consult.status === "ongoing"}
-                    className={`px-4 py-2 rounded-md font-medium transition
-                      ${consult.status === "completed" || consult.status === "cancelled" || consult.status === "ongoing"
-                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                        : "bg-green-600 text-white hover:bg-green-700"}`}
+                    disabled={
+                      consult.status === "completed" ||
+                      consult.status === "cancelled" ||
+                      consult.status === "ongoing"
+                    }
+                    className={`px-4 py-2 rounded-md font-medium transition ${
+                      consult.status === "completed" ||
+                      consult.status === "cancelled" ||
+                      consult.status === "ongoing"
+                        ? "disabled cursor-not-allowed"
+                        : "reschedule-active hover:bg-green-700"
+                    }`}
                     title={
                       consult.status === "completed"
                         ? "Completed consultations cannot be rescheduled"
