@@ -7,7 +7,7 @@ const EmployeeForm = () => {
     email: '',
     profile_pic: '',
     role: '',
-    department_id: '',
+    dept_id: '',
     phone_number: '',
     emergency_phone: '',
     address: '',
@@ -155,7 +155,7 @@ const EmployeeForm = () => {
         email: '',
         profile_pic: '',
         role: '',
-        department_id: '',
+        dept_id: '',
         phone_number: '',
         emergency_phone: '',
         address: '',
@@ -439,8 +439,8 @@ const EmployeeForm = () => {
               <label htmlFor="department" className={labelStyles}>Department:</label>
               <select
                 id="department"
-                name="department_id"
-                value={formData.department_id}
+                name="dept_id"
+                value={formData.dept_id}
                 onChange={handleChange}
                 className={selectStyles}
                 required
