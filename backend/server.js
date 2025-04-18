@@ -7,7 +7,6 @@ import { fileURLToPath } from "url";
 import testRoutes from "./routes/testRoutes.js";
 import employeeRoutes from "./routes/employee.routes.js";
 import geminiRoutes from "./routes/gemini.routes.js";
-
 import patientRoutes from "./routes/patient.routes.js";
 import doctorRoutes from "./routes/doctor.routes.js";
 import nurseRoutes from "./routes/nurse.routes.js";
@@ -29,6 +28,7 @@ import consultationRoutes from "./routes/consultation.routes.js";
 import cron from "node-cron";
 import initializeDailyOccupancy from "./controllers/analytics.controller.js";
 import insuranceRoutes from "./routes/insurance.routes.js";
+import resetPayrollStatus from "./controllers/adminController.js";
 dotenv.config();
 const app = express();
 app.use(cookieParser()); // This enables req.cookies
@@ -73,6 +73,7 @@ cron.schedule("0 0 * * *", async () => {
   console.log("Running daily occupancy initializer at midnight...");
   await initializeDailyOccupancy();
 });
+cron.schedule('0 0 * * *', resetPayrollStatus);
 
 // Global hospital bank account
 global.hospitalBankAccount = {
@@ -108,7 +109,7 @@ app.use("/api/public-data", publicRoutes);
 app.use("/api/common", commonPageRoutes);
 app.use("/api/insurance", insuranceRoutes);
 app.use("/api/gemini", geminiRoutes);
-
+// Schedule the job to run daily at midnight
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
