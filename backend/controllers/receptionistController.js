@@ -249,15 +249,15 @@ export const assignBed = async (req, res) => {
     });
     await roomDoc.save();
 
-    // Log the assignment in BedLog
-    const log = new BedLog({
-        bed_id: bedId,
-        bed_type: bedType,
-        status: 'occupied',
-        patient_id: patientId,
-      });
+    // // Log the assignment in BedLog
+    // const log = new BedLog({
+    //     bed_id: bedId,
+    //     bed_type: bedType,
+    //     status: 'occupied',
+    //     patient_id: patientId,
+    //   });
   
-      await log.save();
+    //   await log.save();
 
       res.status(200).json({ message: 'Bed assigned and logged successfully ' });
     } catch (err) {
@@ -336,14 +336,14 @@ export const dischargeBed = async (req, res) => {
         await roomDoc.save();
 
         // Log the discharge in BedLog
-    const log = new BedLog({
-        bed_id: bedId,
-        bed_type: bedType,
-        status: 'vacated',
-        patient_id: patientId,
-      });
+    // const log = new BedLog({
+    //     bed_id: bedId,
+    //     bed_type: bedType,
+    //     status: 'vacated',
+    //     patient_id: patientId,
+    //   });
   
-      await log.save();
+    //   await log.save();
       res.status(200).json({ message: 'Bed discharged and logged successfully' });
     } catch (err) {
       console.error(err);
