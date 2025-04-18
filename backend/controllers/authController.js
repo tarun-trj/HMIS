@@ -6,8 +6,7 @@ import nodemailer from "nodemailer";
 import redisClient from "../config/redisClient.js";
 import Patient from "../models/patient.js";
 import Employee from "../models/employee.js";
-import LoginLog from '../models/LoginLog.js';
-
+import LoginLog from "../models/logs.js"
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -134,7 +133,7 @@ export const refreshToken = (req, res) => {
   }
 };
 
-export const logout = (req, res) => {
+export const logout = async(req, res) => {
 
   const { userId } = req.body; //need to pass this from frontend
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import axios from 'axios';
 
 const PatientRecords = () => {
   const [allPatients, setAllPatients] = useState([]);
@@ -10,26 +10,14 @@ const PatientRecords = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   
-  // Use the useAuth hook to access auth context
-  const { token, axiosInstance } = useAuth();
-  
   // Function to fetch patients from backend
   const fetchPatients = async () => {
     try {
       setLoading(true);
       
-      console.log("Using token from context:", token ? "Token exists" : "No token");
-      
-      if (!token) {
-        console.error("No authentication token found in context");
-        setError("Authentication required. Please log in.");
-        setLoading(false);
-        return;
-      }
-      
       // CORRECTED ENDPOINT: Using 'reception' instead of 'receptionist' based on server.js
       console.log("Fetching patients from corrected API endpoint...");
-      const response = await axiosInstance.get('reception/patients');
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/reception/patients`);
       
       console.log("API Response:", response.data);
       
@@ -116,11 +104,9 @@ const PatientRecords = () => {
   };
 
   useEffect(() => {
-    // Fetch patients when component mounts and when token changes
-    if (token) {
-      fetchPatients();
-    }
-  }, [token]); // Re-fetch when token changes
+    // Fetch patients when component mounts
+    fetchPatients();
+  }, []); // No dependencies needed
 
   return (
     <div className="p-6 bg-white h-full">
@@ -168,7 +154,7 @@ const PatientRecords = () => {
                 key={patient.id}
                 className="grid grid-cols-6 bg-gray-800 text-white mb-4 rounded-md overflow-hidden"
               >
-                <div className="p-4 text-center">{patient.id || '000'}</div>
+                <div className="p-4 text-center">{`P${patient.id?.toString().substring(0, 5) || '000'}`}</div>
                 <div className="p-4">{patient.name}</div>
                 <div className="p-4">{patient.contact}</div>
                 <div className="p-4">{patient.status}</div>

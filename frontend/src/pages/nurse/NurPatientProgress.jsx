@@ -73,9 +73,11 @@ const NurPatientProgress = () => {
 
         // Then fetch all vitals for this patient
         const vitalsResponse = await fetch(`http://localhost:5000/api/doctors/progress/${patientId}`);
+        console.log(vitalsResponse)
         if (!vitalsResponse.ok) {
           throw new Error('Failed to fetch vitals data');
         }
+
         
         const data = await vitalsResponse.json();
         
@@ -107,9 +109,9 @@ const NurPatientProgress = () => {
         <h2 className="text-xl font-bold">Daily Progress</h2>
         <button
           className="px-4 py-2 bg-gray-200 text-gray-800 font-medium rounded-md hover:bg-gray-300"
-          onClick={() => navigate(`/nurse/patients`)}
+          onClick={() => navigate(`/nurse/patient-records/${patientId}/consultations`)}
         >
-          Back to Patients
+          Back to Patient Consultations
         </button>
       </div>
 
