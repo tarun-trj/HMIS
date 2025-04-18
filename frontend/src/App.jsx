@@ -192,9 +192,9 @@ function App() {
             <Route path="/doctor" element={<DoctorDashboard />} />
             <Route path="/doctor/appointments" element={<Appointments />} />
             <Route path="/doctor/book-appointment" element={<DoctorAddAppointment />} /> 
-            <Route path="/patient-consultations/:patientId" element={<DocPatientConsultations />} />
-            <Route path="/patient-consultations/:patientId/consultation/:consultationId" element={<DocConsultationDetails />} />
-            <Route path="/patient-progress/:patientId" element={<DocDailyProgress />} />
+            <Route path="/doctor/patient-consultations/:patientId" element={<DocPatientConsultations />} />
+            <Route path="/doctor/patient-consultations/:patientId/consultation/:consultationId" element={<DocConsultationDetails />} />
+            <Route path="/doctor/patient-progress/:patientId" element={<DocDailyProgress />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["doctor","nurse"]} />}>
         
