@@ -12,7 +12,7 @@ const PatientConsultationDetails = () => {
     try {
       setLoading(true);
 
-      const response = await fetch(`http://localhost:5000/api/consultations/${consultationId}/view`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/consultations/${consultationId}/view`);
       const data = await response.json();
 
       const consultationData = data.consultation;

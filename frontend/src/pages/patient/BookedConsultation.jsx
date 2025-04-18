@@ -22,7 +22,7 @@ export const fetchConsultationsByPatientId = async (patientId, axiosInstance) =>
       ? data.filter((c) => {
         const consultDate = new Date(c.booked_date_time);
         const status = c.status;
-        return consultDate > now && status !== "cancelled";
+        return consultDate > now && status !== "cancelled" && status !== 'completed'; // cancelled or completed consultations should not show
       })
       : [];
       console.log("here")
