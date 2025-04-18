@@ -11,7 +11,6 @@ import cloudinary from "../config/cloudinary.js";
 export const getDoctorCalendar = async (req, res) => {
   try {
     const { doctorId, startDate, endDate,role } = req.query;
-    console.log(req.query);
     
     if (!doctorId) {
       return res.status(400).json({ message: "Doctor ID is required" });
@@ -39,6 +38,7 @@ export const getDoctorCalendar = async (req, res) => {
     // Find all consultations for this doctor
     const consultations = await Consultation.find({
       doctor_id: doctorId,
+      status: { $ne: 'requested' }, // Exclude consultations with "requested" status
       ...dateFilter
     })
       .populate('patient_id', 'name email phone_number')
