@@ -81,7 +81,8 @@ const PatientDashboard = () => {
       setProfilePhoto(newProfilePicUrl);
       setUser((prev) => ({ ...prev, profile_pic: newProfilePicUrl }));
     } catch (err) {
-      console.error("Upload failed", err);
+      setErrorMessage(`Upload Failed: ${err}`);
+      setShowErrorModal(true);
     } finally {
       if (!window._authFailed) setIsImageUploading(false); 
     }
@@ -110,7 +111,8 @@ const PatientDashboard = () => {
           }));
         }
       } catch (error) {
-        console.error('Failed to fetch patient data:', error);
+        setErrorMessage('Failed to fetch patient data:', error);
+        setShowErrorModal(true);
       }
     };
 
@@ -121,7 +123,8 @@ const PatientDashboard = () => {
         const response = await axiosInstance.get(`${import.meta.env.VITE_API_URL}/insurance/${patientId}/insurances`);
         setInsurances(response.data);
       } catch (error) {
-        console.error('Failed to fetch patient insurances:', error);
+        setErrorMessage(`Failed to fetch patient insurances: ${error}`);
+        setShowErrorModal(true);
         setInsurances([]);
       }
     };
@@ -137,7 +140,8 @@ const PatientDashboard = () => {
         const filtered = response.data.filter(ins => !patientInsuranceProviders.includes(ins.insurance_provider));
         setAvailableInsurances(filtered);
       } catch (error) {
-        console.error('Failed to fetch available insurances:', error);
+        setErrorMessage(`Failed to fetch available insurances: ${error}`)
+        setShowErrorModal(true);
         setAvailableInsurances([]);
       }
     };
@@ -165,32 +169,44 @@ const PatientDashboard = () => {
         setPolicyEndDate("");
       }
     } catch (error) {
-      console.error('Failed to verify insurance:', error);
+      setErrorMessage(`Failed to verify insurance: ${error}`);
+      setShowErrorModal(true);
       setVerificationMessage("Failed to verify insurance. Please try again.");
     } finally {
       if (!window._authFailed) setIsVerifying(false);
     }
   };
 
-  const handleEditToggle = () => {
+  const handleEditToggle = async () => {
     if (isEditing) {
-      axiosInstance.put(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`, editedDetails)
-        .then(() => {
-          setPatientData((prev) => ({
-            ...prev,
-            ...editedDetails,
-          }));
-          setIsEditing(false);
-          window.location.reload(); // This forces a full reload
-        })
-        .catch((err) => {
-          console.error("Update failed", err);
-          alert("Failed to update patient details.");
-        });
+      try {
+        const response = await axios.put(
+          `${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`,
+          editedDetails
+        );
+  
+        // Check if the response contains a message that indicates an error
+        if (response.data?.message && response.status !== 200) {
+          setErrorMessage(`Update failed: ${response.data.message}`);
+          setShowErrorModal(true);
+          return;
+        }
+  
+        setPatientData((prev) => ({
+          ...prev,
+          ...editedDetails,
+        }));
+  
+        setIsEditing(false);
+        window.location.reload(); // Optional: consider removing this to keep it SPA-friendly
+      } catch (err) {
+        setErrorMessage(err.response?.data?.message || "Failed to update patient details.");
+        setShowErrorModal(true);
+      }
     } else {
-      if (!window._authFailed) setIsEditing(true);
+      setIsEditing(true);
     }
-  };
+  };  
 
   if (!patientData) return <div className="text-center p-8">Loading...</div>;
 
