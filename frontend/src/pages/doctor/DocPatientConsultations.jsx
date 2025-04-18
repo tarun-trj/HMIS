@@ -34,11 +34,11 @@ const DocPatientConsultations = () => {
   }, [patientId]);
 
   const handleDailyProgressClick = () => {
-    navigate(`/patient-progress/${patientId}`);
+    navigate(`/doctor/patient-progress/${patientId}`);
   };
 
   const handleConsultationClick = (id) => {
-    navigate(`/patient-consultations/${patientId}/consultation/${id}`);
+    navigate(`/doctor/patient-consultations/${patientId}/consultation/${id}`);
   };
 
   const handleBackToAppointmentsClick = () => {
