@@ -14,7 +14,7 @@ const formatTimeSlot = (start) => {
 
 // GET /doctor/appointments
 export const fetchAppointments = async (req, res) => {
-  console.log("requested" ) ; 
+  console.log("requested");
 
   try {
     const doctorId = req.query.user;
@@ -32,14 +32,26 @@ export const fetchAppointments = async (req, res) => {
       return res.status(404).json({ message: "No appointments found" });
     }
 
-
     const appointments = consultations.map((c) => ({
       id: c._id,
       patientName: c.patient_id?.name || 'Unknown',
-      timeSlot: formatTimeSlot(c.booked_date_time),
-      patientId: c.patient_id?._id ,
-      isDone: c.status === 'completed'
+      patientId: c.patient_id?._id,
+      // Format date as YYYY-MM-DD
+      date: new Date(c.booked_date_time).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }),
+      // Format time as HH:MM AM/PM
+      time: new Date(c.booked_date_time).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      appointmentType: c.appointment_type || 'regular',
+      status: c.status
     }));
+    
     res.json(appointments);
   } catch (err) {
     console.error("Error in fetchAppointments:", err);
