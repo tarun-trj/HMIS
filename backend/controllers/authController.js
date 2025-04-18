@@ -108,7 +108,7 @@ export const login = async (req, res) => {
     // Only log login for employees 
     if (userType !== "patient") {
       const log = new LoginLog({
-        user_id: user.employee_id, 
+        user_id: user._id, 
         task: "login"
       });
       await log.save();
