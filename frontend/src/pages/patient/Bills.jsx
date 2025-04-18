@@ -32,8 +32,6 @@ const Bills = () => {
 
   const navigate = useNavigate();
   const patientId = localStorage.getItem("user_id");
-  console.log(2)
-  console.log(patientId);
 
   const formatINR = (amount) => {
     return amount.toFixed(2).toString();
