@@ -27,7 +27,8 @@ export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => 
     const pastConsultations = Array.isArray(data)
       ? data.filter((c) => {
           const consultDate = new Date(c.booked_date_time);
-          return consultDate < now;
+          const status = c.status;
+          return (consultDate < now && status !== 'cancelled') || status === "completed"; // completed consultations or past consultations
         })
       : [];
 
@@ -91,7 +92,8 @@ const PreviousConsultations = () => {
         date: consult.date,
         doctor: consult.doctor,
         location: consult.location,
-        details: consult.details
+        details: consult.details,
+        status: consult.status
       };
     }
 
@@ -101,7 +103,8 @@ const PreviousConsultations = () => {
       date: formatDate(consult.booked_date_time),
       doctor: consult.doctor?.name || 'Unknown Doctor',
       location: `Room ${consult.doctor?.room_num || 'N/A'}`,
-      details: consult.reason || consult.appointment_type || 'Consultation'
+      details: consult.reason || consult.appointment_type || 'Consultation',
+      status: consult.status || 'Error'
     };
   };
 
@@ -134,11 +137,12 @@ const PreviousConsultations = () => {
         <div className="max-w-5xl mx-auto">
           {/* Table header row */}
           <div className="mb-4 rounded-md bg-gray-900">
-            <div className="grid grid-cols-4 py-5 px-4 text-white">
+            <div className="grid grid-cols-5 py-5 px-4 text-white">
               <div className="text-center font-normal">Date</div>
               <div className="text-center font-normal">Doctor</div>
               <div className="text-center font-normal">Location</div>
               <div className="text-center font-normal">Details</div>
+              <div className="text-center font-normal">Status</div>
             </div>
           </div>
 
@@ -152,7 +156,7 @@ const PreviousConsultations = () => {
                   onClick={() => handleConsultationClick(formattedConsult.id)}
                   className="mb-4 rounded-md bg-gray-900 hover:bg-gray-800 cursor-pointer transition-colors duration-200"
                 >
-                  <div className="grid grid-cols-4 py-5 px-4 text-white items-center">
+                  <div className="grid grid-cols-5 py-5 px-4 text-white items-center">
                     <div className="text-center">{formattedConsult.date}</div>
 
                     {/* Doctor Info */}
@@ -172,6 +176,7 @@ const PreviousConsultations = () => {
 
                     <div className="text-center">{formattedConsult.location}</div>
                     <div className="text-center">{formattedConsult.details}</div>
+                    <div className="text-center">{formattedConsult.status}</div>
                   </div>
                 </div>
               );
