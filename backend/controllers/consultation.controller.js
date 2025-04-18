@@ -121,7 +121,6 @@ export const bookConsultation = async (req, res) => {
       appointment_type,
       status
     } = req.body;
-    console.log(doctor_id)
 
     // Validate booking date is not in the past
     const bookingDate = new Date(booked_date_time);
@@ -546,6 +545,95 @@ export const updateConsultation = async (req, res) => {
     res.json({
       message: 'Consultation updated successfully',
       consultation
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const fetchRequestedConsultations = async (req, res) => {
+  try {
+    const consultations = await Consultation.find({ status: "requested" })
+      .select('patient_id doctor_id appointment_type booked_date_time reason')
+      .populate({
+        path: 'patient_id',
+        select: 'name email'
+      })
+      .populate({
+        path: 'doctor_id',
+        select: '_id',
+        populate: {
+          path: 'employee_id',
+          select: 'name'
+        }
+      });
+
+    const formattedConsultations = consultations.map(consultation => ({
+      id: consultation._id,
+      patient_id: consultation.patient_id._id,
+      patient_name: consultation.patient_id.name,
+      patient_email: consultation.patient_id.email,
+      doctor_id: consultation.doctor_id._id,
+      doctor_name: consultation.doctor_id.employee_id.name,
+      appointment_type: consultation.appointment_type,
+      booked_date_time: consultation.booked_date_time,
+      reason: consultation.reason
+    }));
+
+    res.json(formattedConsultations);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateRequestStatus = async (req, res) => {
+  try {
+    const { consultationId } = req.params;
+    const { status } = req.body;
+
+    if (!['scheduled', 'cancelled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const consultation = await Consultation.findById(consultationId)
+      .select('patient_id doctor_id reason appointment_type booked_date_time status')
+      .populate('patient_id', 'name email')
+      .populate({
+        path: 'doctor_id',
+        select: '_id',
+        populate: {
+          path: 'employee_id',
+          select: 'name'
+        }
+      });
+
+    if (!consultation) {
+      return res.status(404).json({ message: 'Consultation not found' });
+    }
+
+    consultation.status = status;
+    await consultation.save();
+
+    if (status === 'scheduled') {
+      await appointmentEmail({
+        toEmail: consultation.patient_id.email,
+        patient_name: consultation.patient_id.name,
+        patient_id: consultation.patient_id._id,
+        doctor_id: consultation.doctor_id._id,
+        reason: consultation.reason,
+        appointment_type: consultation.appointment_type,
+        booked_date_time: consultation.booked_date_time
+      });
+    }
+
+    res.json({ 
+      message: `Consultation ${status} successfully`, 
+      consultation: {
+        id: consultation._id,
+        status: consultation.status,
+        patient_name: consultation.patient_id.name,
+        doctor_name: consultation.doctor_id.employee_id.name
+      }
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
