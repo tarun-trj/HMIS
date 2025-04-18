@@ -8,37 +8,37 @@ const PatientConsultationDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch consultation details
   const fetchConsultationDetails = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/consultations/${consultationId}`);
-      // const data = await response.json();
-      
-      // Mock data based on the schema - only including fields from the schema
-      const mockConsultation = {
-        consult_id: parseInt(consultationId),
-        patient_id: 1,
-        doctor_id: 3,
-        doctor_name: "Dr. Sarah Johnson", // Added for display purposes
-        patient_name: "John Doe", // Added for display purposes
-        booked_date_time: "2025-03-28T10:30:00",
-        status: "completed", // One of: scheduled, completed, cancelled
-        reason: "Annual checkup",
-        created_by: 2,
-        created_by_name: "Nurse Emily Clark", // Added for display purposes
-        created_at: "2025-03-20T08:15:00",
-        actual_start_datetime: "2025-03-28T10:35:00",
-        remark: "Patient is in good health. Blood pressure is normal at 120/80. Heart rate is 72 bpm.",
-        diagnosis: "Healthy, no concerns. Recommended standard blood work as preventative measure.",
-        bill_id: 1001,
-        prescription: true, // Boolean indicating if prescription exists
-        reports: true, // Boolean indicating if reports exist
-        recordedAt: "2025-03-28"
+  
+      const response = await fetch(`http://localhost:5000/api/consultations/${consultationId}/view`);
+      const data = await response.json();
+  
+      const consultationData = data.consultation;
+  
+      const formattedConsultation = {
+        consult_id: consultationData.id,
+        patient_id: null, // Not provided in the response
+        doctor_id: consultationData.doctor?.id,
+        doctor_name: consultationData.doctor?.name,
+        doctor_specialization: consultationData.doctor?.specialization,
+        doctor_profile_pic: consultationData.doctor?.profilePic,
+        patient_name: null, // Not provided in the response
+        booked_date_time: consultationData.date,
+        location: consultationData.location,
+        status: consultationData.status,
+        reason: consultationData.reason,
+        appointment_type: consultationData.appointment_type,
+        remark: consultationData.details,
+        diagnosis: consultationData.diagnosis?.map(d => d.name).join(", "),
+        prescription: consultationData.prescription?.length > 0,
+        reports: consultationData.reports?.length > 0,
+        reports_data: consultationData.reports,
+        feedback: consultationData.feedback,
       };
-      
-      setConsultation(mockConsultation);
+  
+      setConsultation(formattedConsultation);
       setLoading(false);
     } catch (error) {
       console.error("Failed to fetch consultation details:", error);
@@ -46,6 +46,7 @@ const PatientConsultationDetails = () => {
       setLoading(false);
     }
   };
+  
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -170,7 +171,7 @@ const PatientConsultationDetails = () => {
               <p className="font-medium">{consultation.reason}</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <h3 className="text-sm text-gray-500 mb-1">Created By</h3>
                 <p className="font-medium">{consultation.created_by_name}</p>
@@ -180,12 +181,12 @@ const PatientConsultationDetails = () => {
                 <h3 className="text-sm text-gray-500 mb-1">Created At</h3>
                 <p className="font-medium">{formatDate(consultation.created_at)}</p>
               </div>
-            </div>
+            </div> */}
             
-            <div className="mb-6">
+            {/* <div className="mb-6">
               <h3 className="text-sm text-gray-500 mb-1">Actual Start Time</h3>
               <p className="font-medium">{formatDate(consultation.actual_start_datetime)}</p>
-            </div>
+            </div> */}
             
             <div className="mb-6">
               <h3 className="text-sm text-gray-500 mb-1">Remark</h3>
@@ -198,10 +199,10 @@ const PatientConsultationDetails = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div>
+              {/* <div>
                 <h3 className="text-sm text-gray-500 mb-1">Bill ID</h3>
                 <p className="font-medium">{consultation.bill_id ? `B${consultation.bill_id.toString().padStart(3, '0')}` : 'N/A'}</p>
-              </div>
+              </div> */}
               
               <div>
                 <h3 className="text-sm text-gray-500 mb-1">Prescription</h3>
@@ -214,10 +215,10 @@ const PatientConsultationDetails = () => {
               </div>
             </div>
             
-            <div>
+            {/* <div>
               <h3 className="text-sm text-gray-500 mb-1">Recorded At</h3>
               <p className="font-medium">{formatDate(consultation.recordedAt)}</p>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
