@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const DocConsultationPrescriptions = ({ consultationId }) => {
-  const [doctorId, setDoctorId] = useState("10008"); // Replace with dynamic doctor ID
+  // const [doctorId, setDoctorId] = useState("10008"); // Replace with dynamic doctor ID
+  const doctorId = localStorage.getItem("role_id"); // Get the doctor ID from local storage
 
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -64,7 +65,7 @@ const DocConsultationPrescriptions = ({ consultationId }) => {
         },
       });
       setPrescription(response.data.consultation.prescription[0]);
-      return response.data.consultation.prescription[0].entries; // Assuming your backend sends the consultation in the response body
+      return response.data.consultation?.prescription[0]?.entries; // Assuming your backend sends the consultation in the response body
     } catch (error) {
       console.error("Error fetching consultation details:", error);
       return null; // Fallback: return null if there's an error
@@ -132,7 +133,7 @@ const DocConsultationPrescriptions = ({ consultationId }) => {
             </button>
           </div>
       
-          {entries.length > 0 ? (
+          {entries?.length > 0 ? (
             <div className="space-y-4 mt-4">
               {entries.map((entry, index) => (
                 <div key={index} className="border rounded p-4 bg-gray-50">

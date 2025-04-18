@@ -29,7 +29,7 @@ export const fetchAppointments = async (req, res) => {
     }).populate('patient_id', 'name').sort({ booked_date_time: 1 });
 
     if (!consultations.length) {
-      return res.status(404).json({ message: "No appointments found" });
+      return res.status(200).json({ message: "No appointments found" });
     }
 
     const appointments = consultations.map((c) => ({
@@ -62,7 +62,7 @@ export const fetchAppointments = async (req, res) => {
 // PUT /doctor/appointments
 export const updateAppointments = async (req, res) => {
   try {
-    const doctorId = req.user?.doctor_id;
+    const doctorId = req.query.user; 
     if (!doctorId) {
       return res.status(400).json({ error: "Doctor ID missing in token" });
     }
@@ -124,7 +124,7 @@ export const fetchPatientConsultations = async (req, res) => {
 
     
     if (!consultations.length) {
-      return res.status(404).json({ message: "No consultations found for this patient" });
+      return res.status(200).json({ message: "No consultations found for this patient" });
     }
     
     res.json(consultations);
@@ -139,8 +139,8 @@ export const fetchPatientConsultations = async (req, res) => {
 
 export const fetchPatientProgress = async (req, res) => {
   try {
-    // const doctor_id = req.user?.doctor_id;
-    const doctor_id = "10008" ; 
+    const doctor_id = req.user?.doctor_id;
+    // const doctor_id = "10008" ; 
     const { patientId } = req.params;
     
     if (!doctor_id) {
@@ -522,8 +522,8 @@ export const fetchAllDiagnoses = async (req, res) => {
 // Update all diagnoses for a consultation (replace with new one)
 export const updateAllDiagnosis = async (req, res) => {
   try {
-    // const doctor_id = req.user?.doctor_id;
-    const doctor_id = "10008"; 
+    const doctor_id = req.query.user;
+    // const doctor_id = "10008"; 
     const { consultationId } = req.params;
     const diagnosisList  = req.body; // Array of diagnosis strings
     const diagnosis = diagnosisList; 
@@ -590,8 +590,8 @@ export const updateAllDiagnosis = async (req, res) => {
 
 export const updateRemark = async (req, res) => {
   try {
-    // const doctor_id = req.user?.doctor_id;
-    const doctor_id = "10008";
+    const doctor_id = req.query.user; 
+    // const doctor_id = "10008";
     const { consultationId } = req.params;
     const remark = req.body.message;
     
