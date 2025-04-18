@@ -376,7 +376,14 @@ export const addPrescription = async (req, res) => {
       consultationId,
       { prescription: [savedPrescription._id] }, // replaces the whole array
       { new: true }
-    ).populate('prescription');
+    )  .populate({
+      path: 'prescription',
+      populate: {
+        path: 'entries.medicine_id',
+        model: 'Medicine',
+        select: 'med_name dosage duration',
+      },
+    });
     
     res.status(200).json({
       success: true,
