@@ -115,7 +115,17 @@ const RegisterPage = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-semibold mb-6">New User Registration</h2>
+      {/* Heading with gradient background */}
+      <div 
+        className="py-4 mb-6"
+        style={{ 
+          background: 'linear-gradient(90deg, #1F293A 0%, #294C87 100%)',
+          borderRadius: '16px',
+          padding: '20px'
+        }}
+      >
+        <h2 className="text-2xl font-semibold text-center text-white">New User Registration</h2>
+      </div>
 
       {message && (
         <div className={`mb-6 p-4 rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -376,7 +386,8 @@ const RegisterPage = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`px-6 py-2 bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+            className={`px-6 py-2 bg-[#3A7564] text-white font-medium rounded-md hover:bg-opacity-90 hover:transform hover:translate-y-[-2px] transition-all focus:outline-none focus:ring-2 focus:ring-[#3A7564] focus:ring-offset-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+            style={{ transition: 'all 0.3s ease' }}
           >
             {isSubmitting ? 'Submitting...' : 'Submit'}
           </button>
