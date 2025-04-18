@@ -443,7 +443,6 @@ export const deleteStaff = async (req, res) => {
     try {  
         const { id } = req.params;
         // console.log(id);
-        res.status(200).json({ message: 'Staff deleted successfully' });
         // Find the employee by ID
         const employee = await Employee.findById(id);
 
@@ -483,6 +482,7 @@ export const deleteStaff = async (req, res) => {
 
         // Delete associated payroll record
         await Payroll.findOneAndDelete({ employee_id: id });
+        res.status(200).json({ message: 'Staff deleted successfully' });
     } catch (error) {
         console.error('Error deleting staff:', error);
         res.status(500).json({ message: 'Internal server error.' });
