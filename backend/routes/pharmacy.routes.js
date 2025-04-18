@@ -1,9 +1,7 @@
 import express from 'express';
 import {
   searchPatientPrescriptions,
-  updatePrescriptionEntry,
-  deletePrescriptionEntry
-} from '../controllers/pharmacist.controller.js';
+  updatePrescriptionEntry} from '../controllers/pharmacist.controller.js';
 
 const router = express.Router();
 

@@ -19,7 +19,7 @@ const DocConsultationPrescriptions = ({ consultationId }) => {
 
     try {
       await axios.post(
-        `http://localhost:5000/api/doctors/updateConsultations/${consultationId}/addprescriptions`,
+        `${import.meta.env.VITE_API_URL}/doctors/updateConsultations/${consultationId}/addprescriptions`,
         updatedPrescription,
         {
           params: { doctor: doctorId },
@@ -49,7 +49,7 @@ const DocConsultationPrescriptions = ({ consultationId }) => {
   const fetchPrescriptionsByConsultationId = async (consultationId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/consultations/${consultationId}/view`,
+        `${import.meta.env.VITE_API_URL}/consultations/${consultationId}/view`,
         {
           headers: {
             "Content-Type": "application/json",

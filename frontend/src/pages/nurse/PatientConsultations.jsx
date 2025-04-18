@@ -20,7 +20,7 @@ const PatientConsultations = () => {
   const fetchPatientDetails = async () => {
     try {
       // TODO: Replace with actual API call
-      const response = await fetch(`http://localhost:5000/api/patients/profile/${patientId}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`);
       const data = await response.json();
       
       // Mock data for now
@@ -40,7 +40,7 @@ const PatientConsultations = () => {
   const fetchConsultations = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/patients/${patientId}/consultations`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/patients/${patientId}/consultations`);
       const data = await response.json();
   
       // Normalize consultations for display

@@ -16,7 +16,7 @@ const DocConsultationRemarksDiagnosis = ({ consultationId }) => {
   const fetchRemarksDiagnosisByConsultationId = async (consultationId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/consultations/${consultationId}/diagnosis`
+        `${import.meta.env.VITE_API_URL}/consultations/${consultationId}/diagnosis`
       );
       return response.data.consultation;
     } catch (error) {
@@ -28,7 +28,7 @@ const DocConsultationRemarksDiagnosis = ({ consultationId }) => {
   const fetchAllDiagnoses = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/doctors/consultations/fetchallDiagnoses`
+       `${import.meta.env.VITE_API_URL}/doctors/consultations/fetchallDiagnoses`
       );
       return response.data.data;
     } catch (error) {
@@ -69,7 +69,7 @@ const DocConsultationRemarksDiagnosis = ({ consultationId }) => {
     console.log(doctorId);
     try {
       await axios.put(
-        `http://localhost:5000/api/doctors/updateConsultations/${consultationId}/updatediagnosis`,
+        `${import.meta.env.VITE_API_URL}/doctors/updateConsultations/${consultationId}/updatediagnosis`,
         diagnosisList,
         {
           params: { user: doctorId },
@@ -85,7 +85,7 @@ const DocConsultationRemarksDiagnosis = ({ consultationId }) => {
     setEditingRemarks(false);
     try {
       await axios.put(
-        `http://localhost:5000/api/doctors/updateConsultations/${consultationId}/remark`,
+        `${import.meta.env.VITE_API_URL}/doctors/updateConsultations/${consultationId}/remark`,
         { message: remarksText },
         {
           params: { user: doctorId },

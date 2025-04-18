@@ -11,7 +11,7 @@ const DocPatientConsultations = () => {
   // Mock data fetching function
   const fetchConsultationsByPatientId = async (patientId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/doctors/consultations` ,  {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/doctors/consultations` ,  {
         params: { doctorId, patientId },
         headers: {
           'Content-Type': 'application/json',

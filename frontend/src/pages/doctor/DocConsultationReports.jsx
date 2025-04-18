@@ -17,7 +17,7 @@ const DocConsultationReports = ({ consultationId }) => {
   // Mock data fetching function
   const fetchReportsByConsultationId = async (consultationId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/consultations/${consultationId}/view`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/consultations/${consultationId}/view`, {
         // params: { id: consultationId }, // Pass query param here
         headers: {
           'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ const DocConsultationReports = ({ consultationId }) => {
       const doctorId = localStorage.getItem("role_id"); // Get the doctor ID from local storage
       
       const response = await axios.post(
-        `http://localhost:5000/api/doctors/updateConsultations/${consultationId}/addreports?doctor="${doctorId}"`,
+        `${import.meta.env.VITE_API_URL}/doctors/updateConsultations/${consultationId}/addreports?doctor="${doctorId}"`,
         reportData,
         {
           headers: {

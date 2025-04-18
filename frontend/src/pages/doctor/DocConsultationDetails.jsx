@@ -16,7 +16,7 @@ const DocConsultationDetails = () => {
   const fetchConsultationById = async (consultationId) => {
     // console.log(consultationId);
     try {
-      const response = await axios.get(`http://localhost:5000/api/consultations/${consultationId}/view`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/consultations/${consultationId}/view`, {
         headers: {
           'Content-Type': 'application/json',
         }

@@ -12,7 +12,7 @@ const Appointments = () => {
 
   const fetchAppointmentsByDoctorId = async (doctorId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/doctors/appointments`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/doctors/appointments`, {
         params: { user: doctorId },
         headers: {
           'Content-Type': 'application/json',
