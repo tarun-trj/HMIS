@@ -41,7 +41,7 @@ const DoctorAppointment = () => {
   useEffect(() => {
     if (selectedDate) {
       // In a real app, you would fetch available times from the backend
-      // This is a placeholder generating times between 9 AM and 6 PM
+      // This is a placeholder generating times between 9 AM and 5 PM
       const times = [];
       const startHour = 9;
       const endHour = 17;
@@ -59,11 +59,6 @@ const DoctorAppointment = () => {
           times.push(`${hour}:30`);
         }
 
-      }
-
-      for (let hour = startHour; hour < endHour; hour++) {
-        times.push(`${hour}:00`);
-        times.push(`${hour}:30`);
       }
 
       setAvailableTimes(times);
