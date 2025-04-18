@@ -10,6 +10,8 @@ import {
   faVolumeUp,
   faVolumeMute
 } from '@fortawesome/free-solid-svg-icons';
+import { useAuth } from "../../context/AuthContext";
+
 
 const Support = () => {
   const [chatHistory, setCharHistory] = useState([]);
@@ -20,6 +22,8 @@ const Support = () => {
   const [displayWelcome, setDisplayWelcome] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentlySpeakingMessageId, setCurrentlySpeakingMessageId] = useState(null);
+  const {axiosInstance } = useAuth();
+  
 
   const chatContainerRef = useRef(null);
   const speechRecognitionRef = useRef(null);
@@ -73,7 +77,28 @@ const Support = () => {
       stopSpeech();
     };
   }, []);
-
+  
+  const callGeminiAPI = async (message) => {
+    console.log('Sending message to backend API:', message);
+  
+    try {
+      const response = await axiosInstance.post(BACKEND_API_URL, { message }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      if (response.data.success && response.data.data) {
+        return response.data.data;  // Return the AI-generated text from the response
+      } else {
+        console.error('Unexpected API response format:', response.data);
+        return null;
+      }
+    } catch (error) {
+      console.error('API error:', error);
+      throw error;
+    }
+  };
   const handleSubmit = async (e) => {
     e?.preventDefault();
 
@@ -145,37 +170,6 @@ const Support = () => {
     return formattedText;
   };
 
-  const callGeminiAPI = async (message) => {
-    console.log('Sending message to backend API:', message);
-
-    try {
-      const response = await fetch(BACKEND_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Backend API error response:', errorData);
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        return data.data;  // Return the AI-generated text from the response
-      } else {
-        console.error('Unexpected API response format:', data);
-        return null;
-      }
-    } catch (error) {
-      console.error('API error:', error);
-      throw error;
-    }
-  };
 
   // Speech recognition functions
   const startVoiceRecording = () => {

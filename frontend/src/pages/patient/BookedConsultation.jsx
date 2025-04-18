@@ -24,6 +24,8 @@ export const fetchConsultationsByPatientId = async (patientId, axiosInstance) =>
         return consultDate > now;
       })
       : [];
+      console.log("here")
+      console.log(pastConsultations)
 
     // Transform the data to match the component's expected format
     const formattedConsultations = pastConsultations.map(consult => ({
@@ -46,24 +48,22 @@ export const fetchConsultationsByPatientId = async (patientId, axiosInstance) =>
 };
 
 
-export const deleteConsultationById = async (consultationId) => {
+export const deleteConsultationById = async (consultationId,axiosInstance) => {
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/patients/${consultationId}/cancel`, {
-      method: "DELETE",
-    });
+    const res = await axiosInstance.delete(`${import.meta.env.VITE_API_URL}/patients/${consultationId}/cancel`);
 
+    console.log(res.data);
 
-    const data = await res.json();
-    console.log(data)
-
-    if (!res.ok) {
-      throw new Error(data?.error || data?.message || "Failed to cancel consultation.");
-    }
-
-    return { success: true, message: data.message };
+    return { success: true, message: res.data.message };
   } catch (err) {
     console.error("Error deleting consultation:", err);
-    return { success: false, message: err.message || "Something went wrong" };
+    const errorMsg =
+      err.response?.data?.error ||
+      err.response?.data?.message ||
+      err.message ||
+      "Something went wrong";
+      
+    return { success: false, message: errorMsg };
   }
 };
 
@@ -87,9 +87,8 @@ const BookedConsultation = () => {
   useEffect(() => {
     const loadConsultations = async () => {
       const data = await fetchConsultationsByPatientId(patientId, axiosInstance);
-      if (window._authFailed) return; // Skip updating state if auth failed
       setConsultations(data);
-      setLoading(false);
+      if (!window._authFailed)setLoading(false);
     };
 
     loadConsultations();
@@ -116,7 +115,7 @@ const BookedConsultation = () => {
   const confirmCancel = async () => {
     if (cancelConsultationId) {
       try {
-        const result = await deleteConsultationById(cancelConsultationId);
+        const result = await deleteConsultationById(cancelConsultationId,axiosInstance);
 
         if (result.success) {
           setShowCancelModal(false);

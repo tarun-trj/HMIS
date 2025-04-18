@@ -10,8 +10,8 @@ import cloudinary from "../config/cloudinary.js";
 // Get consultations for doctor's calendar
 export const getDoctorCalendar = async (req, res) => {
   try {
-    const { doctorId, startDate, endDate } = req.query;
-    // console.log(req.query);
+    const { doctorId, startDate, endDate,role } = req.query;
+    console.log(req.query);
     
     if (!doctorId) {
       return res.status(400).json({ message: "Doctor ID is required" });
@@ -27,7 +27,15 @@ export const getDoctorCalendar = async (req, res) => {
         }
       };
     }
-    
+    let doctor_user;
+    if(role=="doctor"){
+      if (!doctor_user) {
+        return res.status(404).json({ message: "Doctor not found for this user" });
+      }
+      doctor_user = await Doctor.findOne({ employee_id: doctorId });
+      doctorId= doctor_user._id;
+    }
+  
     // Find all consultations for this doctor
     const consultations = await Consultation.find({
       doctor_id: doctorId,
