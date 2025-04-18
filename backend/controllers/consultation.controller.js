@@ -568,20 +568,43 @@ export const fetchRequestedConsultations = async (req, res) => {
         }
       });
 
-    const formattedConsultations = consultations.map(consultation => ({
-      id: consultation._id,
-      patient_id: consultation.patient_id._id,
-      patient_name: consultation.patient_id.name,
-      patient_email: consultation.patient_id.email,
-      doctor_id: consultation.doctor_id._id,
-      doctor_name: consultation.doctor_id.employee_id.name,
-      appointment_type: consultation.appointment_type,
-      booked_date_time: consultation.booked_date_time,
-      reason: consultation.reason
-    }));
+    const formattedConsultations = consultations.map(consultation => {
+      // Create a safe object with default values
+      const formattedConsultation = {
+        id: consultation._id || null,
+        appointment_type: consultation.appointment_type || null,
+        booked_date_time: consultation.booked_date_time || null,
+        reason: consultation.reason || null,
+        patient_id: null,
+        patient_name: null,
+        patient_email: null,
+        doctor_id: null,
+        doctor_name: null
+      };
+
+      // Safely access patient information
+      if (consultation.patient_id) {
+        formattedConsultation.patient_id = consultation.patient_id._id || null;
+        formattedConsultation.patient_name = consultation.patient_id.name || null;
+        formattedConsultation.patient_email = consultation.patient_id.email || null;
+      }
+
+      // Safely access doctor information
+      if (consultation.doctor_id) {
+        formattedConsultation.doctor_id = consultation.doctor_id._id || null;
+        
+        // Check if doctor has employee_id before accessing name
+        if (consultation.doctor_id.employee_id) {
+          formattedConsultation.doctor_name = consultation.doctor_id.employee_id.name || null;
+        }
+      }
+
+      return formattedConsultation;
+    });
 
     res.json(formattedConsultations);
   } catch (error) {
+    console.log(error.message);
     res.status(500).json({ error: error.message });
   }
 };
