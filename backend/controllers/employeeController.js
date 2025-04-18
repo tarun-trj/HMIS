@@ -6,14 +6,8 @@ export const sendAdmin = async (req, res) => {
     try {
       const { subject, message, email } = req.body;
   
-      console.log('Received request with:', { subject, message, email });
-        
       const adminEmailList = await Employee.find({ role: 'admin' }).select('email');
-
-      console.log('Admin emails found:', adminEmailList);
-  
       for (const admin of adminEmailList) {
-        console.log('Sending to:', admin.email);
         await sendMessage(subject, message, email, admin.email);
       }
   

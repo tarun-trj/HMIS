@@ -8,6 +8,9 @@ import {
   fetchDiagnosisByConsultationId,
   updateConsultation
 } from '../controllers/consultation.controller.js';
+import { authenticateUser } from '../middleware/authMiddleware.js';
+
+
 
 
 const router = express.Router();

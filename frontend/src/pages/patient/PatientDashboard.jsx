@@ -55,7 +55,7 @@ const PatientDashboard = () => {
 
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  const { setUser } = useAuth();
+  const { setUser,axiosInstance } = useAuth();
 
   const patientId = localStorage.getItem("user_id");
 
@@ -66,7 +66,7 @@ const PatientDashboard = () => {
     const formData = new FormData();
     formData.append("profile_pic", file);
     try {
-      const res = await axios.post(
+      const res = await axiosInstance.post(
         `${import.meta.env.VITE_API_URL}/patients/upload-photo/${patientId}`,
         formData,
         {
@@ -79,14 +79,14 @@ const PatientDashboard = () => {
     } catch (err) {
       console.error("Upload failed", err);
     } finally {
-      setIsImageUploading(false);
+      if (!window._authFailed) setIsImageUploading(false); 
     }
   };
 
   useEffect(() => {
     const fetchPatientData = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`);
+        const response = await axiosInstance.get(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`);
         setPatientData(response.data);
         setProfilePhoto(response.data.profile_pic);
         if (response.data) {
@@ -114,7 +114,7 @@ const PatientDashboard = () => {
 
     const fetchPatientInsurances = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/insurance/${patientId}/insurances`);
+        const response = await axiosInstance.get(`${import.meta.env.VITE_API_URL}/insurance/${patientId}/insurances`);
         setInsurances(response.data);
       } catch (error) {
         console.error('Failed to fetch patient insurances:', error);
@@ -128,7 +128,7 @@ const PatientDashboard = () => {
   useEffect(() => {
     const fetchAvailableInsurances = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/insurance/insurance-providers`);
+        const response = await axiosInstance.get(`${import.meta.env.VITE_API_URL}/insurance/insurance-providers`);
         const patientInsuranceProviders = insurances.map(ins => ins.insurance_provider);
         const filtered = response.data.filter(ins => !patientInsuranceProviders.includes(ins.insurance_provider));
         setAvailableInsurances(filtered);
@@ -147,7 +147,7 @@ const PatientDashboard = () => {
     setVerificationMessage("");
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/insurance/${patientId}/verify-insurance`, {
+      const response = await axiosInstance.post(`${import.meta.env.VITE_API_URL}/insurance/${patientId}/verify-insurance`, {
         insurance_provider: selectedInsurance,
         policy_number: policyNumber,
         policy_end_date: policyEndDate
@@ -164,13 +164,13 @@ const PatientDashboard = () => {
       console.error('Failed to verify insurance:', error);
       setVerificationMessage("Failed to verify insurance. Please try again.");
     } finally {
-      setIsVerifying(false);
+      if (!window._authFailed) setIsVerifying(false);
     }
   };
 
   const handleEditToggle = () => {
     if (isEditing) {
-      axios.put(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`, editedDetails)
+      axiosInstance.put(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`, editedDetails)
         .then(() => {
           setPatientData((prev) => ({
             ...prev,
@@ -184,7 +184,7 @@ const PatientDashboard = () => {
           alert("Failed to update patient details.");
         });
     } else {
-      setIsEditing(true);
+      if (!window._authFailed) setIsEditing(true);
     }
   };
 
