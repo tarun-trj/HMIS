@@ -5,7 +5,9 @@ import axios from 'axios';
 const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
-  const doctorId = "10008"; // Replace with dynamic doctor ID
+  // const doctorId = "10008"; // Replace with dynamic doctor ID
+  const doctorId = localStorage.getItem("role_id"); // Get the doctor ID from local storage
+  console.log("doctorId  " ,  doctorId); 
   const navigate = useNavigate();
 
   const fetchAppointmentsByDoctorId = async (doctorId) => {
