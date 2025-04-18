@@ -84,7 +84,7 @@ const DocDailyProgress = () => {
   }, [patientId]);
 
   const handleBackClick = () => {
-    navigate(`/patient-consultations/${patientId}`);
+    navigate(`/doctor/patient-consultations/${patientId}`);
   };
 
   return (

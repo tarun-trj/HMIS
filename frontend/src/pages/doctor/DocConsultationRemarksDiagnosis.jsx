@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+const doctorId = localStorage.getItem("role_id"); // Get the doctor ID from local storage
 
 const DocConsultationRemarksDiagnosis = ({ consultationId }) => {
   const [remarksDiagnosis, setRemarksDiagnosis] = useState(null);
@@ -11,7 +12,7 @@ const DocConsultationRemarksDiagnosis = ({ consultationId }) => {
   const [allDiagnoses, setAllDiagnoses] = useState([]);
   const [selectedDiagnosis, setSelectedDiagnosis] = useState("");
   const [newDiagnosis, setNewDiagnosis] = useState("");
-
+  console.log("consultationId", consultationId); // Log the consultationId
   const fetchRemarksDiagnosisByConsultationId = async (consultationId) => {
     try {
       const response = await axios.get(
@@ -65,11 +66,13 @@ const DocConsultationRemarksDiagnosis = ({ consultationId }) => {
 
   const handleSaveDiagnosis = async () => {
     setEditingDiagnosis(false);
+    console.log(doctorId);
     try {
       await axios.put(
         `http://localhost:5000/api/doctors/updateConsultations/${consultationId}/updatediagnosis`,
         diagnosisList,
         {
+          params: { user: doctorId },
           headers: { "Content-Type": "application/json" },
         }
       );
@@ -85,6 +88,7 @@ const DocConsultationRemarksDiagnosis = ({ consultationId }) => {
         `http://localhost:5000/api/doctors/updateConsultations/${consultationId}/remark`,
         { message: remarksText },
         {
+          params: { user: doctorId },
           headers: { "Content-Type": "application/json" },
         }
       );
@@ -245,7 +249,7 @@ const DocConsultationRemarksDiagnosis = ({ consultationId }) => {
               </div>
             ) : (
               <p className="text-gray-700">
-                {remarksDiagnosis.remark || "No remarks recorded"}
+                {remarksText || "No remarks recorded"}
               </p>
             )}
           </div>
