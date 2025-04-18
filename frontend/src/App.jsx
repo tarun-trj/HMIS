@@ -96,6 +96,7 @@ import AddBill from "./pages/receptionist/AddBill";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import DoctorAppointment from "./pages/patient/DoctorAppointment";
+import RequestedAppointments from "./pages/receptionist/RequestedAppointments";
 
 
 
@@ -223,7 +224,7 @@ function App() {
             <Route path="/pathologist/add-report" element={<AddReport />} />
           </Route>
 
-          {/* Reception & Admin Routes */}
+          {/* Reception Routes */}
           <Route element={<ProtectedRoute allowedRoles={["receptionist"]} />}>
             <Route path="/receptionist" element={<ReceptionistDashboard />} />
             <Route path="/receptionist/appointment-booking" element={<AppointmentBooking />} />
@@ -233,6 +234,7 @@ function App() {
             <Route path="/receptionist/registration" element={<Registration />} />
             <Route path="/receptionist/update-appointment" element={<AppointmentUpdate />} />
             <Route path="/receptionist/add-bill" element={<AddBill />} />
+            <Route path="/receptionist/requested-appointments" element={<RequestedAppointments />} />
 
 
           </Route>
