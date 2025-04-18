@@ -1,13 +1,13 @@
-import mongoose from "mongoose";
-import { Consultation, Prescription } from "../models/consultation.js";
-import Medicine from "../models/inventory.js";
+import mongoose from 'mongoose';
+import { Consultation, Prescription } from '../models/consultation.js';
+import Medicine from '../models/inventory.js';
 
 // Safe import for Patient to avoid duplicate model registration error
 let Patient;
 try {
-  Patient = mongoose.model("Patient");
+  Patient = mongoose.model('Patient');
 } catch (e) {
-  Patient = await import("../models/patient.js").then((mod) => mod.default);
+  Patient = await import('../models/patient.js').then(mod => mod.default);
 }
 
 // 1. SEARCH & OPTIONAL DISPENSING
@@ -31,8 +31,7 @@ export const searchPatientPrescriptions = async (req, res) => {
       return res.status(404).json({ message: "Patient not found." });
     }
 
-    const consultation = await Consultation.findOne({ patient_id: searchById })
-      .sort({ actual_start_datetime: -1 });
+    const consultation = await Consultation.findOne({ patient_id: searchById }).sort({ actual_start_datetime: -1 });
 
     if (!consultation || !consultation.prescription || consultation.prescription.length === 0) {
       return res.status(404).json({ message: "No consultations or prescriptions found for this patient." });
@@ -53,7 +52,9 @@ export const searchPatientPrescriptions = async (req, res) => {
         const med = entry.medicine_id;
         if (!med) continue;
 
-        let validBatches = med.inventory.filter(batch => new Date(batch.expiry_date) > now && batch.quantity > 0);
+        let validBatches = med.inventory.filter(batch =>
+          new Date(batch.expiry_date) > now && batch.quantity > 0
+        );
         let requiredQty = entry.quantity - entry.dispensed_qty;
         let originalQty = requiredQty;
 
@@ -138,11 +139,11 @@ export const searchPatientPrescriptions = async (req, res) => {
   }
 };
 
-// 2. EDIT PRESCRIPTION ENTRY
+// 2. UPDATE ONLY DISPENSED QTY (RESTRICT PHARMACIST EDITS)
 export const updatePrescriptionEntry = async (req, res) => {
   try {
     const { prescriptionId, entryId } = req.params;
-    const { dosage, frequency, duration, quantity } = req.body;
+    const { dispensed_qty } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(prescriptionId) || !mongoose.Types.ObjectId.isValid(entryId)) {
       return res.status(400).json({ message: "Invalid prescription or entry ID." });
@@ -158,47 +159,22 @@ export const updatePrescriptionEntry = async (req, res) => {
       return res.status(404).json({ message: "Prescription entry not found." });
     }
 
-    if (dosage !== undefined) entry.dosage = dosage;
-    if (frequency !== undefined) entry.frequency = frequency;
-    if (duration !== undefined) entry.duration = duration;
-    if (quantity !== undefined) entry.quantity = quantity;
+    if (dispensed_qty === undefined || dispensed_qty < 0) {
+      return res.status(400).json({ message: "Valid dispensed quantity is required." });
+    }
 
+    // Prevent exceeding prescribed quantity
+    if (dispensed_qty > entry.quantity) {
+      return res.status(400).json({ message: "Dispensed quantity cannot exceed prescribed quantity." });
+    }
+
+    entry.dispensed_qty = dispensed_qty;
     prescription.markModified("entries");
     await prescription.save();
 
-    res.status(200).json({ message: "Prescription entry updated successfully." });
+    res.status(200).json({ message: "Dispensed quantity updated successfully." });
   } catch (error) {
     console.error("Error in updatePrescriptionEntry:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// 3. DELETE PRESCRIPTION ENTRY
-export const deletePrescriptionEntry = async (req, res) => {
-  try {
-    const { prescriptionId, entryId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(prescriptionId) || !mongoose.Types.ObjectId.isValid(entryId)) {
-      return res.status(400).json({ message: "Invalid prescription or entry ID." });
-    }
-
-    const prescription = await Prescription.findById(prescriptionId);
-    if (!prescription) {
-      return res.status(404).json({ message: "Prescription not found." });
-    }
-
-    const entry = prescription.entries.id(entryId);
-    if (!entry) {
-      return res.status(404).json({ message: "Prescription entry not found." });
-    }
-
-    entry.remove();
-    prescription.markModified("entries");
-    await prescription.save();
-
-    res.status(200).json({ message: "Prescription entry deleted successfully." });
-  } catch (error) {
-    console.error("Error in deletePrescriptionEntry:", error);
     res.status(500).json({ message: error.message });
   }
 };

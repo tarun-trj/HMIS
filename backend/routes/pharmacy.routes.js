@@ -9,6 +9,5 @@ const router = express.Router();
 
 router.get('/prescriptions/search', searchPatientPrescriptions);
 router.put('/prescription/:prescriptionId/entry/:entryId', updatePrescriptionEntry);
-router.delete('/prescription/:prescriptionId/entry/:entryId', deletePrescriptionEntry);
 
 export default router;
