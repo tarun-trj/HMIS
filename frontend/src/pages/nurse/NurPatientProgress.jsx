@@ -27,11 +27,11 @@ const NurPatientProgress = () => {
       setLoading(true);
       try {
         // Fetch patient details first
-        const patientResponse = await axios.get(`http://localhost:5000/api/patients/profile/${patientId}`);
+        const patientResponse = await axios.get(`${import.meta.env.VITE_API_URL}/patients/profile/${patientId}`);
         setPatient(patientResponse.data);
 
         // Then fetch all vitals for this patient
-        const vitalsResponse = await axios.get(`http://localhost:5000/api/doctors/progress/${patientId}`);
+        const vitalsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/doctors/progress/${patientId}`);
         console.log(vitalsResponse);
         
         // Format the data for display
@@ -72,7 +72,7 @@ const NurPatientProgress = () => {
     
     try {
       const response = await axios.post(
-        `http://localhost:5000/api/nurses/patients/${patientId}/vitals`, 
+        `${import.meta.env.VITE_API_URL}/nurses/patients/${patientId}/vitals`, 
         vitalsData
       );
       
