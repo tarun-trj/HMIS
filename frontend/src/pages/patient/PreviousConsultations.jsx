@@ -2,36 +2,33 @@ import React, { useState, useEffect } from "react";
 import { Home } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns"; // You may need to install this package
+import { useAuth } from "../../context/AuthContext";
+
 
 /**
  * @desc    Fetch all consultations for a patient
  * @param   {String|Number} patientId - The ID of the patient
  * @returns {Array} - List of consultations before current datetime
  */
-export const fetchConsultationsByPatientId = async (patientId) => {
+export const fetchConsultationsByPatientId = async (patientId,axiosInstance) => {
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/patients/${patientId}/consultations`);
-    const data = await res.json();
-    console.log(data)
-    if (!res.ok) {
-      throw new Error("Failed to fetch consultations");
-    }
+    const response = await axiosInstance.get(`${import.meta.env.VITE_API_URL}/patients/${patientId}/consultations`);
+    const data = response.data;
+    console.log(data);
 
     // Check if we received dummy data or actual consultations
     if (data.dummy) {
       return data.consultations; // Return the dummy data as is
     }
 
-    // Handle actual data
-    // Get current date to compare
     const now = new Date();
 
     // Filter only past consultations
     const pastConsultations = Array.isArray(data)
       ? data.filter((c) => {
-        const consultDate = new Date(c.booked_date_time);
-        return consultDate < now;
-      })
+          const consultDate = new Date(c.booked_date_time);
+          return consultDate < now;
+        })
       : [];
 
     return pastConsultations;
@@ -47,6 +44,8 @@ const PreviousConsultations = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const patientId = localStorage.getItem("user_id");
+  const { axiosInstance } = useAuth();
+  
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -61,13 +60,19 @@ const PreviousConsultations = () => {
   // Load all consultations once
   useEffect(() => {
     const loadConsultations = async () => {
-      setLoading(true);
-      const data = await fetchConsultationsByPatientId(patientId);
-      setConsultations(data);
-      setLoading(false);
+      try {
+        setLoading(true);
+        const data = await fetchConsultationsByPatientId(patientId, axiosInstance);
+        setConsultations(data);
+      } catch (error) {
+        console.error("Failed to load consultations:", error);
+      } finally {
+        if (!window._authFailed) setLoading(false);
+      }
     };
     loadConsultations();
   }, [patientId]);
+  
 
   const handleConsultationClick = (id) => {
     navigate(`/patient/previous-consultations/${id}`);
@@ -121,7 +126,7 @@ const PreviousConsultations = () => {
   return (
     <div className="book-consultation">
       <header className="consultations-header">
-        <h2>Booked Consultations</h2>
+        <h2>Previous Consultations</h2>
         <Home className="home-icon cursor-pointer" onClick={() => navigate("/patient/profile")}/>
       </header>
       {!id ? (

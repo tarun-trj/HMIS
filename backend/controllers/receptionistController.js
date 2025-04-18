@@ -206,7 +206,7 @@ export const assignBed = async (req, res) => {
           return res.status(404).json({ error: 'Patient not found' });
         }
     
-        const nurse = await Employee.findOne({ _id: nurseId, role: 'nurse' });
+        const nurse = await Nurse.findById(nurseId);
         if (!nurse) {
           return res.status(404).json({ error: 'Nurse not found ' });
         }
@@ -218,7 +218,7 @@ export const assignBed = async (req, res) => {
       bed.status = 'occupied';
       bed.patient_id =patientId;
       bed.nurse_id = nurseId;
-
+      const nurse_employee = await Employee.findOne({ _id:nurse.employee_id, role: 'nurse' });
      
       await sendAssignmentEmail({
         toEmail: patient.email,
@@ -229,8 +229,8 @@ export const assignBed = async (req, res) => {
         id:patientId
     });
     await sendAssignmentEmail({
-        toEmail: nurse.email,
-        name: nurse.name,
+        toEmail: nurse_employee.email,
+        name: nurse_employee.name,
         bedNo:bed.bed_number,
         roomNumber: roomDoc.room_number,
         role: "Nurse",
@@ -243,7 +243,7 @@ export const assignBed = async (req, res) => {
         'patient_info.bedNo': bed.bed_number,
         'patient_info.roomNo': roomDoc.room_number
     });
-    await Nurse.findOneAndUpdate({ employee_id: nurseId }, {
+    await Nurse.findByIdAndUpdate(nurseId, {
         assigned_bed: bed._id,
         assigned_room: roomDoc._id
     });
@@ -272,7 +272,7 @@ export const dischargeBed = async (req, res) => {
             return res.status(404).json({ error: 'Patient not found' });
         }
 
-        const nurse = await Employee.findOne({ _id: nurseId, role: 'nurse' });
+        const nurse = await Nurse.findById(nurseId);
         if (!nurse) {
             return res.status(404).json({ error: 'Nurse not found' });
         }
@@ -285,6 +285,7 @@ export const dischargeBed = async (req, res) => {
       bed.status = 'vacant';
       bed.patient_id = null;
       bed.nurse_id = null;
+      const nurse_employee = await Employee.findOne({ _id:nurse.employee_id, role: 'nurse' });
 
       await sendDischargeEmail({
         toEmail: patient.email,
@@ -296,8 +297,8 @@ export const dischargeBed = async (req, res) => {
       });
   
       await sendDischargeEmail({
-        toEmail: nurse.email,
-        name: nurse.name,
+        toEmail: nurse_employee.email,
+        name: nurse_employee.name,
         bedNo:bed.bed_number,
         roomNumber: roomDoc.room_number,
         role: "Nurse",
@@ -315,9 +316,7 @@ export const dischargeBed = async (req, res) => {
             }
         });
         
-        
-       
-        await Nurse.findOneAndUpdate({ employee_id: nurseId }, {
+        await Nurse.findByIdAndUpdate(nurseId, {
             $unset: {
                 assigned_bed: '',
                 assigned_room: ''

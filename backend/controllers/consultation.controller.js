@@ -121,6 +121,7 @@ export const bookConsultation = async (req, res) => {
       appointment_type,
       status
     } = req.body;
+    console.log(doctor_id)
 
     // Validate booking date is not in the past
     const bookingDate = new Date(booked_date_time);
@@ -137,10 +138,9 @@ export const bookConsultation = async (req, res) => {
     // Check if patient exists
     const patient = await Patient.findById(patient_id);
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
-
-    const doctor = await Doctor.findOne({ employee_id: doctor_id });
+    const doctor = await Doctor.findById(doctor_id);
     if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found for the given employee ID' });
+      return res.status(404).json({ message: 'Doctor not found for the given ID' });
     }
 
     // Find receptionist document by employee_id
