@@ -37,6 +37,10 @@ const PatientDashboard = () => {
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
 
+  // Modal states
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const [isEditing, setIsEditing] = useState(false);
   const [editedDetails, setEditedDetails] = useState({
     name: "",
@@ -525,6 +529,22 @@ const PatientDashboard = () => {
           </form>
         </div>
       </div>
+      
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Error</h3>
+            <p>{errorMessage}</p>
+            <div className="modal-actions">
+              <button className="confirm-modal-btn" onClick={() => setShowErrorModal(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+        
+      )}
     </div>
   );
 };
