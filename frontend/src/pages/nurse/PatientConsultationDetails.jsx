@@ -33,7 +33,7 @@ const PatientConsultationDetails = () => {
         remark: consultationData.details,
         diagnosis: consultationData.diagnosis?.map(d => d.name).join(", "),
         prescription: consultationData.prescription || [],
-        reports: consultationData.reports?.length > 0,
+        reports: consultationData.prescription?.length > 0,
         reports_data: consultationData.reports,
         feedback: consultationData.feedback,
       };
@@ -239,9 +239,45 @@ const PatientConsultationDetails = () => {
               </div>
             </div>
             <div className="bg-white rounded-lg shadow-md p-4 mt-6">
-              <h3 className="text-sm text-gray-500 mb-1">Reports</h3>
-              <p className="font-medium">{consultation.reports ? 'Yes' : 'No'}</p>
+              <h3 className="text-sm text-gray-500 mb-2">Reports</h3>
+              {Array.isArray(consultation.reports_data) && consultation.reports_data.length > 0 ? (
+                <ul className="space-y-4">
+                  {consultation.reports_data.map((report) => (
+                    <li key={report._id} className="border border-gray-200 p-3 rounded">
+                      <p className="font-semibold text-gray-800">{report.title}</p>
+                      <p className="text-gray-700 text-sm mt-1">{report.reportText}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-700">No reports available.</p>
+              )}
             </div>
+            {consultation.feedback && (
+              <div className="bg-white rounded-lg shadow-md p-4 mt-6">
+                <h3 className="text-sm text-gray-500 mb-2">Feedback</h3>
+
+                {/* Stars */}
+                <div className="flex items-center mb-2">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <svg
+                      key={index}
+                      className={`w-5 h-5 ${index < consultation.feedback.rating ? 'text-yellow-400' : 'text-gray-300'
+                        }`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.945a1 1 0 00.95.69h4.15c.969 0 1.371 1.24.588 1.81l-3.36 2.444a1 1 0 00-.364 1.118l1.287 3.944c.3.922-.755 1.688-1.538 1.118l-3.36-2.444a1 1 0 00-1.175 0l-3.36 2.444c-.783.57-1.838-.196-1.538-1.118l1.287-3.944a1 1 0 00-.364-1.118L2.075 9.372c-.783-.57-.38-1.81.588-1.81h4.15a1 1 0 00.95-.69l1.286-3.945z" />
+                    </svg>
+                  ))}
+                </div>
+
+                {/* Comment */}
+                <p className="text-gray-700 text-sm">{consultation.feedback.comments}</p>
+              </div>
+            )}
+
+
             {/* <div>
               <h3 className="text-sm text-gray-500 mb-1">Recorded At</h3>
               <p className="font-medium">{formatDate(consultation.recordedAt)}</p>
