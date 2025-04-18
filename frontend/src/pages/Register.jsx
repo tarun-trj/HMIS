@@ -160,6 +160,7 @@ const RegisterPage = () => {
                 name="dob"
                 value={formData.dob}
                 onChange={handleChange}
+                max={new Date().toISOString().split("T")[0]} // today or earlier
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
               />
@@ -197,6 +198,7 @@ const RegisterPage = () => {
                 name="height"
                 value={formData.height}
                 onChange={handleChange}
+                min="1"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
               />
@@ -308,6 +310,7 @@ const RegisterPage = () => {
                 name="weight"
                 value={formData.weight}
                 onChange={handleChange}
+                min="1"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
               />
