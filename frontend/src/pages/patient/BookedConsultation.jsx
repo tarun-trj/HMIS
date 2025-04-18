@@ -21,7 +21,8 @@ export const fetchConsultationsByPatientId = async (patientId, axiosInstance) =>
     const pastConsultations = Array.isArray(data)
       ? data.filter((c) => {
         const consultDate = new Date(c.booked_date_time);
-        return consultDate > now;
+        const status = c.status;
+        return consultDate > now && status !== "cancelled";
       })
       : [];
       console.log("here")
