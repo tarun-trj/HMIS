@@ -192,7 +192,7 @@ try {
     })
     .populate({
       path: 'department_id',
-      select: 'name',
+      select: 'dept_name',
       model: Department
     });
   
