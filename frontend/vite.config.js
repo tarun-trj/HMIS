@@ -13,4 +13,13 @@ export default defineConfig({
         "@": path.resolve(__dirname, "./src"),
       },
     },
+    build: {
+      rollupOptions: {
+        external: ['mongoose', 'express', 'mongodb', 'cors', 'dotenv', '/backend/', '../backend/']
+      }
+    },
+    // Explicitly tell Vite not to process files in the backend directory
+    optimizeDeps: {
+      exclude: ['backend']
+    }
 })
