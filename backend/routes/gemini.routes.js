@@ -6,6 +6,7 @@ import { authenticateUser } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 // POST /api/gemini
-router.post('/',authenticateUser, getGeminiResponse);
+// router.post('/',authenticateUser, getGeminiResponse);
+router.post('/', getGeminiResponse);
 
 export default router;
