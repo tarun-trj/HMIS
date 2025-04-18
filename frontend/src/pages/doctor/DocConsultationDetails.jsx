@@ -138,7 +138,7 @@ const DocConsultationDetails = () => {
           <div className="text-center py-4">
             <p className="text-red-500">Consultation not found</p>
             <button
-              onClick={() => navigate(`/patient-consultations/${patientId}`)}
+              onClick={() => navigate(`/doctor/patient-consultations/${patientId}`)}
               className="mt-2 px-4 py-2 bg-gray-800 text-white rounded"
             >
               Back to Consultations
