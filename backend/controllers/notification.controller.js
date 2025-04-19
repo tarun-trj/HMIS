@@ -47,6 +47,16 @@ export const createNotification = async (req, res) => {
 
     console.log(`Future: ${future} Date: ${date} Time: ${time}`);
 
+    // Normalize frequency format if necessary
+    if (recurring && frequency) {
+      // Check if frequency is just a number (like "5")
+      if (!isNaN(frequency) && !frequency.includes(' ')) {
+        // Assume minutes for testing if only a number is provided
+        req.body.frequency = `${frequency} Minutes`;
+        console.log(`Normalized frequency from "${frequency}" to "${req.body.frequency}"`);
+      }
+    }
+
     // Create notification record in database
     const notification = new Notification({
       senderEmail,
@@ -94,7 +104,35 @@ export const createNotification = async (req, res) => {
     
     // Save notification to database
     const savedNotification = await notification.save();
+    // Print notification ID for testing purposes
+    console.log(`✅ CREATED NOTIFICATION - ID: ${savedNotification._id}`);
+    console.log(`To delete this notification, use: DELETE /api/notifications/${savedNotification._id}`);
     
+    // Normalize the frequency format
+    let normalizedFrequency = frequency;
+    if (recurring && frequency) {
+      // Log the raw frequency input
+      console.log(`Original frequency from request: "${frequency}"`);
+      
+      // Normalize to standard format: "X Unit" (e.g., "5 Minutes")
+      if (typeof frequency === 'string') {
+        // Extract the number and unit
+        const numMatch = frequency.match(/\d+/);
+        const unitMatch = frequency.match(/minute|hour|day|week|month/i);
+        
+        if (numMatch && unitMatch) {
+          const num = numMatch[0];
+          const unit = unitMatch[0]; // Keep original case
+          normalizedFrequency = `${num} ${unit}`;
+          console.log(`Normalized frequency to: "${normalizedFrequency}"`);
+        } else if (numMatch) {
+          // If only number found, assume minutes for testing
+          normalizedFrequency = `${numMatch[0]} Minutes`;
+          console.log(`Frequency had only number, defaulting to: "${normalizedFrequency}"`);
+        }
+      }
+    }
+
     // Prepare job data for the queue
     const jobData = {
       notificationId: savedNotification._id.toString(),
@@ -102,7 +140,8 @@ export const createNotification = async (req, res) => {
       receiverEmail,
       content,
       recurring: recurring || false,
-      frequency: frequency || null,
+      // Make sure we use the normalized frequency
+      frequency: recurring ? normalizedFrequency : null,
       date: future ? date : new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
       time: future ? time : new Date().toTimeString().split(' ')[0].substring(0, 5), // Format as HH:MM
       
@@ -201,23 +240,57 @@ export const getNotifications = async (req, res) => {
  */
 export const deleteNotification = async (req, res) => {
   try {
-    const notification = await Notification.findById(req.params.id);
+    const notificationId = req.params.id;
+    
+    console.log(`Attempting to delete notification: ${notificationId}`);
+    
+    // Find the notification
+    const notification = await Notification.findById(notificationId);
     
     if (!notification) {
+      console.log(`Notification not found: ${notificationId}`);
       return res.status(404).json({
         success: false,
         message: 'Notification not found'
       });
     }
     
+    // Import the queue to remove associated jobs
+    const notificationQueue = (await import('../queues/notificationQueue.js')).default;
+    
+    // Find active jobs that might be related to this notification
+    const activeJobs = await notificationQueue.getJobs(['active', 'waiting', 'delayed']);
+    
+    // Find and remove any jobs associated with this notification
+    const jobPattern = `notification-${notificationId}-`;
+    let removedJobs = 0;
+    
+    console.log(`Found ${activeJobs.length} active jobs in queue, checking for matches`);
+    
+    for (const job of activeJobs) {
+      if (job.id && job.id.startsWith(jobPattern)) {
+        console.log(`Removing job ${job.id} associated with notification ${notificationId}`);
+        await job.remove();
+        removedJobs++;
+      } else if (job.data && job.data.notificationId === notificationId) {
+        // Alternative matching strategy
+        console.log(`Removing job ${job.id} with matching notificationId ${notificationId}`);
+        await job.remove();
+        removedJobs++;
+      }
+    }
+    
+    // Delete the notification from the database
     await notification.deleteOne();
+    
+    console.log(`Successfully deleted notification ${notificationId} and ${removedJobs} related jobs`);
     
     res.status(200).json({
       success: true,
-      message: 'Notification deleted successfully'
+      message: `Notification deleted successfully along with ${removedJobs} pending jobs`
     });
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    console.error(`Error deleting notification ${req.params.id}:`, error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete notification',
