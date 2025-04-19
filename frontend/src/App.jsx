@@ -25,6 +25,7 @@ import Inventory from "./pages/common/Inventory";
 import ContactAdmin from "./pages/common/ContactAdmin";
 import PayrollInfo from "./pages/common/PayrollInfo";
 import PatientInfo from "./pages/common/PatientInfo";
+import ScheduleNotification from './pages/common/ScheduleNotification';
 
 // Patient Pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
@@ -150,6 +151,10 @@ function App() {
 
           <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "receptionist", "patient", "pathologist", "pharmacist"]} />}>
             <Route path=":role/contact-admin" element={<ContactAdmin />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "receptionist", "pathologist", "pharmacist", "admin"]} />}>
+            <Route path=":role/schedule-notification" element={<ScheduleNotification />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["doctor", "nurse", "receptionist", "patient", "pathologist", "pharmacist"]} />}>
