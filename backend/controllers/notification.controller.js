@@ -214,9 +214,9 @@ export const createNotification = async (req, res) => {
 export const getNotifications = async (req, res) => {
   try {
     const { email } = req.query;
-    
-    const query = email ? { receiverEmail: email } : {};
-    
+
+    const query = email ? { senderEmail: email } : {};
+
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 });
     
