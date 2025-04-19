@@ -160,10 +160,10 @@ const PatientInfo = () => {
         <p className='font-bold pb-3'>Patient Details</p>
         {patientDetails ? (
           <div className="space-y-2 text-black">
-            <p><span className="font-medium text-black">Name:</span> {patientDetails.name}</p>
-            <p><span className="font-medium text-black">Age:</span> {patientDetails.patient_info.age}</p>
-            <p><span className="font-medium text-black">Blood Group:</span> {patientDetails.patient_info.bloodGrp}</p>
-            <p><span className="font-medium text-black">Phone Number:</span> {patientDetails.phone_number}</p>
+            <p><span className="font-medium text-black">Name:</span> {patientDetails.name || "John Doe"}</p>
+            <p><span className="font-medium text-black">Age:</span> {patientDetails.patient_info.age || "25"}</p>
+            <p><span className="font-medium text-black">Blood Group:</span> {patientDetails.patient_info.bloodGrp || "O+"}</p>
+            <p><span className="font-medium text-black">Phone Number:</span> {patientDetails.phone_number || "9856231411"}</p>
           </div>
         ) : (
           <p className="">Patient data not available.</p>
@@ -175,9 +175,9 @@ const PatientInfo = () => {
           <p className='font-bold pb-3'>Last Consultation</p>
           <div className="bg-gray-50 p-4 rounded-md shadow-sm">
             <div className="grid grid-cols-2 gap-4">
-              <p><span className="font-medium">Date:</span> {new Date(lastConsultation.createdAt).toLocaleDateString()}</p>
-              <p><span className="font-medium">Doctor ID:</span> {lastConsultation.doctor_id}</p>
-              <p><span className="font-medium">Reason:</span> {lastConsultation.reason}</p>
+              <p><span className="font-medium">Date:</span> {new Date(lastConsultation.createdAt).toLocaleDateString() || new Date().toLocaleDateString()}</p>
+              <p><span className="font-medium">Doctor ID:</span> {lastConsultation.doctor_id || "Dr. Prem Singhania"}</p>
+              <p><span className="font-medium">Reason:</span> {lastConsultation.reason || "Regular Checkup"}</p>
               <p>
                 <span className="font-medium">Status:</span>
                 <span className={`ml-2 ${lastConsultation.status === 'Completed' ? 'text-green-600' :
