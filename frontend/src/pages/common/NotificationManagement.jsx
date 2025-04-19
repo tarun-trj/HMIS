@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  TextField, Box, Typography, Card, CardContent,
+  TextField, Box, Typography,
   Snackbar, Alert, Fade, InputAdornment, Chip,
   Paper, CircularProgress, IconButton, Tooltip,
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Dialog, DialogActions, 
-  DialogContent, DialogContentText, DialogTitle, Button
+  DialogContent, DialogContentText, DialogTitle, Button,
+  useTheme, useMediaQuery, Divider, Avatar
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
@@ -14,12 +15,21 @@ import SearchIcon from '@mui/icons-material/Search';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import EmailIcon from '@mui/icons-material/Email';
+import PersonIcon from '@mui/icons-material/Person';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 
 const NotificationManagement = () => {
   const { axiosInstance, user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const email = localStorage.getItem('email');
+  const role = localStorage.getItem('role');
+  // const isAdmin = user?.role === 'admin';
+  const isAdmin = role === 'admin';
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // States
   const [notifications, setNotifications] = useState([]);
@@ -29,6 +39,10 @@ const NotificationManagement = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [filters, setFilters] = useState({
+    future: true,
+    recurring: true
+  });
   const [alert, setAlert] = useState({
     open: false,
     severity: 'success',
@@ -40,10 +54,10 @@ const NotificationManagement = () => {
     fetchNotifications();
   }, []);
 
-  // Filter notifications when search query changes
+  // Filter notifications when search query or filters change
   useEffect(() => {
-    filterNotifications();
-  }, [searchQuery, notifications]);
+    applyFilters();
+  }, [searchQuery, notifications, filters]);
 
   // Fetch notifications from API
   const fetchNotifications = async () => {
@@ -53,18 +67,14 @@ const NotificationManagement = () => {
       // For admins, get all notifications
       let endpoint = '/notifications';
       if (!isAdmin) {
-        endpoint += `?email=${encodeURIComponent(user.email)}`;
+        const cleanEmail = email.replace(/^"|"$/g, '');
+        endpoint += `?email=${encodeURIComponent(cleanEmail)}`;
       }
       
       const response = await axiosInstance.get(`${import.meta.env.VITE_API_URL}${endpoint}`);
       
-      // Filter for only future or recurring notifications
-      const filteredData = response.data.notifications.filter(
-        notification => notification.future || notification.recurring
-      );
+      setNotifications(response.data.notifications);
       
-      setNotifications(filteredData);
-      setFilteredNotifications(filteredData);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       showAlert('error', 'Failed to load notifications');
@@ -73,22 +83,47 @@ const NotificationManagement = () => {
     }
   };
   
-  // Filter notifications based on search query
-  const filterNotifications = () => {
-    if (!searchQuery.trim()) {
-      setFilteredNotifications(notifications);
-      return;
+  // Apply all filters (search and type filters)
+  const applyFilters = () => {
+    // First filter by search query
+    let filtered = notifications;
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(notification => 
+        notification.receiverEmail?.toLowerCase().includes(query) ||
+        notification.content?.toLowerCase().includes(query) ||
+        notification._id?.includes(query) ||
+        notification.senderEmail?.toLowerCase().includes(query)
+      );
     }
     
-    const query = searchQuery.toLowerCase();
-    const filtered = notifications.filter(notification => 
-      notification.receiverEmail?.toLowerCase().includes(query) ||
-      notification.content?.toLowerCase().includes(query) ||
-      notification._id?.includes(query) ||
-      notification.senderEmail?.toLowerCase().includes(query)
-    );
+    // Then apply type filters
+    filtered = filtered.filter(notification => {
+      // If both filters are false, show nothing
+      if (!filters.future && !filters.recurring) return false;
+      
+      // If both filters are true, check if notification is either future or recurring
+      if (filters.future && filters.recurring) {
+        return notification.future || notification.recurring;
+      }
+      
+      // Otherwise check individual filters
+      if (filters.future && notification.future) return true;
+      if (filters.recurring && notification.recurring) return true;
+      
+      return false;
+    });
     
     setFilteredNotifications(filtered);
+  };
+
+  // Toggle filter state
+  const toggleFilter = (filterName) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: !prev[filterName]
+    }));
   };
 
   // Open delete confirmation dialog
@@ -159,251 +194,561 @@ const NotificationManagement = () => {
     }
   };
 
+  // Handle refresh button click
+  const handleRefresh = () => {
+    fetchNotifications();
+  };
+
+  // Generate avatar background color based on email
+  const generateAvatarColor = (email) => {
+    if (!email) return '#9c27b0';
+    const hash = email.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const colors = [
+      '#1976d2', '#2196f3', '#03a9f4', '#00bcd4', // Blues
+      '#009688', '#4caf50', '#8bc34a', // Greens
+      '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', // Yellows/Oranges
+      '#ff5722', '#f44336', '#e91e63', '#9c27b0', // Reds/Pinks/Purples
+      '#673ab7', '#3f51b5', '#607d8b' // Purples/Blues/Grey
+    ];
+    return colors[hash % colors.length];
+  };
+
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
-      <Card 
-        elevation={2} 
-        sx={{ 
-          borderRadius: 3, 
-          overflow: 'hidden',
-          transition: 'all 0.3s ease-in-out',
-          '&:hover': { boxShadow: 6 }
-        }}
-      >
-        {/* Header */}
-        <Box sx={{ 
-          p: 3, 
-          background: 'linear-gradient(120deg, #9c27b0 0%, #673ab7 100%)',
-          color: 'white'
-        }}>
-          <Typography variant="h5" component="h1" fontWeight="500" sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: '100%', mx: 'auto' }}>
+      {/* Header */}
+      <Box sx={{ 
+        p: { xs: 2.5, md: 3 }, 
+        background: 'linear-gradient(135deg, #9c27b0 0%, #673ab7 50%, #5e35b1 100%)',
+        color: 'white',
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        justifyContent: 'space-between',
+        gap: 2,
+        mb: 3,
+        borderRadius: 2,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+      }}>
+        <Box>
+          <Typography 
+            variant="h5" 
+            component="h1" 
+            fontWeight="600" 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1.5,
+              textShadow: '1px 1px 2px rgba(0,0,0,0.2)'
+            }}
+          >
             <NotificationsActiveIcon fontSize="large" />
             Manage Notifications
           </Typography>
-          <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+          <Typography variant="body2" sx={{ mt: 0.5, opacity: 0.9 }}>
             View and manage your scheduled and recurring notifications
           </Typography>
         </Box>
         
-        <CardContent sx={{ p: 3 }}>
-          {/* Search bar */}
-          <Box sx={{ mb: 4 }}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Search by recipient email, content, or notification ID"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2
-                }
-              }}
-            />
-          </Box>
-          
-          {/* Status bar */}
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'center', 
-            mb: 2,
-            flexWrap: 'wrap',
-            gap: 1
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <FilterListIcon sx={{ mr: 1, color: 'text.secondary' }} fontSize="small" />
-              <Typography variant="body2" color="text.secondary">
-                {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''}
-              </Typography>
-            </Box>
-            
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Chip 
-                icon={<AccessTimeIcon />} 
-                label="Future" 
-                size="small" 
-                color="info" 
-                variant="outlined" 
-              />
-              <Chip 
-                icon={<RepeatIcon />} 
-                label="Recurring" 
-                size="small" 
-                color="secondary" 
-                variant="outlined" 
-              />
-            </Box>
-          </Box>
-          
-          {/* Loading state */}
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress />
-            </Box>
-          ) : filteredNotifications.length === 0 ? (
-            /* Empty state */
-            <Paper 
-              elevation={0} 
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={handleRefresh}
+          startIcon={<RefreshIcon />}
+          sx={{
+            bgcolor: 'rgba(255,255,255,0.2)',
+            '&:hover': {
+              bgcolor: 'rgba(255,255,255,0.3)',
+            },
+            backdropFilter: 'blur(4px)',
+            fontWeight: 500
+          }}
+          disabled={loading}
+        >
+          {loading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </Box>
+      
+      {/* Search bar */}
+      <Box sx={{ mb: 4 }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search by recipient email, content, or notification ID"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              transition: 'all 0.3s',
+              '&.Mui-focused': {
+                boxShadow: '0 0 0 2px rgba(156, 39, 176, 0.2)',
+              }
+            }
+          }}
+        />
+      </Box>
+      
+      {/* Status bar with filter chips */}
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center', 
+        mb: { xs: 2, md: 3 },
+        flexWrap: 'wrap',
+        gap: 1.5,
+        px: 0.5
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FilterListIcon sx={{ mr: 1, color: 'text.secondary' }} fontSize="small" />
+          <Typography variant="body2" color="text.secondary" fontWeight={500}>
+            {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''}
+          </Typography>
+        </Box>
+        
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Tooltip title={`${filters.future ? 'Hide' : 'Show'} future notifications`} arrow>
+            <Chip 
+              icon={<AccessTimeIcon />} 
+              label="Future" 
+              size="small" 
+              color={filters.future ? "info" : "default"} 
+              variant={filters.future ? "filled" : "outlined"} 
               sx={{ 
-                p: 6, 
-                textAlign: 'center', 
-                bgcolor: 'rgba(0,0,0,0.02)',
-                borderRadius: 2,
-                border: '1px dashed rgba(0,0,0,0.2)',
+                borderWidth: 1.5,
+                cursor: 'pointer',
+                opacity: filters.future ? 1 : 0.7,
+                fontWeight: filters.future ? 600 : 400
               }}
+              onClick={() => toggleFilter('future')}
+            />
+          </Tooltip>
+          <Tooltip title={`${filters.recurring ? 'Hide' : 'Show'} recurring notifications`} arrow>
+            <Chip 
+              icon={<RepeatIcon />} 
+              label="Recurring" 
+              size="small" 
+              color={filters.recurring ? "secondary" : "default"} 
+              variant={filters.recurring ? "filled" : "outlined"}
+              sx={{ 
+                borderWidth: 1.5,
+                cursor: 'pointer',
+                opacity: filters.recurring ? 1 : 0.7,
+                fontWeight: filters.recurring ? 600 : 400
+              }}
+              onClick={() => toggleFilter('recurring')}
+            />
+          </Tooltip>
+        </Box>
+      </Box>
+      
+      {/* Main content area */}
+      {loading ? (
+        <Paper
+          elevation={0}
+          sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            py: 8,
+            bgcolor: 'rgba(0,0,0,0.01)',
+            borderRadius: 3,
+            border: '1px dashed rgba(0,0,0,0.1)',
+          }}
+        >
+          <CircularProgress size={50} sx={{ mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Loading notifications
+          </Typography>
+        </Paper>
+      ) : filteredNotifications.length === 0 ? (
+        /* Empty state */
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            p: 6, 
+            textAlign: 'center', 
+            bgcolor: 'rgba(0,0,0,0.02)',
+            borderRadius: 3,
+            border: '1px dashed rgba(0,0,0,0.15)',
+            transition: 'all 0.3s',
+          }}
+        >
+          <Box sx={{
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            bgcolor: 'rgba(103, 58, 183, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mx: 'auto',
+            mb: 2.5
+          }}>
+            <NotificationsOffIcon sx={{ fontSize: 40, color: '#673ab7', opacity: 0.8 }} />
+          </Box>
+          <Typography variant="h6" color="text.primary" fontWeight={500} gutterBottom>
+            No Notifications Found
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400, mx: 'auto' }}>
+            {!filters.future && !filters.recurring
+              ? 'Enable at least one filter type to view notifications'
+              : searchQuery 
+                ? 'Try adjusting your search criteria or clear the search field' 
+                : 'You have not created any notifications matching the current filters'}
+          </Typography>
+          {searchQuery && (
+            <Button 
+              variant="outlined" 
+              size="small"
+              sx={{ mt: 2 }}
+              onClick={() => setSearchQuery('')}
             >
-              <NotificationsOffIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2, opacity: 0.6 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No Notifications Found
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {searchQuery ? 'Try adjusting your search query' : 'You have not created any future or recurring notifications yet'}
-              </Typography>
-            </Paper>
-          ) : (
-            /* Notifications table */
-            <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid rgba(0,0,0,0.08)' }}>
-              <Table sx={{ minWidth: 650 }}>
-                <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Message</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>To</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Scheduled</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                    {isAdmin && (
-                      <TableCell sx={{ fontWeight: 600 }}>Created By</TableCell>
-                    )}
-                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredNotifications.map((notification) => (
-                    <TableRow key={notification._id} hover>
-                      <TableCell>
-                        <Tooltip title={`Full ID: ${notification._id}`}>
-                          <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
-                            {formatNotificationId(notification._id)}
-                          </Typography>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell>
-                        <Tooltip title={notification.content}>
-                          <Typography variant="body2" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {getMessagePreview(notification.content)}
-                          </Typography>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              Clear Search
+            </Button>
+          )}
+          {!filters.future && !filters.recurring && (
+            <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'center' }}>
+              <Button 
+                variant="outlined" 
+                color="info"
+                size="small"
+                onClick={() => toggleFilter('future')}
+                startIcon={<AccessTimeIcon />}
+              >
+                Show Future
+              </Button>
+              <Button 
+                variant="outlined" 
+                color="secondary"
+                size="small"
+                onClick={() => toggleFilter('recurring')}
+                startIcon={<RepeatIcon />}
+              >
+                Show Recurring
+              </Button>
+            </Box>
+          )}
+        </Paper>
+      ) : (
+        /* Notifications table */
+        <Box sx={{ width: '100%', overflow: 'auto' }}>
+          <TableContainer 
+            component={Paper} 
+            sx={{ 
+              borderRadius: 3, 
+              boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 3px, rgba(0, 0, 0, 0.1) 0px 1px 2px',
+              border: '1px solid rgba(0,0,0,0.08)',
+              overflow: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '10px',
+                height: '10px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: '#bdbdbd',
+                borderRadius: '10px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: '#f1f1f1',
+                borderRadius: '10px',
+              },
+              // Ensure table fits without horizontal overflow on smaller screens
+              minWidth: isAdmin ? '900px' : '750px',
+              maxWidth: '100%',
+            }}
+          >
+            <Table stickyHeader>
+              <TableHead sx={{ 
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(103, 58, 183, 0.05)'
+              }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600, py: 2, color: theme.palette.text.primary, whiteSpace: 'nowrap' }}>ID</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 2, color: theme.palette.text.primary, minWidth: 150 }}>Message</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 2, color: theme.palette.text.primary, whiteSpace: 'nowrap' }}>To</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 2, color: theme.palette.text.primary, whiteSpace: 'nowrap' }}>Scheduled</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 2, color: theme.palette.text.primary, whiteSpace: 'nowrap' }}>Type</TableCell>
+                  {isAdmin && (
+                    <TableCell sx={{ fontWeight: 600, py: 2, color: theme.palette.text.primary, whiteSpace: 'nowrap' }}>Created By</TableCell>
+                  )}
+                  <TableCell sx={{ fontWeight: 600, py: 2, color: theme.palette.text.primary, whiteSpace: 'nowrap' }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredNotifications.map((notification) => (
+                  <TableRow 
+                    key={notification._id} 
+                    hover
+                    sx={{ 
+                      '&:last-child td, &:last-child th': { border: 0 },
+                      transition: 'background-color 0.2s',
+                      '&:hover': {
+                        backgroundColor: theme.palette.mode === 'dark' 
+                          ? 'rgba(255,255,255,0.03)'
+                          : 'rgba(103, 58, 183, 0.03)'
+                      }
+                    }}
+                  >
+                    <TableCell>
+                      <Tooltip title={`Full ID: ${notification._id}`} arrow placement="top">
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            fontFamily: 'monospace', 
+                            fontWeight: 600,
+                            bgcolor: 'rgba(103, 58, 183, 0.1)',
+                            borderRadius: '4px',
+                            display: 'inline-block',
+                            px: 1,
+                            py: 0.5,
+                            color: '#673ab7'
+                          }}
+                        >
+                          {formatNotificationId(notification._id)}
+                        </Typography>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip title={notification.content} arrow placement="top">
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            maxWidth: 200, 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            cursor: 'default',
+                            '&:hover': {
+                              color: '#673ab7',
+                            }
+                          }}
+                        >
+                          {getMessagePreview(notification.content)}
+                        </Typography>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Avatar
+                          sx={{ 
+                            width: 24, 
+                            height: 24, 
+                            bgcolor: generateAvatarColor(notification.receiverEmail),
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          {notification.receiverEmail?.charAt(0).toUpperCase() || 'U'}
+                        </Avatar>
+                        <Typography variant="body2" fontWeight={500} sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {notification.receiverEmail}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                          <Typography variant="body2">
-                            {formatDate(notification.date)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {notification.time}
-                          </Typography>
-                          {notification.recurring && (
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="body2" fontWeight={500}>
+                          {formatDate(notification.date)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {notification.time}
+                        </Typography>
+                        {notification.recurring && (
+                          <Box sx={{ mt: 0.5 }}>
                             <Chip 
                               label={notification.frequency} 
                               size="small" 
                               color="secondary" 
-                              variant="outlined" 
-                              sx={{ maxWidth: 'fit-content' }}
+                              sx={{ 
+                                maxWidth: 'fit-content',
+                                height: '20px', 
+                                '& .MuiChip-label': { px: 1, py: 0, fontSize: '0.7rem', fontWeight: 500 } 
+                              }}
                             />
-                          )}
-                        </Box>
-                      </TableCell>
+                          </Box>
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        {notification.future && (
+                          <Chip 
+                            label="Future" 
+                            size="small" 
+                            color="info" 
+                            sx={{ height: '22px', '& .MuiChip-label': { px: 1 } }}
+                          />
+                        )}
+                        {notification.recurring && (
+                          <Chip 
+                            label="Recurring" 
+                            size="small" 
+                            color="secondary" 
+                            sx={{ height: '22px', '& .MuiChip-label': { px: 1 } }}
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+                    {isAdmin && (
                       <TableCell>
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          {notification.future && (
-                            <Chip label="Future" size="small" color="info" />
-                          )}
-                          {notification.recurring && (
-                            <Chip label="Recurring" size="small" color="secondary" />
-                          )}
-                        </Box>
-                      </TableCell>
-                      {isAdmin && (
-                        <TableCell>
-                          <Typography variant="body2">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Avatar
+                            sx={{ 
+                              width: 24, 
+                              height: 24, 
+                              bgcolor: generateAvatarColor(notification.senderEmail),
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            {notification.senderEmail?.charAt(0).toUpperCase() || 'U'}
+                          </Avatar>
+                          <Typography variant="body2" sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {notification.senderEmail}
                           </Typography>
-                        </TableCell>
-                      )}
-                      <TableCell>
-                        <Tooltip title="Delete notification">
-                          <IconButton 
-                            color="error" 
-                            size="small"
-                            onClick={() => handleDeleteClick(notification)}
-                            aria-label="delete notification"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
+                        </Box>
                       </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+                    )}
+                    <TableCell>
+                      <Tooltip title="Delete notification" arrow placement="top">
+                        <IconButton 
+                          color="error" 
+                          size="small"
+                          onClick={() => handleDeleteClick(notification)}
+                          aria-label="delete notification"
+                          sx={{ 
+                            border: '1px solid rgba(211, 47, 47, 0.5)',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                              backgroundColor: 'rgba(211, 47, 47, 0.08)',
+                              border: '1px solid rgba(211, 47, 47, 0.8)',
+                            },
+                            // Ensure delete button is always visible
+                            minWidth: 32,
+                            minHeight: 32,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
       
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
         onClose={handleDialogClose}
         PaperProps={{
-          sx: { borderRadius: 2 }
+          sx: { 
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: 'rgba(0, 0, 0, 0.1) 0px 10px 50px',
+            maxWidth: '450px',
+            width: '100%'
+          }
         }}
+        TransitionComponent={Fade}
+        transitionDuration={300}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ 
+          bgcolor: 'error.main', 
+          color: 'white',
+          py: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5
+        }}>
+          <WarningAmberIcon />
           Confirm Deletion
         </DialogTitle>
-        <DialogContent>
-          <DialogContentText>
+        <DialogContent sx={{ pt: 3, pb: 1 }}>
+          <DialogContentText sx={{ color: 'text.primary', fontWeight: 500 }}>
             Are you sure you want to delete this notification?
             {selectedNotification?.recurring && (
-              <Box component="span" fontWeight="bold"> This will also cancel all future recurrences.</Box>
+              <Box component="span" fontWeight="bold" sx={{ color: 'error.main' }}> This will also cancel all future recurrences.</Box>
             )}
           </DialogContentText>
           {selectedNotification && (
-            <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(0,0,0,0.03)', borderRadius: 1 }}>
+            <Paper
+              elevation={0}
+              sx={{ 
+                mt: 3, 
+                p: 2.5, 
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)', 
+                borderRadius: 2,
+                border: '1px solid rgba(0,0,0,0.08)'
+              }}
+            >
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Notification details:
               </Typography>
-              <Typography variant="body2">
-                <strong>ID:</strong> {formatNotificationId(selectedNotification._id)}
-              </Typography>
-              <Typography variant="body2">
-                <strong>To:</strong> {selectedNotification.receiverEmail}
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                <strong>Message:</strong> {getMessagePreview(selectedNotification.content, 10)}
-              </Typography>
-            </Box>
+              <Divider sx={{ my: 1.5 }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ 
+                    minWidth: '24px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'
+                  }}>
+                    <PersonIcon fontSize="small" />
+                  </Box>
+                  <Typography variant="body2">
+                    <strong>ID:</strong> {selectedNotification._id ? formatNotificationId(selectedNotification._id) : ''}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ 
+                    minWidth: '24px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'
+                  }}>
+                    <EmailIcon fontSize="small" />
+                  </Box>
+                  <Typography variant="body2" sx={{ overflowWrap: 'break-word', wordBreak: 'break-all' }}>
+                    <strong>To:</strong> {selectedNotification.receiverEmail}
+                  </Typography>
+                </Box>
+                
+                <Divider sx={{ my: 0.5 }} />
+                
+                <Typography variant="body2" sx={{ pl: 1.5, borderLeft: '3px solid #673ab7', py: 1 }}>
+                  {getMessagePreview(selectedNotification.content, 15)}
+                </Typography>
+                
+                {selectedNotification.recurring && (
+                  <Typography variant="body2" color="error.main" fontWeight={500} sx={{ mt: 1 }}>
+                    This is a recurring notification set to repeat every {selectedNotification.frequency}.
+                  </Typography>
+                )}
+              </Box>
+            </Paper>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions sx={{ px: 3, py: 2.5 }}>
           <Button 
             onClick={handleDialogClose} 
             color="inherit"
             disabled={deleting}
+            variant="outlined"
+            sx={{ borderRadius: 2 }}
           >
             Cancel
           </Button>
@@ -413,6 +758,14 @@ const NotificationManagement = () => {
             variant="contained"
             disabled={deleting}
             startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+            sx={{ 
+              borderRadius: 2,
+              px: 3,
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: '0 2px 8px rgba(211, 47, 47, 0.3)',
+              }
+            }}
           >
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
@@ -432,7 +785,11 @@ const NotificationManagement = () => {
           severity={alert.severity}
           variant="filled"
           elevation={6}
-          sx={{ borderRadius: 2, fontWeight: 500 }}
+          sx={{ 
+            borderRadius: 2, 
+            fontWeight: 500,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+          }}
         >
           {alert.message}
         </Alert>
