@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Calendar, User, Clipboard, Briefcase, Package, PlusSquare, List } from "lucide-react"; // Import icons
+import { Home, Calendar, User, Clipboard, Briefcase, Package, PlusSquare, List, Bell } from "lucide-react"; // Import icons
 
 const Sidebar = ({isSidebarOpen}) => {
   const location = useLocation();
@@ -14,6 +14,7 @@ const Sidebar = ({isSidebarOpen}) => {
       { path: "/doctor/contact-admin", label: "Contact Admin", icon: <List size={20} /> },
       { path: "/doctor/inventory", label: "Inventory", icon: <Package size={20} /> },
       { path: "/doctor/payroll-info", label: "Payroll Info.", icon: <Briefcase size={20} /> },
+      { path: "/doctor/schedule-notification", label: "Schedule Notification", icon: <Bell size={20} /> },
     ],
     nurse: [
       { path: "/nurse/profile", label: "Profile", icon: <User size={20} /> },
@@ -21,6 +22,7 @@ const Sidebar = ({isSidebarOpen}) => {
       { path: "/nurse/inventory", label: "Inventory", icon: <Package size={20} /> },
       { path: "/nurse/contact-admin", label: "Contact Admin", icon: <List size={20} /> },
       { path: "/nurse/payroll-info", label: "Payroll Info.", icon: <Briefcase size={20} /> },
+      { path: "/nurse/schedule-notification", label: "Schedule Notification", icon: <Bell size={20} /> },
     ],
     receptionist: [
       { path: "/receptionist/profile", label: "Profile", icon: <User size={20} /> },
@@ -31,6 +33,7 @@ const Sidebar = ({isSidebarOpen}) => {
       { path: "/receptionist/add-bill", label: "Add Bills", icon: <Clipboard size={20} /> },
       { path: "/receptionist/contact-admin", label: "Contact Admin", icon: <List size={20} /> },
       { path: "/receptionist/payroll-info", label: "Payroll Info.", icon: <Briefcase size={20} /> },
+      { path: "/receptionist/schedule-notification", label: "Schedule Notification", icon: <Bell size={20} /> },
     ],
     pathologist: [
       { path: "/pathologist/profile", label: "Profile", icon: <User size={20} /> },
@@ -39,6 +42,7 @@ const Sidebar = ({isSidebarOpen}) => {
       { path: "/pathologist/add-report", label: "Add Report", icon: <Clipboard size={20} /> },
       { path: "/pathologist/contact-admin", label: "Contact Admin", icon: <List size={20} /> },
       { path: "/pathologist/payroll-info", label: "Payroll Info.", icon: <Briefcase size={20} /> },
+      { path: "/pathologist/schedule-notification", label: "Schedule Notification", icon: <Bell size={20} /> },
     ],
     pharmacist: [
       { path: "/pharmacist/profile", label: "Profile", icon: <Package size={20} /> },
@@ -46,6 +50,7 @@ const Sidebar = ({isSidebarOpen}) => {
       { path: "/pharmacist/patient-info", label: "Patient Information", icon: <User size={20} /> },
       { path: "/pharmacist/contact-admin", label: "Contact Admin", icon: <List size={20} /> },
       { path: "/pharmacist/payroll-info", label: "Payroll Info.", icon: <Briefcase size={20} /> },
+      { path: "/pharmacist/schedule-notification", label: "Schedule Notification", icon: <Bell size={20} /> },
     ],
     patient: [
       { path: "/patient/profile", label: "Profile", icon: <User size={20} /> },
@@ -53,8 +58,7 @@ const Sidebar = ({isSidebarOpen}) => {
       { path: "/patient/bills", label: "Bills", icon: <Briefcase size={20} /> },
       { path: "/patient/feedback", label: "Feedback", icon: <List size={20} /> },
       { path: "/patient/daily-progress", label: "Daily Progress", icon: <Clipboard size={20} /> },
-      { path: "/patient/support", label: "Help and Support", icon: <Clipboard size={20} /> },
-      
+      { path: "/patient/support", label: "Help and Support", icon: <Clipboard size={20} /> },      
     ],
     admin: [
       { path: "/admin/inventory", label: "Inventory", icon: <Package size={20} /> },
@@ -65,6 +69,7 @@ const Sidebar = ({isSidebarOpen}) => {
       { path: "/admin/manage-payrolls", label: "Manage Payrolls", icon: <Briefcase size={20} /> },
       { path: "/admin/ambulance", label: "Manage Ambulance", icon: <Clipboard size={20} /> },
       { path: "/admin/assistant", label: "Assistant", icon: <Clipboard size={20} /> },
+      { path: "/admin/schedule-notification", label: "Schedule Notification", icon: <Bell size={20} /> },
     ],
   };
 
