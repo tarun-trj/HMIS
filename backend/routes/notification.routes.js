@@ -1,7 +1,7 @@
 import express from 'express';
 import { 
   createNotification, 
-  getUserNotifications
+  // getUserNotifications
 } from '../controllers/notification.controller.js';
 import { authenticateUser } from '../middleware/authMiddleware.js';
 
@@ -11,6 +11,6 @@ const router = express.Router();
 router.post('/create', authenticateUser, createNotification);
 
 // Get all notifications for the authenticated user
-router.get('/user', authenticateUser, getUserNotifications);
+// router.get('/user', authenticateUser, getUserNotifications);
 
 export default router;
