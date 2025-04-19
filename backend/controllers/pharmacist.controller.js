@@ -31,14 +31,14 @@ export const searchPatientPrescriptions = async (req, res) => {
       patient_id: searchById,
     }).sort({ actual_start_datetime: -1 });
 
-    console.log("Consultation found:", consultation);
+    // console.log("Consultation found:", consultation);
 
     if (
       !consultation ||
       !consultation.prescription ||
       consultation.prescription.length === 0
     ) {
-      res.status(200).json({
+      return res.status(200).json({
         patient: patientDetails,
         prescriptions: [],
         lastConsultation: consultation,
@@ -50,6 +50,8 @@ export const searchPatientPrescriptions = async (req, res) => {
     })
       .sort({ prescriptionDate: -1 })
       .populate("entries.medicine_id");
+
+    // console.log(prescriptions);
 
     const now = new Date();
     const updatedPrescriptions = [];
@@ -115,6 +117,8 @@ export const searchPatientPrescriptions = async (req, res) => {
           entry_id: entry._id,
         });
       }
+
+      // console.log(processedEntries);
 
       if (dispense === "true") {
         if (allDispensed) {
