@@ -1,22 +1,54 @@
 import { Worker } from 'bullmq';
-import { addDays, addWeeks, addMonths, format, parseISO } from 'date-fns';
+import { addMinutes, addDays, addWeeks, addMonths, format, parseISO, addHours } from 'date-fns';
 import dotenv from 'dotenv';
 import Notification from '../models/notification.js';
 import { sendMessage } from '../config/sendMail.js';
 
 dotenv.config();
 
-// Helper function to calculate next occurrence based on frequency
+// Replace the entire calculateNextDate function with this version:
+
 const calculateNextDate = (currentDate, frequency) => {
   try {
-    const [valueStr, unit] = frequency.split(' ');
-    const value = parseInt(valueStr, 10);
+    console.log(`Raw frequency input: "${frequency}"`);
     
-    if (isNaN(value) || value <= 0) {
-      throw new Error(`Invalid frequency value: ${valueStr}`);
+    // Default values
+    let value = 1;
+    let unit = 'minute';
+    
+    if (typeof frequency === 'string') {
+      // Extract the first number from the string
+      const numberMatch = frequency.match(/\d+/);
+      if (numberMatch) {
+        value = parseInt(numberMatch[0], 10);
+      }
+      
+      // Extract the unit word (minute/hour/day/week/month)
+      const unitMatch = frequency.match(/minute|hour|day|week|month/i);
+      if (unitMatch) {
+        unit = unitMatch[0].toLowerCase();
+      }
+      
+      console.log(`Parsed frequency: ${value} ${unit}(s)`);
+    } else if (typeof frequency === 'number') {
+      value = frequency;
+      console.log(`Numeric frequency: ${value} minutes`);
     }
-
-    switch (unit?.toLowerCase()) {
+    
+    // Validate the parsed value
+    if (isNaN(value) || value <= 0) {
+      throw new Error(`Invalid frequency value: ${value}`);
+    }
+    
+    // Handle the different time units
+    switch (unit) {
+      case 'minute':
+      case 'minutes':
+        console.log(`Adding ${value} minutes to ${currentDate}`);
+        return addMinutes(currentDate, value);
+      case 'hour':
+      case 'hours':
+        return addHours(currentDate, value);
       case 'day':
       case 'days':
         return addDays(currentDate, value);
@@ -30,7 +62,7 @@ const calculateNextDate = (currentDate, frequency) => {
         throw new Error(`Unsupported frequency unit: ${unit}`);
     }
   } catch (error) {
-    console.error('Error calculating next date:', error);
+    console.error(`Error calculating next date from '${frequency}':`, error);
     return null;
   }
 };
@@ -50,6 +82,12 @@ const worker = new Worker('notification-email',
         time,
         scheduleIndex
       } = job.data;
+
+      // Print notification ID when processing a job
+      if (notificationId) {
+        console.log(`⏰ PROCESSING NOTIFICATION - ID: ${notificationId}`);
+        console.log(`To delete this notification, use: DELETE /api/notifications/${notificationId}`);
+      }
 
       console.log(`Processing notification job ${job.id} to ${receiverEmail}`);
 
@@ -132,6 +170,10 @@ const worker = new Worker('notification-email',
           });
           
           console.log(`Scheduled recurring notification for ${nextDateStr} at ${nextTimeStr}`);
+          if (notificationId) {
+            console.log(`📅 RECURRING NOTIFICATION - ID: ${notificationId}`);
+            console.log(`To delete this notification and stop all future occurrences, use: DELETE /api/notifications/${notificationId}`);
+          }
           
           // If we have a notification ID, update the database by adding to futureSchedules
           if (notificationId) {
