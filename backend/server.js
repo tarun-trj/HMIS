@@ -29,6 +29,7 @@ import cron from "node-cron";
 import initializeDailyOccupancy from "./controllers/analytics.controller.js";
 import insuranceRoutes from "./routes/insurance.routes.js";
 import resetPayrollStatus from "./controllers/adminController.js";
+import './workers/notificationWorker.js';
 dotenv.config();
 const app = express();
 app.use(cookieParser()); // This enables req.cookies
