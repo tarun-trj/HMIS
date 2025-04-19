@@ -5,7 +5,10 @@ import {
   getEmployees,
   getEmployeeById,
   getEmployeesByDept,
-  getEmployeesByRole} from '../controllers/employeeController.js';
+  getEmployeesByRole,
+  getDoctorIdByEmployeeId
+
+} from '../controllers/employeeController.js';
 
 const router = express.Router();
 router.get('/get-role-id', getRoleSpecificId);
@@ -23,4 +26,6 @@ router.get('/by-dept/:deptId', getEmployeesByDept);
 
 // @route GET /api/employees/by-role/:role
 router.get('/by-role/:role', getEmployeesByRole);
+router.get('/doctor-id/:employee_id', getDoctorIdByEmployeeId);
+
 export default router;

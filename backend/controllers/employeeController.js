@@ -43,6 +43,25 @@ export const getRoleSpecificId = async (req, res) => {
   }
 };
 
+export const getDoctorIdByEmployeeId = async (req, res) => {
+  try {
+    const { employee_id } = req.params;
+    
+    // Find the doctor document using the employee_id
+    const doctor = await Doctor.findOne({ employee_id: parseInt(employee_id) });
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found with this employee ID' });
+    }
+
+    // Return the doctor's _id
+    return res.status(200).json({ doctor_id: doctor._id });
+  } catch (err) {
+    console.error('Error fetching doctor ID:', err);
+    return res.status(500).json({ message: 'Internal server error', error: err.message });
+  }
+};
+
 export const sendAdmin = async (req, res) => {
     
     try {
@@ -148,4 +167,3 @@ export const sendAdmin = async (req, res) => {
       res.status(500).json({ message: 'Internal server error', error: err.message });
     }
   };
-  
