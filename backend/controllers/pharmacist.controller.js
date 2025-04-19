@@ -51,7 +51,7 @@ export const searchPatientPrescriptions = async (req, res) => {
       .sort({ prescriptionDate: -1 })
       .populate("entries.medicine_id");
 
-    console.log(prescriptions);
+    // console.log(prescriptions);
 
     const now = new Date();
     const updatedPrescriptions = [];
