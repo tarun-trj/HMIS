@@ -334,7 +334,7 @@ export const rescheduleConsultation = async (req, res) => {
       return res.status(404).json({ success: false, error: "Consultation not found." });
     }
 
-    if (!["scheduled", "ongoing"].includes(consultation.status)) {
+    if (!["scheduled", "ongoing", "requested"].includes(consultation.status)) {
       return res.status(400).json({
         success: false,
         error: `Consultation cannot be rescheduled because it is marked as '${consultation.status}'.`,
